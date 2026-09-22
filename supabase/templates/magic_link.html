@@ -1,0 +1,11 @@
+<div style="background:#09090a;padding:40px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#f2f1ed">
+  <div style="max-width:420px;margin:0 auto">
+    <p style="margin:0 0 28px;font-size:15px;font-weight:600;letter-spacing:-0.01em">Fieldwork</p>
+    <h1 style="margin:0 0 12px;font-size:24px;font-weight:500;letter-spacing:-0.02em">Your sign-in link</h1>
+    <p style="margin:0 0 28px;font-size:15px;line-height:1.5;color:#a4a3a8">It works once and expires in an hour.</p>
+    <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email" style="display:inline-block;padding:14px 22px;border-radius:14px;background:#f2f1ed;color:#0b0b0c;font-size:15px;font-weight:500;text-decoration:none">Sign in to Fieldwork</a>
+    <p style="margin:32px 0 8px;font-size:13px;color:#6d6c72">Using the installed app? Enter this code instead:</p>
+    <p style="margin:0;font-size:30px;font-weight:500;letter-spacing:0.3em;color:#f2f1ed">{{ .Token }}</p>
+    <p style="margin:40px 0 0;font-size:12px;line-height:1.5;color:#6d6c72">If you didn’t ask to sign in, you can ignore this email.</p>
+  </div>
+</div>

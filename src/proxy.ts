@@ -1,6 +1,27 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
+// Production deployment URLs forward to the canonical domain: sessions and
+// passkeys are bound to one origin, so a second hostname would mean a second,
+// signed-out app.
+function canonicalRedirect(request: NextRequest) {
+  const canonical = process.env.NEXT_PUBLIC_APP_URL;
+  if (process.env.VERCEL_ENV !== 'production' || !canonical) return null;
+  const target = new URL(canonical),
+    host = request.headers.get('host') || request.nextUrl.host;
+  if (
+    target.protocol !== 'https:' ||
+    target.host === host ||
+    target.host.endsWith('.vercel.app') ||
+    !host.endsWith('.vercel.app') ||
+    request.nextUrl.pathname.startsWith('/api/')
+  )
+    return null;
+  const url = new URL(request.nextUrl.pathname + request.nextUrl.search, target);
+  return NextResponse.redirect(url, 308);
+}
 export async function proxy(request: NextRequest) {
+  const redirect = canonicalRedirect(request);
+  if (redirect) return redirect;
   let response = NextResponse.next({ request });
   response.headers.set('Cache-Control', 'private, no-store');
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL,

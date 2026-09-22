@@ -1,6 +1,7 @@
 import { configured, serverClient } from '@/lib/supabase/server';
 import { aiConfigured } from '@/lib/server/ai';
 import { App } from '@/components/app';
+import { Landing } from '@/components/entry/landing';
 import type { AppConfig } from '@/lib/types';
 export const dynamic = 'force-dynamic';
 export default async function Page({
@@ -31,6 +32,7 @@ export default async function Page({
       !!process.env.VAPID_PRIVATE_KEY,
     demo,
   };
+  if (!user && !demo) return <Landing />;
   return (
     <App
       config={config}

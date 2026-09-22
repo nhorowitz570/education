@@ -1,6 +1,7 @@
 import 'server-only';
 import { NextResponse } from 'next/server';
 import { serverClient, adminClient, configured } from '@/lib/supabase/server';
+import { crossSite } from './origin';
 export class HttpError extends Error {
   constructor(
     message: string,
@@ -15,12 +16,8 @@ export async function context(request?: Request) {
       'Connect Supabase to use your private account. The local preview remains available.',
       503,
     );
-  if (request && request.method !== 'GET') {
-    const origin = request.headers.get('origin'),
-      expected = new URL(process.env.NEXT_PUBLIC_APP_URL || request.url).origin;
-    if (origin !== expected)
-      throw new HttpError('This request came from a different site.', 403);
-  }
+  if (request && crossSite(request))
+    throw new HttpError('This request came from a different site.', 403);
   const supabase = await serverClient();
   const { data, error } = await supabase.auth.getUser();
   if (error || !data.user) throw new HttpError('Sign in to continue.', 401);

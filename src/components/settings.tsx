@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import { PasskeySettings } from './passkeys';
 import type { ViewProps } from './app';
 import { Button, Pill, Modal, SectionTitle, download, dateLabel } from './ui';
 import { Icon } from './icons';
@@ -478,6 +479,7 @@ export function Settings(
               <Icon name={p.dark ? 'sun' : 'moon'} />
             </Button>
           </div>
+          <PasskeySettings demo={p.config.demo} />
           <Button kind="secondary" onClick={() => void p.logout()}>
             Sign out
             <Icon name="logout" />
