@@ -28,7 +28,7 @@ export function Context({ p }: { p: ViewProps }) {
           aria-label="Settings"
           onClick={() => p.go('settings')}
         >
-          <Icon name="sun" size={20} />
+          <Icon name="settings" size={20} />
         </button>
       </div>
       <div className="profile">

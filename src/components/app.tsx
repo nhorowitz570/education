@@ -195,7 +195,10 @@ function WorkspaceApp({
           </header>
           {config.demo && (
             <div className="preview-notice">
-              Design preview · example plan · saved only on this device{' '}
+              <div className="preview-details">
+                <span className="preview-label">Design preview</span>
+                <span>Example plan · saved on this device</span>
+              </div>
               <a href="/">
                 Use my account <Icon name="arrow" size={16} />
               </a>
@@ -407,11 +410,17 @@ function Auth({ config }: { config: AppConfig }) {
             }}
           >
             {mode === 'signup'
-              ? 'Already have an account?'
+              ? 'Sign in instead'
               : 'Create an account'}
           </button>
-          <button className="text-button" onClick={() => setMode('reset')}>
-            Forgot password?
+          <button
+            className="text-button"
+            onClick={() => {
+              setMode(mode === 'reset' ? 'signin' : 'reset');
+              setMessage('');
+            }}
+          >
+            {mode === 'reset' ? 'Back to sign in' : 'Forgot password?'}
           </button>
         </div>
         <a className="preview-link" href="/?preview=1">
