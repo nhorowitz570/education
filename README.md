@@ -68,7 +68,9 @@ Export from Settings periodically. Keep both plan and progress exports in a priv
 
 ## Deploy
 
-No public deployment has been made. Use an HTTPS Node host plus one persistent Node worker with outbound WebSocket access. A static host alone is insufficient; the worker cannot be replaced by occasional cron invocations during voice calls.
+The web app is deployed at [education-eosin-xi.vercel.app](https://education-eosin-xi.vercel.app/) on Vercel. The repository pins Vercel's Next.js preset in `vercel.json`; the project setting must also remain Next.js. Set `NEXT_PUBLIC_APP_URL` and Supabase Auth's Site URL to the exact HTTPS origin, and allow both `/auth/callback` and `/auth/callback?next=/reset-password` as redirect URLs.
+
+Vercel currently hosts the web app only. A separate persistent Node worker with outbound WebSocket access is still required for queued lessons, reminders, and Live voice monitoring. It has not been deployed, so those features are not production verified. An occasional cron invocation cannot replace the worker during a voice call.
 
 1. Install dependencies and inject the environment variables into both services. The web build also needs the public Supabase and VAPID values.
 2. Set `NEXT_PUBLIC_APP_URL` to the exact HTTPS origin. Run `npm run build`.
