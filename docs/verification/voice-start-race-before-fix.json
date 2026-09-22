@@ -1,0 +1,12 @@
+{
+  "at": "2026-09-22T00:48:08.419Z",
+  "disconnectedWithoutCloseRequest": true,
+  "id": "88b68846-d616-4da4-b2f7-264e181a8221",
+  "microphoneCaptured": false,
+  "remoteTrack": true,
+  "started": true,
+  "status": "unconfirmed",
+  "finalUsageConfirmed": false,
+  "usageSeconds": 0,
+  "retainedTranscriptLines": 0
+}

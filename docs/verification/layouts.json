@@ -1,0 +1,38 @@
+{
+  "at": "2026-09-22T00:57:17.382Z",
+  "layoutChecks": [
+    {
+      "height": 844,
+      "overflow": false,
+      "scrollWidth": 320,
+      "undersizedButtons": [],
+      "width": 320
+    },
+    {
+      "height": 844,
+      "overflow": false,
+      "scrollWidth": 390,
+      "undersizedButtons": [],
+      "width": 390
+    },
+    {
+      "height": 1024,
+      "overflow": false,
+      "scrollWidth": 768,
+      "undersizedButtons": [],
+      "width": 768
+    },
+    {
+      "height": 1000,
+      "overflow": false,
+      "scrollWidth": 1440,
+      "undersizedButtons": [],
+      "width": 1440
+    }
+  ],
+  "motionCheck": {
+    "buttonTransition": "0s",
+    "heroAnimation": "0s",
+    "reducedMotion": true
+  }
+}

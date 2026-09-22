@@ -1,0 +1,14 @@
+{
+  "result": {
+    "type": "object",
+    "value": {
+      "closed": true,
+      "connection": "connected",
+      "id": "dc15b15c-6278-4a25-ab1a-5d7287efa0ce",
+      "microphoneCaptured": false,
+      "remoteTrack": true,
+      "started": true,
+      "transcript": " Hey, I'm here, what do you need from this edit?"
+    }
+  }
+}

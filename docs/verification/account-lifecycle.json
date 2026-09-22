@@ -1,0 +1,10 @@
+{
+  "verified_at": "2026-09-22T01:12:48.211Z",
+  "checks": [
+    "Unconfirmed voice usage prevents account deletion (409)",
+    "Confirmed closed voice allows deletion (200)",
+    "Budget ledger survives with owner removed"
+  ],
+  "synthetic_reservation_usd": 0.01,
+  "provider_calls": 0
+}

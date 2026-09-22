@@ -1,0 +1,48 @@
+{
+  "title": "Profit versus cash",
+  "scenario": "Maya runs a small design studio. In September, she completes a $12,000 project and invoices the client; payment is due in October. September expenses are $8,000, so the studio reports a $4,000 profit. However, Maya receives only $3,000 from other customers during September. She pays $2,000 of operating bills and buys computer equipment for $8,000, funded by an $8,000 bank loan. The studio begins September with $1,000 cash and ends with $2,000 cash. Maya still needs cash to pay upcoming bills before the $12,000 invoice is collected.",
+  "facts": [
+    {
+      "label": "Reported September profit",
+      "value": "$4,000: $12,000 revenue minus $8,000 expenses."
+    },
+    {
+      "label": "September cash received",
+      "value": "$3,000 from other customers; the $12,000 invoice is unpaid."
+    },
+    {
+      "label": "September cash paid",
+      "value": "$2,000 of operating bills and $8,000 for equipment."
+    }
+  ],
+  "explanation": "Profit measures revenue earned minus expenses incurred for a period. Cash measures money actually received and paid during that period. They can differ because a customer may owe money after work is completed, while a business may pay for equipment immediately. Here, the $12,000 project increases profit in September even though its cash arrives in October. The equipment purchase reduces cash immediately, although its cost is not treated as all September expense. The $8,000 loan supplied the cash for that purchase, so the cash account remains at $2,000 rather than becoming negative. A profitable business can therefore face a cash shortage if bills come due before customers pay.",
+  "question": "What should Maya conclude, and what is the strongest immediate decision? Explain how the September profit and the $2,000 ending cash balance can both be true.",
+  "choices": [
+    "The profit must be wrong because cash is only $2,000.",
+    "The studio is profitable, but much of its profit is tied up in unpaid customer invoices and cash is limited; Maya should protect cash until the invoice is collected.",
+    "The $8,000 loan is September revenue, so the studio actually made a $12,000 profit.",
+    "Because the studio has profit, it can safely make any further purchase now."
+  ],
+  "reasoning_prompt": "State which measure each figure describes, identify the timing difference, and explain the cash risk in one or two sentences.",
+  "transfer": {
+    "scenario": "A catering business earns $6,000 from a wedding served on June 30, but the customer will pay on July 30. Its June expenses are $4,000. During June it collects $2,000 from earlier jobs, pays $3,000 of bills, and repays a $1,000 loan. It starts June with $3,000 cash, so it ends June with $1,000 cash.",
+    "question": "Is the catering business profitable, cash-rich, both, or neither in June? What should the owner watch before accepting another large order?"
+  },
+  "uncertainty": "The lesson uses simplified figures and assumes the equipment purchase is financed entirely by the stated loan. In real accounts, the exact treatment of equipment and loan repayments depends on timing and accounting records; the core distinction remains that earned revenue and cash received can occur in different periods.",
+  "id": "d000b4c0-e55b-452a-aa80-05a734000659",
+  "session_id": "w01-monday",
+  "objective_id": "Explain and apply: Profit versus cash",
+  "subject": "finance",
+  "duration": 20,
+  "sources": [
+    {
+      "url": "https://openstax.org/books/principles-financial-accounting/pages/16-1-explain-the-purpose-of-the-statement-of-cash-flows",
+      "title": "16.1 Explain the Purpose of the Statement of Cash Flows - Principles of Accounting, Volume 1: Financial Accounting | OpenStax",
+      "checked_at": "2026-09-22T00:34:21.137Z",
+      "supports": "Supports the distinction between cash inflows/outflows and accrual income, including timing differences when revenue is recorded before the related cash is received.",
+      "excerpt": "potential of a company to generate cash in the future. Accrual accounting creates timing differences between income statement"
+    }
+  ],
+  "fictional": true,
+  "generated": true
+}

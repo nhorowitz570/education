@@ -1,0 +1,222 @@
+{
+  "file": {
+    "id": "01M330NHHR8TDBZH6ARGSW4X8R",
+    "name": "Fieldwork — Education & growth"
+  },
+  "contentHash": {
+    "tokens": "aca8fc72"
+  }
+}
+(
+    <div style={{ backgroundColor: 'var(--color-bg)', boxSizing: 'border-box', display: 'flex', fontSynthesis: 'none', gap: '32px', height: '900px', MozOsxFontSmoothing: 'grayscale', overflow: 'clip', overflowWrap: 'anywhere', padding: '24px', WebkitFontSmoothing: 'antialiased', width: '1440px' }}>
+      <div style={{ alignItems: 'center', backgroundColor: 'var(--color-panel)', borderRadius: '28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', flexShrink: '0', fontFamily: 'var(--font-body)', gap: '40px', height: '852px', paddingBlock: '24px', paddingInline: '8px', width: '80px' }}>
+        <div style={{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '48px', justifyContent: 'center', width: '48px' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+            <path d="M3 4h6c2 0 3 1 3 3v14c0-2-1-3-3-3H3zM21 4h-6c-2 0-3 1-3 3v14c0-2 1-3 3-3h6z" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '16px' }}>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '5px', width: '64px' }}>
+            <div style={{ alignItems: 'center', backgroundColor: 'var(--color-text)', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '44px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+                <path d="m3 10 9-7 9 7v10H3zM9 20v-7h6v7" fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '11px', fontWeight: 600, lineHeight: '15px' }}>
+              Today
+            </div>
+          </div>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '5px', width: '64px' }}>
+            <div style={{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '44px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+                <path d="M3 4h6c2 0 3 1 3 3v14c0-2-1-3-3-3H3zM21 4h-6c-2 0-3 1-3 3v14c0-2 1-3 3-3h6z" fill="none" stroke="#202023" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '11px', lineHeight: '15px' }}>
+              Learn
+            </div>
+          </div>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '5px', width: '64px' }}>
+            <div style={{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '44px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+                <path d="M3 9v6M6 6v12M6 12h12M18 6v12M21 9v6" fill="none" stroke="#202023" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '11px', lineHeight: '15px' }}>
+              Growth
+            </div>
+          </div>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '5px', width: '64px' }}>
+            <div style={{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '44px' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+                <path d="M4 20v-7M10 20V8M16 20V3M3 20h18" fill="none" stroke="#202023" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '11px', lineHeight: '15px' }}>
+              Progress
+            </div>
+          </div>
+        </div>
+        <div style={{ boxSizing: 'border-box', display: 'flex', flexBasis: '0%', flexDirection: 'column', flexGrow: '1', fontFamily: 'var(--font-body)', gap: '20px' }} />
+        <div style={{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '44px' }}>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="5" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div style={{ alignItems: 'center', backgroundColor: 'var(--color-lavender)', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '40px', justifyContent: 'center', width: '40px' }}>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '12px', lineHeight: '17px' }}>
+            NH
+          </div>
+        </div>
+      </div>
+      <div style={{ boxSizing: 'border-box', display: 'flex', flexBasis: '0%', flexDirection: 'column', flexGrow: '1', fontFamily: 'var(--font-body)', gap: '28px', minWidth: '0px', paddingBlock: '20px' }}>
+        <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '16px', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 500, letterSpacing: '0.02em', lineHeight: '18px' }}>
+            Monday, September 28
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 500, letterSpacing: '0.02em', lineHeight: '18px' }}>
+            Week 1 of 36
+          </div>
+        </div>
+        <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '60px', letterSpacing: '-0.04em', lineHeight: '67px', whiteSpace: 'pre-wrap' }}>
+          Good morning,<br />Nathan.
+        </div>
+        <div style={{ backgroundColor: 'var(--color-mint)', borderRadius: '26px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '24px', padding: '32px' }}>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '16px', justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '10px' }}>
+              <div style={{ alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '36px', justifyContent: 'center', width: '36px' }}>
+                <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+                  <rect x="3" y="6" width="18" height="15" rx="3" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M8 6V3h8v3M3 12h18M10 12v3h4v-3" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </div>
+              <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '13px', lineHeight: '18px' }}>
+                Finance
+              </div>
+            </div>
+            <div style={{ alignItems: 'center', backgroundColor: '#E8F7F0', borderRadius: '24px', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', paddingBlock: '8px', paddingInline: '14px' }}>
+              <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 500, lineHeight: '18px' }}>
+                20 min
+              </div>
+            </div>
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '46px', fontWeight: 500, letterSpacing: '-0.04em', lineHeight: '52px', whiteSpace: 'pre-wrap' }}>
+            Explain why<br />profit isn’t cash.
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '18px', lineHeight: '25px', whiteSpace: 'pre-wrap' }}>
+            A studio made the sale.<br />Can it pay the bills?
+          </div>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '16px', justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ alignItems: 'center', backgroundColor: 'var(--color-text)', borderRadius: '30px', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '12px', justifyContent: 'center', minHeight: '52px', paddingInline: '24px' }}>
+              <div style={{ boxSizing: 'border-box', color: '#FFFFFF', fontFamily: 'var(--font-body)', fontSize: '16px', fontWeight: 600, lineHeight: '22px' }}>
+                Start lesson →
+              </div>
+            </div>
+            <div style={{ boxSizing: 'border-box', color: '#3C5950', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px' }}>
+              One situation. Your decision.
+            </div>
+          </div>
+        </div>
+        <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '16px', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px' }}>
+            60 min today
+          </div>
+          <div style={{ alignItems: 'center', backgroundColor: '#F1EBE5', borderRadius: '30px', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '12px', justifyContent: 'center', minHeight: '44px', paddingInline: '18px' }}>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '14px', fontWeight: 600, lineHeight: '20px' }}>
+              Make it shorter
+            </div>
+          </div>
+        </div>
+        <div style={{ alignItems: 'center', borderBottomColor: 'var(--color-border)', borderBottomStyle: 'solid', borderBottomWidth: '1px', borderTopColor: 'var(--color-border)', borderTopStyle: 'solid', borderTopWidth: '1px', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', justifyContent: 'space-between', paddingBlock: '22px', paddingInline: '8px' }}>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '20px', lineHeight: '28px' }}>
+            Later today
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px' }}>
+            2 learning activities · optional workout +
+          </div>
+        </div>
+        <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '15px', lineHeight: '21px' }}>
+          The first hour is enough for your first two weeks.
+        </div>
+      </div>
+      <div style={{ backgroundColor: 'var(--color-panel)', borderRadius: '28px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', flexShrink: '0', fontFamily: 'var(--font-body)', gap: '24px', height: '852px', paddingBlock: '28px', paddingInline: '24px', width: '304px' }}>
+        <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '16px', justifyContent: 'space-between', width: '100%' }}>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 500, letterSpacing: '0.02em', lineHeight: '18px' }}>
+            YOUR SPACE
+          </div>
+          <svg width="20" height="20" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+            <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="12" cy="12" r="5" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </div>
+        <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '12px', paddingBlock: '12px' }}>
+          <div style={{ alignItems: 'center', backgroundColor: 'var(--color-lavender)', borderRadius: '50%', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '64px', justifyContent: 'center', width: '64px' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: '0' }}>
+              <path d="M3 4h6c2 0 3 1 3 3v14c0-2-1-3-3-3H3zM21 4h-6c-2 0-3 1-3 3v14c0-2 1-3 3-3h6z" fill="none" stroke="var(--color-text)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '22px', fontWeight: 500, letterSpacing: '-0.04em', lineHeight: '25px' }}>
+            Nathan
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px' }}>
+            Education & growth
+          </div>
+        </div>
+        <div style={{ backgroundColor: '#FFFFFF', borderRadius: '22px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '18px', padding: '20px' }}>
+          <div style={{ alignItems: 'center', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', gap: '16px', justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '15px', fontWeight: 600, lineHeight: '21px' }}>
+              This week
+            </div>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px' }}>
+              0 / 4
+            </div>
+          </div>
+          <div style={{ boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', justifyContent: 'space-between' }}>
+            <div style={{ alignItems: 'center', backgroundColor: 'var(--color-mint)', borderRadius: '20px', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '38px' }}>
+              <div style={{ boxSizing: 'border-box', color: '#202023', fontFamily: 'var(--font-body)', fontSize: '13px', lineHeight: '18px' }}>
+                M
+              </div>
+            </div>
+            <div style={{ alignItems: 'center', backgroundColor: '#F6F2EE', borderRadius: '20px', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '38px' }}>
+              <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', lineHeight: '18px' }}>
+                T
+              </div>
+            </div>
+            <div style={{ alignItems: 'center', backgroundColor: '#F6F2EE', borderRadius: '20px', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '38px' }}>
+              <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', lineHeight: '18px' }}>
+                W
+              </div>
+            </div>
+            <div style={{ alignItems: 'center', backgroundColor: '#F6F2EE', borderRadius: '20px', boxSizing: 'border-box', display: 'flex', flexShrink: '0', fontFamily: 'var(--font-body)', height: '44px', justifyContent: 'center', width: '38px' }}>
+              <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', lineHeight: '18px' }}>
+                T
+              </div>
+            </div>
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px', whiteSpace: 'pre-wrap' }}>
+            Four mornings.<br />Friday stays open.
+          </div>
+        </div>
+        <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 500, letterSpacing: '0.02em', lineHeight: '18px' }}>
+          WORKING TOWARD
+        </div>
+        <div style={{ backgroundColor: 'var(--color-lavender)', borderRadius: '22px', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', fontFamily: 'var(--font-body)', gap: '14px', padding: '20px' }}>
+          <div style={{ alignItems: 'center', backgroundColor: '#EEEAFB', borderRadius: '24px', boxSizing: 'border-box', display: 'flex', fontFamily: 'var(--font-body)', paddingBlock: '8px', paddingInline: '14px' }}>
+            <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 500, lineHeight: '18px' }}>
+              December 17
+            </div>
+          </div>
+          <div style={{ boxSizing: 'border-box', color: 'var(--color-text)', fontFamily: 'var(--font-body)', fontSize: '25px', fontWeight: 500, letterSpacing: '-0.04em', lineHeight: '28px', whiteSpace: 'pre-wrap' }}>
+            A cash briefing<br />you can explain.
+          </div>
+          <div style={{ boxSizing: 'border-box', color: '#514965', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px', whiteSpace: 'pre-wrap' }}>
+            Plus a delegation brief<br />someone can use.
+          </div>
+        </div>
+        <div style={{ boxSizing: 'border-box', color: 'var(--color-secondary)', fontFamily: 'var(--font-body)', fontSize: '14px', lineHeight: '20px', whiteSpace: 'pre-wrap' }}>
+          Your progress stays with you,<br />even when plans change.
+        </div>
+      </div>
+    </div>
+  )

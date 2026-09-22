@@ -1,0 +1,63 @@
+{
+  "pdf": "/Users/nhorowitz/Downloads/Combined (2).pdf",
+  "guides": [
+    {
+      "key": "journeyMap",
+      "path": "/Users/nhorowitz/Downloads/Start here · Journey map.png"
+    },
+    {
+      "key": "interactionSpec",
+      "path": "/Users/nhorowitz/Downloads/Interaction, motion & accessibility.png"
+    },
+    {
+      "key": "stateSpec",
+      "path": "/Users/nhorowitz/Downloads/States, privacy & component details.png"
+    },
+    {
+      "key": "mobileOverview",
+      "path": "/Users/nhorowitz/Downloads/Studio · Mobile review.png"
+    }
+  ],
+  "referenceArtboards": [
+    {
+      "id": "44U-0",
+      "name": "Start here · Journey map",
+      "childCount": 12,
+      "width": 1600,
+      "height": 1200,
+      "worldX": 0,
+      "worldY": 0,
+      "pageId": "p-4-0"
+    },
+    {
+      "id": "49Z-0",
+      "name": "Interaction, motion & accessibility",
+      "childCount": 8,
+      "width": 1440,
+      "height": 1200,
+      "worldX": 1696.002,
+      "worldY": 0,
+      "pageId": "p-4-0"
+    },
+    {
+      "id": "4B5-0",
+      "name": "States, privacy & component details",
+      "childCount": 5,
+      "width": 1440,
+      "height": 1100,
+      "worldX": 3232.001,
+      "worldY": 0,
+      "pageId": "p-4-0"
+    },
+    {
+      "id": "4CN-0",
+      "name": "Studio · Mobile review",
+      "childCount": 2,
+      "width": 1400,
+      "height": 900,
+      "worldX": 0,
+      "worldY": 1339.999,
+      "pageId": "p-4-0"
+    }
+  ]
+}

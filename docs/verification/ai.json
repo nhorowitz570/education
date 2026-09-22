@@ -1,0 +1,13 @@
+{
+  "at": "2026-09-22T00:34:40.143Z",
+  "provider": "OpenRouter",
+  "model": "openai/gpt-5.6-luna",
+  "structuredResponse": true,
+  "generatedLesson": true,
+  "verifiedSources": [
+    "https://openstax.org/books/principles-financial-accounting/pages/16-1-explain-the-purpose-of-the-statement-of-cash-flows"
+  ],
+  "incorrectReasoningRejected": true,
+  "settledUSD": 0.15485000000000004,
+  "heldUSD": 0
+}

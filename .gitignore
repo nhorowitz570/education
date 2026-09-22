@@ -1,0 +1,18 @@
+node_modules/
+.next/
+.env*
+!.env.example
+*.tsbuildinfo
+test-results/
+playwright-report/
+supabase/.temp/
+.DS_Store
+coverage/
+# Original personal inputs remain local; a sanitized import example ships in examples/.
+Nathan_Education_Plan.md
+Nathan_Plan_Import.json
+Codex_Web_App_Prompt.md
+2026-27 Growth System.md
+.qa-*
+# Local research snapshots; concise original notes with links ship instead.
+docs/research/

@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-22T00:33:37.894Z",
+  "project": "Fieldwork",
+  "passed": [
+    "Unauthenticated server routes rejected",
+    "Cross-origin mutations rejected",
+    "Authenticated JSON preview and activation",
+    "Identical import is idempotent",
+    "Two accounts and anonymous requests cannot read another plan",
+    "Ownership reassignment and privileged RPC access rejected",
+    "Private Storage isolates both reads and writes",
+    "Persisted lesson resumes without regeneration or answer-key exposure",
+    "Lesson completion is synced and points cannot duplicate",
+    "Completed evidence is immutable, including service writes",
+    "Plan revision preserves completion evidence",
+    "Concurrent AI reservations respect the per-account hard limit",
+    "Reminder delivery claims deduplicate atomically",
+    "Account export includes immutable versions and saved evidence"
+  ]
+}

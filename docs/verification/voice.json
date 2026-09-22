@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-22T00:18:02.734Z",
+  "transport": "server WebSocket with synthetic silence; no user microphone captured",
+  "reports": [
+    {
+      "voice": "cedar",
+      "voiceAccepted": true,
+      "sessionStarted": true,
+      "audioBytes": 432000,
+      "transcript": "Hey, I’m here. What do you need from this edit?",
+      "seconds": 9,
+      "finalUsageConfirmed": true,
+      "costUSD": 0.0125
+    },
+    {
+      "voice": "willow",
+      "voiceAccepted": true,
+      "sessionStarted": true,
+      "audioBytes": 432000,
+      "transcript": " Okay, before I dive in, what do you need from this edit?",
+      "seconds": 9,
+      "finalUsageConfirmed": true,
+      "costUSD": 0.0125
+    }
+  ]
+}
