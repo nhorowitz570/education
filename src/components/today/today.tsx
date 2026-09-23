@@ -9,7 +9,12 @@ import { useApp } from '@/components/app/provider';
 import type { Action, TodayView } from '@/lib/learning/today';
 import type { RunView } from '@/lib/learning/run';
 
-type Payload = { today: TodayView; date: string; preview: { type: string; minutes: number; optional?: boolean }[] };
+type Payload = {
+  today: TodayView;
+  date: string;
+  preview: { type: string; minutes: number; optional?: boolean }[];
+  insight: { id: string; headline: string } | null;
+};
 
 const STEP: Record<string, string> = {
   recall: 'Warm-up',
@@ -43,8 +48,10 @@ export function Today() {
     setStartError('');
     try {
       const { run } = await api<{ run: RunView }>('/api/runs', {
-        kind: a.kind === 'return' ? 'return' : a.kind === 'review' ? 'review' : a.kind === 'explore' ? 'explore' : 'session',
+        kind:
+          a.kind === 'return' || a.kind === 'review' || a.kind === 'explore' || a.kind === 'rehearsal' ? a.kind : 'session',
         sessionId: a.sessionId,
+        milestone: a.milestone,
         minutes: a.minutes,
         topic: extra?.topic,
       });
@@ -194,12 +201,28 @@ export function Today() {
       <section className="more" aria-label="More">
         <p className="eyebrow">{t.phase === 'learning-day' ? 'Also' : 'A bit more'}</p>
         <div className="rows">
+          {data!.insight && (
+            <Link href="/insights" className="row insight-row">
+              <span className="row-glyph insight-glyph">
+                <Icon name="insights" size={18} />
+              </span>
+              <div className="grow">
+                <p>Your week, read honestly</p>
+                <p className="sub">{data!.insight.headline}</p>
+              </div>
+              <span className="new-dot" aria-label="New" />
+              <Icon name="chevron" size={18} />
+            </Link>
+          )}
           {t.secondary
             .filter((s) => s.kind !== 'session')
             .map((s) => (
               <button key={s.label} className="row" onClick={() => void run(s)} disabled={!!busy}>
                 <span className="row-glyph">
-                  <Icon name={s.kind === 'practice' ? 'practice' : s.kind === 'review' ? 'refresh' : 'spark'} size={18} />
+                  <Icon
+                    name={s.kind === 'practice' ? 'practice' : s.kind === 'review' ? 'refresh' : s.kind === 'rehearsal' ? 'target' : 'spark'}
+                    size={18}
+                  />
                 </span>
                 <div className="grow">
                   <p>{s.label}</p>

@@ -1,11 +1,11 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, stream, ApiError } from '@/lib/client/api';
-import type { Ask, AskIntent, Beat, Block, Feedback, RunView } from '@/lib/learning/run';
+import type { Ask, AskIntent, Beat, Block, Confidence, Feedback, RunView } from '@/lib/learning/run';
 
 type Live = { partial: Block[]; error?: string };
 type LiveFeedback = { verdict?: Feedback['verdict']; blocks: Block[] };
-type LiveAsk = { prompt: string; intent: AskIntent; partial: Block[]; error?: string };
+type LiveAsk = { prompt: string; intent: AskIntent; quote?: string; partial: Block[]; error?: string };
 
 const TEACH = new Set(['situation', 'explain', 'recap']);
 export const hasContent = (b: Beat | undefined) => !!b && (b.type === 'break' || !!b.blocks);
@@ -130,13 +130,21 @@ export function useRun(id: string) {
   }, [run, current, currentReady, index, ensure]);
 
   const answer = useCallback(
-    async (beatId: string, response: { choice?: number; text?: string }) => {
-      patchBeat(beatId, { response: { ...response, at: new Date().toISOString() }, status: 'answered' });
+    async (beatId: string, response: { choice?: number; text?: string; confidence?: Confidence }, retry = false) => {
+      const before = runRef.current?.beats.find((b) => b.id === beatId);
+      patchBeat(beatId, {
+        response: { ...response, at: new Date().toISOString() },
+        status: 'answered',
+        // A retry keeps the first try visible above the new one.
+        ...(retry && before?.response && before.feedback
+          ? { attempts: [...(before.attempts || []), { response: before.response, feedback: before.feedback }], feedback: undefined }
+          : {}),
+      });
       setGrading((g) => ({ ...g, [beatId]: { blocks: [] } }));
       try {
         const done = await stream<Beat>(
           `/api/runs/${id}`,
-          { action: 'answer', beatId, ...response },
+          { action: 'answer', beatId, ...response, retry },
           {
             onSnap: (d) => {
               const f = (d as { feedback?: LiveFeedback }).feedback;
@@ -146,7 +154,12 @@ export function useRun(id: string) {
         );
         patchBeat(beatId, done);
       } catch (e) {
-        patchBeat(beatId, { response: undefined, status: 'ready' });
+        patchBeat(
+          beatId,
+          retry && before
+            ? { response: before.response, feedback: before.feedback, attempts: before.attempts, status: before.status }
+            : { response: undefined, status: 'ready' },
+        );
         setError((e as Error).message);
       } finally {
         setGrading((g) => {
@@ -160,17 +173,17 @@ export function useRun(id: string) {
   );
 
   const ask = useCallback(
-    async (beatId: string, intent: AskIntent, prompt = '') => {
-      setAsking((a) => ({ ...a, [beatId]: { prompt, intent, partial: [] } }));
+    async (beatId: string, intent: AskIntent, prompt = '', quote?: string) => {
+      setAsking((a) => ({ ...a, [beatId]: { prompt, intent, quote, partial: [] } }));
       try {
         const done = await stream<Ask>(
           `/api/runs/${id}`,
-          { action: 'ask', beatId, intent, prompt },
+          { action: 'ask', beatId, intent, prompt, ...(quote ? { quote } : {}) },
           {
             onSnap: (d) =>
               setAsking((a) => ({
                 ...a,
-                [beatId]: { prompt, intent, partial: (d as { blocks?: Block[] }).blocks || [] },
+                [beatId]: { prompt, intent, quote, partial: (d as { blocks?: Block[] }).blocks || [] },
               })),
           },
         );
@@ -188,7 +201,7 @@ export function useRun(id: string) {
           return next;
         });
       } catch (e) {
-        setAsking((a) => ({ ...a, [beatId]: { prompt, intent, partial: [], error: (e as Error).message } }));
+        setAsking((a) => ({ ...a, [beatId]: { prompt, intent, quote, partial: [], error: (e as Error).message } }));
       }
     },
     [id],

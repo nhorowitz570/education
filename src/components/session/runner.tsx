@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { api } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
 import { BeatView, INTENT_TEXT } from './beat';
 import { hasContent, useRun, type RunState } from './use-run';
@@ -25,6 +26,30 @@ export function Runner({ id }: { id: string }) {
   const beats = run?.beats || [];
   const current = beats[index];
   const follow = useFollow(current?.id);
+  // Finished steps fold into a one-line trail; the learner can open any.
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const toggle = useCallback((beatId: string) => {
+    setExpanded((s) => {
+      const next = new Set(s);
+      if (next.has(beatId)) next.delete(beatId);
+      else next.add(beatId);
+      return next;
+    });
+  }, []);
+  // A question about a highlighted passage, waiting for the learner to type it.
+  const [quote, setQuote] = useState<{ beatId: string; text: string } | null>(null);
+  const askAbout = useCallback(
+    (beatId: string, text: string, intent: AskIntent | null) => {
+      if (!intent) return setQuote({ beatId, text });
+      void state.ask(beatId, intent, '', text);
+      // An answer about an earlier step appears under it, so open it and look.
+      if (beatId !== current?.id) {
+        setExpanded((s) => new Set(s).add(beatId));
+        setTimeout(() => document.getElementById('asking-' + beatId)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 120);
+      }
+    },
+    [state, current?.id],
+  );
 
   // Enter continues when nothing is being typed.
   const canContinue = !!current && ready(current, state);
@@ -82,15 +107,30 @@ export function Runner({ id }: { id: string }) {
         onClose={() => router.push('/')}
       />
       <div className="session-col">
-        {beats.slice(0, index + 1).map((b, i) => (
-          <BeatView key={b.id} beat={b} state={state} current={i === index} track={track}>
-            {b.type === 'break' && i === index && <BreakTimer minutes={b.minutes} onDone={advance} />}
-            {b.type === 'roleplay' && b.blocks && <Roleplay run={run} beat={b} onDone={() => void state.next()} />}
-          </BeatView>
-        ))}
+        <div className="trail">
+          {beats.slice(0, index + 1).map((b, i) => (
+            <BeatView
+              key={b.id}
+              beat={b}
+              state={state}
+              current={i === index}
+              track={track}
+              collapsed={i < index && !expanded.has(b.id)}
+              onToggle={() => toggle(b.id)}
+            >
+              {b.type === 'break' && i === index && (
+                <BreakTimer runId={run.id} beatId={b.id} minutes={b.minutes} until={run.break_until} onDone={advance} />
+              )}
+              {b.type === 'roleplay' && b.blocks && <Roleplay run={run} beat={b} onDone={() => void state.next()} />}
+            </BeatView>
+          ))}
+        </div>
         <div ref={follow.end} className="session-end" />
       </div>
+      <SelectionAsk busy={(id) => !!state.asking[id] && !state.asking[id].error} onAsk={askAbout} />
       <Dock
+        quote={quote}
+        onClearQuote={() => setQuote(null)}
         state={state}
         beat={current}
         canContinue={canContinue}
@@ -195,7 +235,11 @@ function Dock({
   atCommitment,
   onContinue,
   onFinishHere,
+  quote,
+  onClearQuote,
 }: {
+  quote: { beatId: string; text: string } | null;
+  onClearQuote: () => void;
   state: RunState;
   beat?: Beat;
   canContinue: boolean;
@@ -205,14 +249,22 @@ function Dock({
   onFinishHere: () => void;
 }) {
   const [text, setText] = useState('');
+  const input = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (quote) input.current?.focus();
+  }, [quote]);
   if (!beat) return null;
-  const busy = !!state.asking[beat.id] && !state.asking[beat.id].error;
+  const target = quote?.beatId || beat.id;
+  const busy = !!state.asking[target] && !state.asking[target].error;
   const openQuestion = !!beat.question && !beat.feedback;
   const generating = !beat.blocks && beat.type !== 'break';
   const follow = (beat.asks?.at(-1)?.follow_ups || beat.follow_ups || []).slice(0, 2);
   const send = (intent: AskIntent, prompt = '') => {
     if (busy) return;
-    void state.ask(beat.id, intent, prompt);
+    if (quote) {
+      void state.ask(quote.beatId, intent, prompt, quote.text);
+      onClearQuote();
+    } else void state.ask(beat.id, intent, prompt);
     setText('');
   };
   return (
@@ -242,8 +294,19 @@ function Dock({
             )}
           </div>
         )}
+        {quote && (
+          <div className="dock-quote">
+            <Icon name="spark" size={14} />
+            <span>
+              About “{quote.text.length > 90 ? quote.text.slice(0, 89) + '…' : quote.text}”
+            </span>
+            <button className="btn icon small ghost" onClick={onClearQuote} aria-label="Stop asking about this passage">
+              <Icon name="close" size={14} />
+            </button>
+          </div>
+        )}
         <div className="dock-row">
-          {beat.type !== 'break' && beat.type !== 'roleplay' && (
+          {(quote || (beat.type !== 'break' && beat.type !== 'roleplay')) && (
             <form
               className="dock-ask"
               onSubmit={(e) => {
@@ -252,11 +315,13 @@ function Dock({
               }}
             >
               <input
+                ref={input}
                 className="input"
-                placeholder={openQuestion ? 'Ask for help…' : 'Ask anything about this…'}
+                placeholder={quote ? 'What about this part?' : openQuestion ? 'Ask for help…' : 'Ask anything about this…'}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                disabled={generating}
+                onKeyDown={(e) => e.key === 'Escape' && quote && onClearQuote()}
+                disabled={generating && !quote}
                 aria-label="Ask the tutor"
                 enterKeyHint="send"
               />
@@ -300,20 +365,42 @@ function Dock({
   );
 }
 
-function BreakTimer({ minutes, onDone }: { minutes: number; onDone: () => void }) {
-  const [left, setLeft] = useState(minutes * 60);
-  const started = useRef(Date.now());
+function BreakTimer({
+  runId,
+  beatId,
+  minutes,
+  until,
+  onDone,
+}: {
+  runId: string;
+  beatId: string;
+  minutes: number;
+  until?: string | null;
+  onDone: () => void;
+}) {
+  const total = minutes * 60;
+  // The server holds the end time, so a reload keeps the same break and a
+  // notification can arrive when it ends, even with the app closed.
+  const [end, setEnd] = useState(() => (until && Date.parse(until) > Date.now() ? Date.parse(until) : Date.now() + total * 1000));
+  const [left, setLeft] = useState(() => Math.max(0, Math.round((end - Date.now()) / 1000)));
+  const [notify, setNotify] = useState(false);
+  useEffect(() => {
+    setNotify(typeof Notification !== 'undefined' && Notification.permission === 'granted');
+    api<{ until: string }>(`/api/runs/${runId}/break`, { beatId })
+      .then((r) => setEnd(Date.parse(r.until)))
+      .catch(() => {});
+  }, [runId, beatId]);
   useEffect(() => {
     const t = setInterval(() => {
-      const l = Math.max(0, minutes * 60 - Math.floor((Date.now() - started.current) / 1000));
+      const l = Math.max(0, Math.round((end - Date.now()) / 1000));
       setLeft(l);
       if (l === 0) clearInterval(t);
     }, 500);
     return () => clearInterval(t);
-  }, [minutes]);
+  }, [end]);
   const r = 54,
     c = 2 * Math.PI * r,
-    progress = 1 - left / (minutes * 60);
+    progress = 1 - Math.min(1, left / total);
   return (
     <div className="break">
       <svg viewBox="0 0 128 128" className="break-ring" aria-hidden="true">
@@ -323,7 +410,13 @@ function BreakTimer({ minutes, onDone }: { minutes: number; onDone: () => void }
       <p className="break-time num" role="timer" aria-live="off">
         {Math.floor(left / 60)}:{String(left % 60).padStart(2, '0')}
       </p>
-      <p className="muted">{left ? 'Step away from the screen. Stretch, get water.' : 'Ready when you are.'}</p>
+      <p className="muted">
+        {left
+          ? notify
+            ? 'Step away from the screen. We’ll send a notification when it’s time.'
+            : 'Step away from the screen. Stretch, get water.'
+          : 'Ready when you are.'}
+      </p>
       {!left && (
         <button className="btn primary" onClick={onDone}>
           Continue
@@ -332,3 +425,87 @@ function BreakTimer({ minutes, onDone }: { minutes: number; onDone: () => void }
     </div>
   );
 }
+
+// Select any sentence the tutor wrote and ask about exactly that part.
+function SelectionAsk({
+  busy,
+  onAsk,
+}: {
+  busy: (beatId: string) => boolean;
+  onAsk: (beatId: string, text: string, intent: AskIntent | null) => void;
+}) {
+  const [sel, setSel] = useState<{ beatId: string; text: string; x: number; y: number; above: boolean } | null>(null);
+  const pop = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let t = 0;
+    const read = () => {
+      const s = document.getSelection();
+      const text = s?.toString().replace(/\s+/g, ' ').trim() || '';
+      if (!s || s.isCollapsed || text.length < 3 || !s.rangeCount) return setSel(null);
+      const range = s.getRangeAt(0);
+      const host = (range.commonAncestorContainer instanceof Element ? range.commonAncestorContainer : range.commonAncestorContainer.parentElement)?.closest(
+        '.beat .blocks, .beat .ask, .beat .feedback',
+      );
+      const beat = host?.closest<HTMLElement>('.beat');
+      if (!host || !beat?.dataset.beatId || host.closest('textarea,input')) return setSel(null);
+      const rect = range.getBoundingClientRect();
+      // Below the selection, clear of the phone's own copy menu; above it
+      // when that would run under the dock.
+      const below = rect.bottom + 12,
+        above = window.innerHeight - below < 170;
+      setSel({
+        beatId: beat.dataset.beatId,
+        text: text.slice(0, 600),
+        x: Math.min(window.innerWidth - 16, Math.max(16, rect.left + rect.width / 2)),
+        y: above ? rect.top - 12 : below,
+        above,
+      });
+    };
+    const onChange = () => {
+      clearTimeout(t);
+      t = window.setTimeout(read, 180);
+    };
+    const onScroll = () => sel && read();
+    document.addEventListener('selectionchange', onChange);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener('selectionchange', onChange);
+      window.removeEventListener('scroll', onScroll);
+    };
+  }, [sel]);
+  if (!sel) return null;
+  const go = (intent: AskIntent | null) => {
+    onAsk(sel.beatId, sel.text, intent);
+    document.getSelection()?.removeAllRanges();
+    setSel(null);
+  };
+  const disabled = busy(sel.beatId);
+  return (
+    <div
+      ref={pop}
+      className={'select-ask' + (sel.above ? ' above' : '')}
+      style={{ left: sel.x, top: sel.y }}
+      role="toolbar"
+      aria-label="Ask about the selected text"
+      onMouseDown={(e) => e.preventDefault()}
+    >
+      {SELECT_INTENTS.map((i) => (
+        <button key={i.intent} className="chip" disabled={disabled} onClick={() => go(i.intent)}>
+          <Icon name={i.icon} size={14} />
+          {i.label}
+        </button>
+      ))}
+      <button className="chip" disabled={disabled} onClick={() => go(null)}>
+        <Icon name="spark" size={14} />
+        Ask…
+      </button>
+    </div>
+  );
+}
+const SELECT_INTENTS: { intent: AskIntent; icon: string; label: string }[] = [
+  { intent: 'why', icon: 'why', label: 'Why?' },
+  { intent: 'example', icon: 'example', label: 'Example' },
+  { intent: 'simpler', icon: 'simpler', label: 'Simpler' },
+  { intent: 'visual', icon: 'visual', label: 'Show me' },
+];

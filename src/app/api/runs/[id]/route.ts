@@ -35,12 +35,15 @@ const action = z.discriminatedUnion('action', [
     beatId: z.string().max(80),
     choice: z.number().int().min(0).max(9).optional(),
     text: z.string().trim().max(6000).optional(),
+    confidence: z.enum(['low', 'medium', 'high']).optional(),
+    retry: z.boolean().default(false),
   }),
   z.object({
     action: z.literal('ask'),
     beatId: z.string().max(80),
     intent: z.enum(['why', 'example', 'deeper', 'simpler', 'visual', 'free']),
     prompt: z.string().trim().max(2000).default(''),
+    quote: z.string().trim().min(2).max(800).optional(),
   }),
   z.object({ action: z.literal('advance'), beatId: z.string().max(80), skip: z.boolean().default(false) }),
   z.object({ action: z.literal('finish') }),
@@ -57,11 +60,13 @@ export async function POST(r: Request, ctx: { params: Promise<{ id: string }> })
       case 'answer':
         if (v.choice === undefined && !v.text)
           return NextResponse.json({ error: 'Write an answer or choose an option.' }, { status: 400 });
-        return ndjson((send) => answerBeat(user.id, runId, v.beatId, { choice: v.choice, text: v.text }, send));
+        return ndjson((send) =>
+          answerBeat(user.id, runId, v.beatId, { choice: v.choice, text: v.text, confidence: v.confidence }, send, v.retry),
+        );
       case 'ask':
-        if (v.intent === 'free' && !v.prompt)
+        if (v.intent === 'free' && !v.prompt && !v.quote)
           return NextResponse.json({ error: 'Ask a question first.' }, { status: 400 });
-        return ndjson((send) => askBeat(user.id, runId, v.beatId, v.prompt, v.intent, send));
+        return ndjson((send) => askBeat(user.id, runId, v.beatId, v.prompt, v.intent, send, v.quote));
       case 'advance':
         return NextResponse.json(await advance(user.id, runId, v.beatId, v.skip));
       case 'finish': {

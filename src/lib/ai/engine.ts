@@ -55,6 +55,8 @@ export type GenerateOptions<T> = {
   onPartial?: (partial: unknown) => void;
   signal?: AbortSignal;
   webSearch?: boolean;
+  // Long, deliberate jobs (weekly insights) may outlast the default timeout.
+  timeoutMs?: number;
 };
 export type Generated<T> = {
   data: T;
@@ -124,7 +126,7 @@ export async function generate<T>(o: GenerateOptions<T>): Promise<Generated<T>> 
           ...(safety ? { safety_identifier: safety } : {}),
           ...(o.webSearch ? { tools: [{ type: 'web_search' as const }] } : {}),
         } as unknown as Parameters<OpenAI['responses']['stream']>[0],
-        { signal: o.signal },
+        { signal: o.signal, ...(o.timeoutMs ? { timeout: o.timeoutMs } : {}) },
       );
       for await (const event of stream) {
         if (event.type === 'response.output_text.delta') {

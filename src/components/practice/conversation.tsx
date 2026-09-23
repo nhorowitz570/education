@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { api, stream } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
 import { useApp } from '@/components/app/provider';
-import { MODES, VOICES, type Line, type PracticeFeedback } from '@/lib/practice/harness';
+import { MODES, VOICES, type Line, type PracticeFeedback, type PracticeNote } from '@/lib/practice/harness';
 import type { PracticeView } from '@/lib/server/practice';
 import { useLive } from './use-live';
 
@@ -82,6 +82,13 @@ export function Conversation({
       {phase === 'feedback' && p.feedback && (
         <FeedbackPanel
           practice={practice}
+          onRedo={async (line) => {
+            const { practice: next } = await api<{ practice: PracticeView }>('/api/practice', { redo: { from: practice.id, line } });
+            if (embedded) {
+              setPractice(next);
+              setPhase('brief');
+            } else router.push('/practice/' + next.id);
+          }}
           onAgain={async () => {
             // A fresh practice with the same settings: new brief, clean transcript.
             const { practice: next } = await api<{ practice: PracticeView }>('/api/practice', {
@@ -134,6 +141,16 @@ function Brief({
         </div>
         <span className="chip static">{MODES[p.mode].label}</span>
       </div>
+      {p.resume?.length ? (
+        <div className="brief-resume">
+          <p className="eyebrow">Redo from partway through</p>
+          <p>
+            {b.partner.name} picks up where you left off
+            {p.resume.at(-1)?.role === 'assistant' ? ':' : '.'}
+          </p>
+          {p.resume.at(-1)?.role === 'assistant' && <blockquote className="serif">“{p.resume.at(-1)!.text}”</blockquote>}
+        </div>
+      ) : null}
       <p className="brief-situation serif">{b.situation}</p>
       <dl className="brief-facts">
         <div>
@@ -311,6 +328,12 @@ function TextStage({ practice, onEnd }: { practice: PracticeView; onEnd: (t: Lin
   return (
     <div className="text-stage">
       <div className="thread" aria-live="polite">
+        {(practice.practice.resume || []).slice(-4).map((l, i) => (
+          <div key={'r' + i} className={'turn earlier ' + l.role}>
+            <p className="turn-who">{l.role === 'user' ? 'You' : b.partner.name} · earlier</p>
+            <p className="turn-text">{l.text}</p>
+          </div>
+        ))}
         {lines.map((l, i) => (
           <div key={i} className={'turn ' + l.role}>
             <p className="turn-who">{l.role === 'user' ? 'You' : b.partner.name}</p>
@@ -364,10 +387,17 @@ function TextStage({ practice, onEnd }: { practice: PracticeView; onEnd: (t: Lin
 }
 
 const RATING = { strong: 'Strong', developing: 'Developing', focus: 'Focus here' } as const;
-function FeedbackPanel({ practice, onAgain }: { practice: PracticeView; onAgain: () => Promise<void> }) {
+function FeedbackPanel({
+  practice,
+  onAgain,
+  onRedo,
+}: {
+  practice: PracticeView;
+  onAgain: () => Promise<void>;
+  onRedo: (line: number) => Promise<void>;
+}) {
   const f = practice.practice.feedback!;
-  const [open, setOpen] = useState(false),
-    [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(false);
   return (
     <div className="practice-feedback stagger">
       <p className="eyebrow">How it went</p>
@@ -398,23 +428,7 @@ function FeedbackPanel({ practice, onAgain }: { practice: PracticeView; onAgain:
           </div>
         ))}
       </div>
-      {practice.practice.transcript.length > 0 && (
-        <div className="transcript">
-          <button className="link" onClick={() => setOpen(!open)} aria-expanded={open}>
-            {open ? 'Hide transcript' : 'Show transcript'}
-          </button>
-          {open && (
-            <div className="thread">
-              {practice.practice.transcript.map((l, i) => (
-                <div key={i} className={'turn ' + l.role}>
-                  <p className="turn-who">{l.role === 'user' ? 'You' : practice.practice.brief.partner.name}</p>
-                  <p className="turn-text">{l.text}</p>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+      {practice.practice.transcript.length > 0 && <Replay practice={practice} notes={f.notes || []} onRedo={onRedo} />}
       <div className="row-inline">
         <button
           className="btn quiet"
@@ -428,6 +442,109 @@ function FeedbackPanel({ practice, onAgain }: { practice: PracticeView; onAgain:
           Try it again
         </button>
       </div>
+    </div>
+  );
+}
+
+const NOTE_LABEL: Record<PracticeNote['kind'], string> = { strength: 'Worked', change: 'Change', moment: 'Turning point' };
+
+// The conversation laid out as a timeline, with feedback pinned to the exact
+// lines it is about. Any of your lines can be the start of a redo.
+function Replay({
+  practice,
+  notes,
+  onRedo,
+}: {
+  practice: PracticeView;
+  notes: PracticeNote[];
+  onRedo: (line: number) => Promise<void>;
+}) {
+  const p = practice.practice;
+  const lines = p.transcript;
+  const [open, setOpen] = useState(notes.length > 0),
+    [busy, setBusy] = useState<number | null>(null),
+    [error, setError] = useState(''),
+    [lit, setLit] = useState<number | null>(null);
+  const byLine = new Map<number, PracticeNote[]>();
+  for (const n of notes) byLine.set(n.line, [...(byLine.get(n.line) || []), n]);
+  const words = (t: string) => Math.max(1, t.split(/\s+/).length);
+  const total = lines.reduce((s, l) => s + words(l.text), 0);
+  const jump = (i: number) => {
+    setOpen(true);
+    setLit(i);
+    requestAnimationFrame(() =>
+      document.getElementById(`line-${practice.id}-${i}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+    );
+    setTimeout(() => setLit((x) => (x === i ? null : x)), 1600);
+  };
+  return (
+    <div className="replay">
+      <div className="replay-head">
+        <p className="eyebrow">Replay</p>
+        <button className="link" onClick={() => setOpen(!open)} aria-expanded={open}>
+          {open ? 'Hide transcript' : 'Show transcript'}
+        </button>
+      </div>
+      <div className="timeline" role="list" aria-label="Conversation timeline">
+        {lines.map((l, i) => {
+          const n = byLine.get(i);
+          return (
+            <button
+              key={i}
+              role="listitem"
+              className={'tl-seg ' + l.role + (n ? ' noted k-' + n[0].kind : '')}
+              style={{ flexGrow: words(l.text) / total, animationDelay: `${Math.min(i * 25, 700)}ms` }}
+              onClick={() => jump(i)}
+              aria-label={`${l.role === 'user' ? 'You' : p.brief.partner.name}: ${l.text.slice(0, 80)}${n ? ` (note: ${NOTE_LABEL[n[0].kind]})` : ''}`}
+            >
+              {n && <i className="tl-mark" aria-hidden="true" />}
+            </button>
+          );
+        })}
+      </div>
+      <div className="tl-legend" aria-hidden="true">
+        <span className="you">You</span>
+        <span className="them">{p.brief.partner.name}</span>
+        {notes.length > 0 && <span className="noted">Notes</span>}
+      </div>
+      {error && <p className="conversation-error">{error}</p>}
+      {open && (
+        <div className="thread replay-thread">
+          {(p.resume || []).length > 0 && <p className="label">Picked up partway through an earlier conversation.</p>}
+          {lines.map((l, i) => (
+            <div key={i} id={`line-${practice.id}-${i}`} className={'turn ' + l.role + (lit === i ? ' lit' : '')}>
+              <p className="turn-who">{l.role === 'user' ? 'You' : p.brief.partner.name}</p>
+              <p className="turn-text">{l.text}</p>
+              {(byLine.get(i) || []).map((n, j) => (
+                <div key={j} className={'line-note k-' + n.kind}>
+                  <span className="label">{NOTE_LABEL[n.kind]}</span>
+                  <p>{n.note}</p>
+                </div>
+              ))}
+              {l.role === 'user' && (
+                <button
+                  className="btn small ghost redo"
+                  data-busy={busy === i || undefined}
+                  disabled={busy !== null}
+                  onClick={async () => {
+                    setBusy(i);
+                    setError('');
+                    try {
+                      await onRedo(i);
+                    } catch (e) {
+                      setError((e as Error).message);
+                    } finally {
+                      setBusy(null);
+                    }
+                  }}
+                >
+                  <Icon name="refresh" size={14} /> Redo from here
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

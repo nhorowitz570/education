@@ -44,6 +44,9 @@ export type PracticeState = {
   feedback?: PracticeFeedback;
   parent?: { runId: string; beatId: string };
   concept?: string;
+  // A redo: the earlier part of another practice, replayed as context.
+  resume?: Line[];
+  redo_of?: { id: string; line: number };
 };
 export type PracticeView = {
   id: string;
@@ -214,6 +217,40 @@ export async function createPractice(
   return toView(data as Awaited<ReturnType<typeof load>>);
 }
 
+// "Redo from here": the same partner and brief, picked up at one of the
+// learner's lines, so a hard moment can be tried again without replaying
+// the whole conversation. No model call; it opens instantly.
+export async function redoPractice(userId: string, fromId: string, line: number) {
+  const source = await load(userId, fromId);
+  const p = source.context.practice;
+  if (p.transcript[line]?.role !== 'user') throw new HttpError('Pick one of your own lines to redo from.', 400);
+  const practice: PracticeState = {
+    ...p,
+    channel: null,
+    transcript: [],
+    seconds: undefined,
+    feedback: undefined,
+    parent: undefined,
+    resume: [...(p.resume || []), ...p.transcript.slice(0, line)].slice(-60),
+    redo_of: { id: fromId, line },
+  };
+  const { data, error } = await db()
+    .from('runs')
+    .insert({
+      user_id: userId,
+      plan_id: source.plan_id,
+      kind: 'practice',
+      title: source.title,
+      beats: [],
+      context: { practice },
+      minutes_planned: p.minutes,
+    })
+    .select('id,title,status,started_at,context,plan_id')
+    .single();
+  if (error) throw new Error('The redo could not be created.');
+  return toView(data as Awaited<ReturnType<typeof load>>);
+}
+
 // ---------- Live voice ----------
 
 type VoiceRow = {
@@ -290,7 +327,7 @@ export async function startLive(userId: string, practiceId: string, sdp: string)
     created = await client.live.create({
       session: {
         model: env.OPENAI_VOICE_MODEL,
-        instructions: liveInstructions(p.brief, { mode: p.mode, difficulty: p.difficulty, minutes: p.minutes, pause: 4 }),
+        instructions: liveInstructions(p.brief, { mode: p.mode, difficulty: p.difficulty, minutes: p.minutes, pause: 4, resume: p.resume }),
         audio: { output: { voice: p.voice } },
         store: false,
         delegation: { type: 'client' },
@@ -360,7 +397,7 @@ export async function conduct(userId: string, row: VoiceRow, practice: PracticeS
   };
   const finished = new Promise<void>((resolve) => {
     ws.on('open', () => {
-      send({ type: 'session.commentary.append', delegation_id: null, content: openingCommentary(practice.brief) });
+      send({ type: 'session.commentary.append', delegation_id: null, content: openingCommentary(practice.brief, practice.resume) });
       void patchVoice(row.id, userId, { monitor: true }).catch(() => {});
     });
     ws.on('message', (raw) => {
@@ -442,6 +479,17 @@ export async function conduct(userId: string, row: VoiceRow, practice: PracticeS
   });
 }
 
+// Numbered so feedback notes can point at exact lines; long calls keep their end.
+function numbered(p: PracticeState) {
+  const lines = p.transcript.map((l, i) => `[${i}] ${l.role === 'user' ? 'Learner' : p.brief.partner.name}: ${l.text}`);
+  let out = lines.join('\n');
+  while (out.length > 30000 && lines.length > 1) {
+    lines.shift();
+    out = lines.join('\n');
+  }
+  return out;
+}
+
 const tidy = (lines: Line[]) =>
   lines.map((l) => ({ ...l, text: l.text.replace(/\s+/g, ' ').trim() })).filter((l) => l.text).slice(-400);
 
@@ -468,13 +516,13 @@ export async function say(userId: string, id: string, message: string, onPartial
     userId,
     schema: partnerSchema,
     context: [
-      { name: 'character', content: liveInstructions(p.brief, { mode: p.mode, difficulty: p.difficulty, minutes: p.minutes, pause: 3 }) },
+      { name: 'character', content: liveInstructions(p.brief, { mode: p.mode, difficulty: p.difficulty, minutes: p.minutes, pause: 3, resume: p.resume }) },
       {
         name: 'conversation',
         content: p.transcript.map((l) => `${l.role === 'user' ? 'Learner' : p.brief.partner.name}: ${l.text}`).join('\n') || null,
       },
     ],
-    input: opening ? `Open the conversation with a line close to: "${p.brief.opening}"` : `Learner: ${message}`,
+    input: opening ? openingCommentary(p.brief, p.resume) : `Learner: ${message}`,
     onPartial: (v) => onPartial((v as { reply?: string }).reply || ''),
   });
   const next: Line[] = opening ? [{ role: 'assistant', text: data.reply }] : [...transcript, { role: 'assistant', text: data.reply }];
@@ -521,12 +569,23 @@ export async function assess(userId: string, id: string, clientTranscript?: Line
           `Partner: ${p.brief.partner.name}, ${p.brief.partner.role} — ${p.brief.partner.stance}`,
         ].join('\n'),
       },
+      {
+        name: 'earlier',
+        content: p.resume?.length
+          ? `This is a redo from partway through. The earlier part is context only; grade only the new transcript.\n${p.resume
+              .map((l) => `${l.role === 'user' ? 'Learner' : p.brief.partner.name}: ${l.text}`)
+              .join('\n')
+              .slice(-8000)}`
+          : null,
+      },
     ],
-    input: `Transcript (speech-to-text; ignore transcription errors and disfluencies):\n${p.transcript
-      .map((l) => `${l.role === 'user' ? 'Learner' : p.brief.partner.name}: ${l.text}`)
-      .join('\n')
-      .slice(-30000)}\n\nCriteria to rate (2–4, specific to this practice type): e.g. clarity of the main point, listening and responding to what was said, handling pushback, reasoning and evidence, a concrete next step.`,
+    input: `Transcript (speech-to-text; ignore transcription errors and disfluencies). Each line is numbered [n]:\n${numbered(p)}\n\nCriteria to rate (2–4, specific to this practice type): e.g. clarity of the main point, listening and responding to what was said, handling pushback, reasoning and evidence, a concrete next step.\nNotes must reference learner lines by their [n].`,
   });
+  // Notes may only point at the learner's own lines.
+  data.notes = (data.notes || [])
+    .filter((n) => p.transcript[n.line]?.role === 'user')
+    .sort((a, b) => a.line - b.line)
+    .slice(0, 6);
   // Merge onto the latest state so a transcript saved meanwhile survives.
   const latest = (await load(userId, id)).context.practice;
   p = { ...latest, transcript: latest.transcript.length >= p.transcript.length ? latest.transcript : p.transcript, feedback: data };

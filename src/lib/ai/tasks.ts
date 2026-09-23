@@ -34,6 +34,8 @@ export const TASKS = {
   // Astra: rare, genuinely hard reasoning.
   'curriculum.map': { tier: 'reasoning', effort: 'medium', verbosity: 'low', maxOutput: 24000 },
   'learner.diagnose': { tier: 'reasoning', effort: 'medium', verbosity: 'low', maxOutput: 1800 },
+  // Once a week per learner: worth Astra's full attention.
+  'insights.weekly': { tier: 'reasoning', effort: 'high', verbosity: 'medium', maxOutput: 12000 },
 } as const satisfies Record<string, TaskSpec>;
 export type TaskId = keyof typeof TASKS;
 

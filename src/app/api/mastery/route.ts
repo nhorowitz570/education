@@ -3,7 +3,7 @@ import { context, fail } from '@/lib/server/http';
 import { readState } from '@/lib/server/state';
 import { concepts, states } from '@/lib/server/learner';
 import { adminClient } from '@/lib/supabase/server';
-import { level, retrievability, strength, fresh, type ConceptState } from '@/lib/learning/model';
+import { calibration, level, retrievability, strength, fresh, type ConceptState } from '@/lib/learning/model';
 import { update } from '@/lib/learning/model';
 
 // The learner model, shaped for display: every concept with its current
@@ -34,14 +34,20 @@ export async function GET(r: Request) {
     if (runId && only?.length) {
       const { data } = await adminClient()
         .from('learning_events')
-        .select('concept_key,kind,score,assisted,created_at,run_id')
+        .select('concept_key,kind,score,assisted,detail,created_at,run_id')
         .eq('user_id', user.id)
         .in('concept_key', only)
         .order('created_at');
       for (const key of only) {
         let s: ConceptState = fresh(key);
         for (const e of (data || []).filter((e) => e.concept_key === key && e.run_id !== runId))
-          s = update(s, { kind: e.kind, score: e.score ?? undefined, assisted: e.assisted, at: e.created_at });
+          s = update(s, {
+            kind: e.kind,
+            score: e.score ?? undefined,
+            assisted: e.assisted,
+            confidence: (e.detail as { confidence?: 'low' | 'medium' | 'high' } | null)?.confidence || undefined,
+            at: e.created_at,
+          });
         before.set(key, strength(s, now));
       }
     }
@@ -65,6 +71,8 @@ export async function GET(r: Request) {
           successes: s?.successes || 0,
           lapses: s?.lapses || 0,
           misconceptions: (s?.misconceptions || []).filter((m) => !m.resolved).map((m) => m.text),
+          // The model's own parameters, so the page can project forgetting.
+          model: s ? { p_known: s.p_known, stability: s.stability, exposures: s.exposures, last_seen_at: s.last_seen_at } : null,
           ...(before.has(c.key) ? { before: before.get(c.key) } : {}),
         };
       });
@@ -84,6 +92,17 @@ export async function GET(r: Request) {
         .eq('user_id', user.id)
         .gte('created_at', new Date(Date.now() - 56 * 86400000).toISOString()),
     ]);
+    // Confidence against accuracy, over the last 200 rated answers.
+    const { data: rated } = await db
+      .from('learning_events')
+      .select('score,detail')
+      .eq('user_id', user.id)
+      .not('detail->>confidence', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    const calibrated = calibration(
+      (rated || []).map((e) => ({ score: e.score, confidence: (e.detail as { confidence?: string } | null)?.confidence })),
+    );
     const evidence = (runs || []).flatMap((r) =>
       (r.beats as { type: string; intent: string; response?: { text?: string }; feedback?: { verdict: string } }[])
         .filter((b) => b.type === 'produce' && b.response?.text)
@@ -112,7 +131,17 @@ export async function GET(r: Request) {
         solid: inWeek.filter((e) => (e.score ?? 0) >= 0.75).length,
       };
     });
-    return NextResponse.json({ concepts: list, mapped: graph.mapped, hasPlan: true, evidence, practice, history, weeks });
+    return NextResponse.json({
+      concepts: list,
+      mapped: graph.mapped,
+      hasPlan: true,
+      evidence,
+      practice,
+      history,
+      weeks,
+      calibration: calibrated,
+      milestones: plan.milestones,
+    });
   } catch (e) {
     return fail(e);
   }

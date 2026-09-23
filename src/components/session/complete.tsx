@@ -31,7 +31,15 @@ export function Complete({ run }: { run: RunView }) {
         <div className="complete-mark" aria-hidden="true">
           <Icon name="check" size={28} strokeWidth={2} />
         </div>
-        <p className="eyebrow">{run.kind === 'review' ? 'Review done' : run.kind === 'explore' ? 'Exploration done' : 'Session complete'}</p>
+        <p className="eyebrow">
+          {run.kind === 'review'
+            ? 'Review done'
+            : run.kind === 'explore'
+              ? 'Exploration done'
+              : run.kind === 'rehearsal'
+                ? 'Rehearsal done'
+                : 'Session complete'}
+        </p>
         <h1 className="display">{run.title}</h1>
         <div className="complete-stats">
           <div>
@@ -52,18 +60,34 @@ export function Complete({ run }: { run: RunView }) {
           <section className="complete-section">
             <p className="eyebrow">What moved</p>
             <div className="rows">
-              {mastery.concepts.map((c) => (
-                <div className={'row t-' + c.track} key={c.key}>
-                  <div className="grow">
-                    <p>{c.title}</p>
-                    <div className="meter complete-meter" aria-label={`${Math.round(c.strength * 100)}% recall strength`}>
-                      {c.before !== undefined && <i className="before" style={{ '--v': c.before } as React.CSSProperties} />}
-                      <i style={{ '--v': c.strength } as React.CSSProperties} />
+              {mastery.concepts.map((c, i) => {
+                const delta = c.before !== undefined ? Math.round((c.strength - c.before) * 100) : null;
+                return (
+                  <div className={'row t-' + c.track} key={c.key}>
+                    <div className="grow">
+                      <p>{c.title}</p>
+                      <div
+                        className="meter complete-meter"
+                        aria-label={`${Math.round(c.strength * 100)}% recall strength${delta !== null ? `, ${delta >= 0 ? 'up' : 'down'} ${Math.abs(delta)} points` : ''}`}
+                      >
+                        {c.before !== undefined && <i className="before" style={{ '--v': c.before } as React.CSSProperties} />}
+                        <i
+                          style={
+                            { '--v': c.strength, '--from': c.before ?? 0, animationDelay: `${450 + i * 120}ms` } as React.CSSProperties
+                          }
+                        />
+                      </div>
                     </div>
+                    {delta !== null && delta !== 0 && (
+                      <span className={'complete-delta num' + (delta < 0 ? ' down' : '')}>
+                        {delta > 0 ? '+' : '−'}
+                        {Math.abs(delta)}
+                      </span>
+                    )}
+                    <span className="label">{c.level}</span>
                   </div>
-                  <span className="label">{c.level}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </section>
         )}

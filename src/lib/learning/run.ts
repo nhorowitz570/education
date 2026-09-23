@@ -18,9 +18,15 @@ export type Question = {
 };
 export type Verdict = 'solid' | 'partial' | 'missed';
 export type Feedback = { verdict: Verdict; score: number; blocks: Block[] };
+// How sure the learner was before seeing feedback.
+export type Confidence = 'low' | 'medium' | 'high';
+export const CONFIDENCE_LABEL: Record<Confidence, string> = { low: 'Guessing', medium: 'Fairly sure', high: 'Certain' };
+export type Response = { choice?: number; text?: string; confidence?: Confidence; at: string };
 export type Ask = {
   id: string;
   prompt: string;
+  // The passage the learner highlighted, when they asked about one.
+  quote?: string;
   intent: AskIntent;
   blocks: Block[];
   follow_ups?: string[];
@@ -34,8 +40,10 @@ export type Beat = OutlineBeat & {
   blocks?: Block[];
   follow_ups?: string[];
   question?: Question;
-  response?: { choice?: number; text?: string; at: string };
+  response?: Response;
   feedback?: Feedback;
+  // Earlier tries at this question, kept when the learner retries after feedback.
+  attempts?: { response: Response; feedback: Feedback }[];
   asks?: Ask[];
   practice?: { id: string; status: 'open' | 'done' };
   tier?: string;
@@ -43,7 +51,7 @@ export type Beat = OutlineBeat & {
 
 export type RunView = {
   id: string;
-  kind: 'session' | 'review' | 'explore' | 'practice' | 'return';
+  kind: 'session' | 'review' | 'explore' | 'practice' | 'return' | 'rehearsal';
   title: string;
   status: 'active' | 'done' | 'abandoned';
   cursor: number;
@@ -52,7 +60,13 @@ export type RunView = {
   started_at: string;
   session: { id: string; title: string; subject: string; date: string; objective: string } | null;
   minutes_planned: number | null;
+  // Set while a break is running, so a reminder can reach the learner.
+  break_until?: string | null;
 };
+
+// A text answer that missed can be retried once, with the feedback in view.
+export const canRetry = (b: Beat) =>
+  !!b.feedback && b.feedback.verdict !== 'solid' && b.question?.kind === 'text' && !(b.attempts?.length);
 
 // Streaming protocol (NDJSON lines) for beat generation, grading and asks.
 export type StreamEvent =

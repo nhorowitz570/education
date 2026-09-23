@@ -29,6 +29,8 @@ export type Evidence = {
     | 'self_report';
   score?: number; // 0..1, absent for exposure
   assisted?: boolean;
+  // How sure the learner said they were before seeing feedback.
+  confidence?: 'low' | 'medium' | 'high';
   options?: number; // multiple choice: number of options (sets guess rate)
   misconception?: string | null;
   at: string;
@@ -109,13 +111,18 @@ export function update(prev: ConceptState, e: Evidence): ConceptState {
   const postWrong = (pKnowNow * SLIP) / (pKnowNow * SLIP + (1 - pKnowNow) * (1 - g));
   // Graded scores are soft evidence.
   let posterior = score * postCorrect + (1 - score) * postWrong;
-  // Help received halves the weight of the evidence.
+  // Help received halves the weight of the evidence. A right answer the
+  // learner called a guess is weaker evidence too: part of it was luck.
   if (e.assisted) posterior = pKnowNow + (posterior - pKnowNow) * 0.5;
+  if (e.confidence === 'low' && score >= 0.6) posterior = pKnowNow + (posterior - pKnowNow) * 0.6;
   // Feedback after the attempt is itself a learning opportunity.
   s.p_known = clamp(posterior + (1 - posterior) * LEARN * (score < 0.6 ? 1 : 0.5));
 
   const retrieval = !!prev.last_seen_at && new Date(now).getTime() - new Date(prev.last_seen_at).getTime() > 0.4 * DAY;
-  s.difficulty = clamp(s.difficulty + (0.55 - score) * 0.12, 0.05, 0.95);
+  // Being certain and wrong marks a belief to correct, so the idea counts as
+  // harder for this learner than an honest "not sure" miss.
+  const confidentMiss = e.confidence === 'high' && score < 0.4;
+  s.difficulty = clamp(s.difficulty + (0.55 - score) * (confidentMiss ? 0.2 : 0.12), 0.05, 0.95);
   if (score >= 0.6) {
     s.successes += 1;
     if (!retrieval || prev.stability < 1) {
@@ -126,6 +133,8 @@ export function update(prev: ConceptState, e: Evidence): ConceptState {
       s.stability = Math.min(365, prev.stability * growth);
     }
     if (e.kind === 'transfer' || e.kind === 'project') s.stability *= 1.15;
+    // Knowing that you know is a sign of a sturdier memory.
+    if (e.confidence === 'high' && score >= 0.75) s.stability = Math.min(365, s.stability * 1.1);
   } else if (score < 0.4) {
     if (retrieval) s.lapses += 1;
     s.stability = Math.max(0.5, prev.stability * 0.35);
@@ -178,4 +187,23 @@ export function demonstrated(events: { kind: string; score: number | null; assis
     .sort((a, b) => a.created_at.localeCompare(b.created_at));
   if (wins.length < 2) return false;
   return wins.slice(1).some((w) => w.kind === 'transfer' || w.kind === 'project' || w.kind === 'recall');
+}
+
+// Calibration: for each confidence level, how often the learner was right.
+// Well calibrated means "certain" answers are right far more often than guesses.
+export type Calibration = Record<'low' | 'medium' | 'high', { n: number; right: number }>;
+export function calibration(events: { score: number | null; confidence?: string | null }[]): Calibration {
+  const out: Calibration = { low: { n: 0, right: 0 }, medium: { n: 0, right: 0 }, high: { n: 0, right: 0 } };
+  for (const e of events) {
+    const c = e.confidence as keyof Calibration | undefined;
+    if (!c || !(c in out) || e.score === null) continue;
+    out[c].n++;
+    if (e.score >= 0.6) out[c].right++;
+  }
+  return out;
+}
+
+// What the model expects if nothing is reviewed until a future moment.
+export function projected(s: ConceptState, at: number) {
+  return { strength: strength(s, at), recall: retrievability(s, at), level: level(s, at) };
 }

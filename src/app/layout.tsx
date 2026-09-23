@@ -8,6 +8,7 @@ import '@/styles/shell.css';
 import '@/styles/screens.css';
 import '@/styles/session.css';
 import '@/styles/viz.css';
+import '@/styles/insights.css';
 import '@/styles/legacy.css';
 const sans = Instrument_Sans({
   subsets: ['latin'],

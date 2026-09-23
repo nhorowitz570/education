@@ -62,7 +62,10 @@ const DIFFICULTY: Record<Difficulty, string> = {
 
 // GPT-Live instructions follow the provider's recommended structure: role and
 // tone, then explicit backchannel, interruption and delegation policies.
-export function liveInstructions(b: Brief, o: { mode: Mode; difficulty: Difficulty; minutes: number; pause: number }) {
+export function liveInstructions(
+  b: Brief,
+  o: { mode: Mode; difficulty: Difficulty; minutes: number; pause: number; resume?: Line[] },
+) {
   const debate =
     o.mode === 'debate'
       ? `
@@ -90,11 +93,23 @@ Backend tools: None.
 Delegate to the backend when: Never.
 Do not delegate to the backend when: Always respond in character yourself.
 
-Boundaries: Stay in character throughout. Do not evaluate the learner or give feedback; if asked, say you can talk about it after. Never claim to take real actions, send messages or schedule anything. Speak English unless the learner switches language.`;
+Boundaries: Stay in character throughout. Do not evaluate the learner or give feedback; if asked, say you can talk about it after. Never claim to take real actions, send messages or schedule anything. Speak English unless the learner switches language.${
+    o.resume?.length
+      ? `
+
+Resuming: the learner is redoing this conversation from a point partway through. Everything below already happened; continue from exactly there, in the same character and mood, as if no time has passed.
+${o.resume.map((l) => `${l.role === 'user' ? 'Learner' : b.partner.name}: ${l.text}`).join('\n')}`
+      : ''
+  }`;
 }
 
-export const openingCommentary = (b: Brief) =>
-  `Open the conversation now, in character, with a line close to: "${b.opening}" Then listen.`;
+export const openingCommentary = (b: Brief, resume?: Line[]) => {
+  const last = resume?.at(-1);
+  if (!last) return `Open the conversation now, in character, with a line close to: "${b.opening}" Then listen.`;
+  return last.role === 'assistant'
+    ? `Pick the conversation back up: say your last line again, naturally, close to: "${last.text}" Then listen.`
+    : `Pick the conversation back up by responding, in character, to the learner's last line: "${last.text}"`;
+};
 export const complicationInstruction = (c: string) =>
   `At the next natural moment, introduce this development in character: ${c}`;
 export const WRAP_UP = 'Time is nearly up. Steer toward a natural close within your next one or two turns.';
@@ -115,8 +130,19 @@ export const feedbackSchema = z.object({
     }),
   ),
   score: z.number().describe('0–1 overall against the success criteria.'),
+  notes: z
+    .array(
+      z.object({
+        line: z.number().int().describe('The [n] number of the learner line this note is about.'),
+        kind: z.enum(['strength', 'change', 'moment']),
+        note: z.string().describe('One or two sentences about that exact line.'),
+      }),
+    )
+    .describe('Three to six notes pinned to specific learner lines, in transcript order: what worked, what to change, turning points.'),
 });
-export type PracticeFeedback = z.infer<typeof feedbackSchema>;
+export type PracticeNote = z.infer<typeof feedbackSchema>['notes'][number];
+// Feedback written before notes existed has none.
+export type PracticeFeedback = Omit<z.infer<typeof feedbackSchema>, 'notes'> & { notes?: PracticeNote[] };
 
 export type Line = { role: 'user' | 'assistant'; text: string };
 export const liveCost = (seconds: number) => (Math.max(15, seconds) * 0.05) / 60;

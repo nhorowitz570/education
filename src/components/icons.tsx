@@ -10,6 +10,7 @@ const paths: Record<string, string> = {
   life: 'M3 12h4l2-5 4 10 2-5h6',
   you: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8M4 21c.7-3.9 4-6 8-6s7.3 2.1 8 6',
   arrow: 'M4 12h15M13 6l6 6-6 6',
+  insights: 'M12 3a9 9 0 1 0 9 9M12 7.5a4.5 4.5 0 1 0 4.5 4.5M12 12l7.5-7.5M16 4.5h3.5V8',
   back: 'M20 12H5M11 6l-6 6 6 6',
   chevron: 'm9 5 7 7-7 7',
   down: 'm6 9 6 6 6-6',

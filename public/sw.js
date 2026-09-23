@@ -59,7 +59,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   const data = event.data?.json() || {};
   event.waitUntil(
-    self.registration.showNotification('Fieldwork', {
+    self.registration.showNotification(data.title || 'Fieldwork', {
       body: data.body || 'A useful next step is ready when you are.',
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',

@@ -1,7 +1,7 @@
 import 'server-only';
-import webpush from 'web-push';
 import { adminClient } from '@/lib/supabase/server';
-import { privateRows, privatePut, privateDelete, readState } from './state';
+import { privatePut, readState } from './state';
+import { pushReady, pushTo, subscriptions } from './push';
 import { reminderCandidate } from '@/lib/reminders';
 import { resolveStale } from './practice';
 
@@ -40,31 +40,17 @@ export async function runJobs() {
 }
 
 export async function sendReminders() {
-  const pub = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-    key = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !key) return 0;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || 'mailto:admin@example.com', pub, key);
-  const db = adminClient();
-  const subs = await privateRows<{ user_id: string; endpoint: string; subscription: webpush.PushSubscription }>('push_subscriptions');
+  if (!pushReady()) return 0;
+  const subs = await subscriptions();
   let sent = 0;
   for (const uid of new Set(subs.map((s) => s.user_id))) {
     const candidate = reminderCandidate(await readState(uid));
     if (!candidate) continue;
-    // One notification per user per slot, even if ticks overlap.
-    const { data: claimed, error } = await db.rpc('claim_notification', { p_user_id: uid, p_event_key: candidate.key });
-    if (error || !claimed) continue;
     const body =
       candidate.kind === 'morning'
         ? `${candidate.title} is ready. About ${candidate.minutes} minutes.`
         : `Still time for ${candidate.title}. Even ten minutes counts.`;
-    for (const sub of subs.filter((s) => s.user_id === uid)) {
-      try {
-        await webpush.sendNotification(sub.subscription, JSON.stringify({ body, tag: 'fieldwork:' + candidate.key, url: '/' }), { TTL: 900 });
-        sent++;
-      } catch (e) {
-        if ([404, 410].includes((e as { statusCode: number }).statusCode)) await privateDelete('push_subscriptions', uid, sub.endpoint);
-      }
-    }
+    sent += await pushTo(uid, candidate.key, { body, url: '/' }, subs);
   }
   return sent;
 }

@@ -27,7 +27,7 @@ export type OutlineBeat = {
 };
 
 export type OutlineInput = {
-  kind: 'session' | 'review' | 'return' | 'explore';
+  kind: 'session' | 'review' | 'return' | 'explore' | 'rehearsal';
   minutes: number; // time available
   track?: string; // finance | communication | judgment | ...
   concepts: string[]; // concepts this session teaches
@@ -72,6 +72,21 @@ export function outline(i: OutlineInput): OutlineBeat[] {
     return [
       ...due.map((c) => beat('recall', 'Spaced retrieval in a fresh mini-situation.', { concept: c })),
       beat('recap', 'Two sentences: what held up and what to watch.', { minutes: 1 }),
+    ];
+  }
+  if (i.kind === 'rehearsal') {
+    // A mock of the milestone: probe the weakest prerequisites, then produce
+    // the deliverable itself under realistic conditions.
+    return [
+      ...i.concepts.slice(0, 2).map((c) =>
+        beat('recall', 'Retrieval of an idea the milestone depends on, in a fresh situation.', { concept: c }),
+      ),
+      beat('check', 'A decision that exposes whether the weakest prerequisite holds.', { concept: i.concepts.at(-1) || main }),
+      beat('produce', `Mock of the milestone deliverable: ${i.evidence || 'the milestone’s work'}. Brief it exactly as the milestone would be judged.`, {
+        concept: main,
+        minutes: Math.max(12, i.minutes - 14),
+      }),
+      beat('recap', 'What is ready for the milestone, the one gap to close before it, and how.', { minutes: 3 }),
     ];
   }
   if (i.kind === 'explore') {

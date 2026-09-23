@@ -81,6 +81,17 @@ All model calls go through `generate()` in `src/lib/ai/engine.ts`. Tasks are dec
 
 `/api/cron` runs every 15 minutes on Vercel Cron and is authenticated with `CRON_SECRET`. Each tick sends due push reminders (one per slot, deduplicated in the database), deletes expired food photos, and settles voice calls whose conductor vanished. Every step is idempotent.
 
+Each tick also:
+
+- **Prepares the day's session** (`src/lib/server/prepare.ts`). From 75 minutes before the learning window, it creates the run Today would offer as Begin and writes its first step, so Begin opens onto content. The run is marked `prepared` and is hidden from "Continue" until the learner opens it, at which point its clock starts. A prepared run of the wrong length or kind (such as "Only 20 minutes") is abandoned and replaced.
+- **Writes one weekly insight** (`src/lib/server/insights.ts`). From Monday 6am local, each learner gets a read of the previous Monday–Sunday. Activity is measured in code (time, follow-through, answers, confidence, asks, practice, schedule, check-ins), then Astra grades eight areas against fixed anchors and writes patterns and behavioural observations. A week is claimed in the `insights` table before any model call, so overlapping ticks can't pay twice. An empty week needs no model call.
+
+## Insights, confidence and rehearsals
+
+- **Confidence.** Every answer is submitted with *Guessing*, *Fairly sure* or *Certain*. A right answer called a guess is weaker evidence; a confident miss raises the concept's difficulty and tells the grader to name the false belief outright. Confidence is stored in `learning_events.detail` and drives the calibration chart.
+- **Retries.** One retry of a missed text answer, graded with the first attempt in view and recorded as assisted evidence.
+- **Rehearsals** (`runs.kind = 'rehearsal'`). A mock of a milestone's deliverable, built on the weakest concepts taught before it, graded at high stakes.
+
 ## Security
 
 - **Invite-only access:** sign-ups are off, sign-in is by magic link or passkey, and `*.vercel.app` redirects to the canonical domain.

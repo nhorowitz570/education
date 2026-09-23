@@ -9,6 +9,7 @@ import { strength } from '@/lib/learning/model';
 import { conceptsFor } from '@/lib/server/learner';
 import { dateInZone } from '@/lib/plan';
 import { voiceReady } from '@/lib/ai/env';
+import { adminClient } from '@/lib/supabase/server';
 
 const mapping = new Set<string>();
 
@@ -21,10 +22,22 @@ export async function GET(r: Request) {
       now = new Date(),
       date = dateInZone(zone, now),
       hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(now));
-    const [runs, graph, learned] = await Promise.all([
+    const db = adminClient();
+    const [runs, graph, learned, { data: rehearsals }, { data: insight }] = await Promise.all([
       activeRuns(user.id),
       plan ? concepts(user.id, plan) : Promise.resolve({ list: [], mapped: false }),
       plan ? states(user.id, plan.plan_id) : Promise.resolve(new Map()),
+      db.from('runs').select('context').eq('user_id', user.id).eq('kind', 'rehearsal').eq('status', 'done').limit(40),
+      // A fresh weekly read the learner hasn't opened yet.
+      db
+        .from('insights')
+        .select('id,report,week_start')
+        .eq('user_id', user.id)
+        .eq('status', 'ready')
+        .is('seen_at', null)
+        .order('week_start', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
     ]);
     // The concept graph is built once per plan, in the background.
     if (plan && !graph.mapped && !mapping.has(user.id + plan.plan_id)) {
@@ -47,6 +60,7 @@ export async function GET(r: Request) {
       hour,
       dueCount: due.length,
       voice: voiceReady(),
+      rehearsed: (rehearsals || []).map((r) => (r.context as { milestone?: { date: string } }).milestone?.date || ''),
       activeRun: run
         ? {
             id: run.id,
@@ -78,7 +92,14 @@ export async function GET(r: Request) {
         }).map(({ type, minutes, optional }) => ({ type, minutes, optional }));
       }
     }
-    return NextResponse.json({ today: view, date, mapped: graph.mapped, preview });
+    const headline = (insight?.report as { headline?: string } | null)?.headline;
+    return NextResponse.json({
+      today: view,
+      date,
+      mapped: graph.mapped,
+      preview,
+      insight: insight && headline ? { id: insight.id, headline } : null,
+    });
   } catch (e) {
     return fail(e);
   }

@@ -4,10 +4,11 @@ import type { AppState } from '@/lib/types';
 import { scheduled } from '@/lib/schedule';
 
 export type Action = {
-  kind: 'resume' | 'session' | 'review' | 'return' | 'explore' | 'practice';
+  kind: 'resume' | 'session' | 'review' | 'return' | 'explore' | 'practice' | 'rehearsal';
   label: string;
   detail: string;
   sessionId?: string;
+  milestone?: string; // rehearsal: the milestone's date
   runId?: string;
   minutes?: number;
   track?: string;
@@ -48,6 +49,7 @@ export function today(input: {
   dueCount: number;
   activeRun?: { id: string; title: string; session_id: string | null; progress: number; updated_at: string } | null;
   voice: boolean;
+  rehearsed?: string[]; // milestone dates already rehearsed
 }): TodayView {
   const { state, date, hour } = input;
   const plan: Plan | undefined = state.plan;
@@ -131,6 +133,18 @@ export function today(input: {
   const milestone = plan.milestones
     .filter((m) => m.date >= date)
     .sort((a, b) => a.date.localeCompare(b.date))[0];
+  // Two weeks out, a milestone earns a rehearsal: a mock of its deliverable
+  // while there's still time to close the gaps it finds.
+  const soon = milestone && between(date, milestone.date) <= 14 && !(input.rehearsed || []).includes(milestone.date);
+  const rehearse: Action | null = soon
+    ? {
+        kind: 'rehearsal',
+        label: `Rehearse: ${milestone.title.split(':')[0]}`.slice(0, 80),
+        detail: `A 30-minute mock, ${between(date, milestone.date)} days out, to find what still needs work.`,
+        milestone: milestone.date,
+        minutes: 30,
+      }
+    : null;
   const focusSession = todays || next;
   const base = {
     greeting: greetingFor(hour, plan.profile.name),
@@ -170,7 +184,7 @@ export function today(input: {
       headline: 'Pick up where you left off.',
       why: pct < 5 ? `${r.title} is ready, right where you stopped.` : `You’re ${pct}% through ${r.title}.`,
       primary: resume,
-      secondary: [review, practice, explore].filter(Boolean) as Action[],
+      secondary: [rehearse, review, practice, explore].filter(Boolean) as Action[],
     };
   }
   if (date > plan.end_date)
@@ -204,6 +218,7 @@ export function today(input: {
       secondary: [
         ...(resume ? [{ ...resume, label: 'Finish the earlier session' }] : []),
         ...(returning ? [] : [{ kind: 'session' as const, label: 'Only 20 minutes', detail: 'Keep the objective, trim the rest.', sessionId: todays.id, minutes: 20, track: todays.subject }]),
+        ...(rehearse ? [rehearse] : []),
         practice,
         explore,
       ],
@@ -227,9 +242,13 @@ export function today(input: {
         : next
           ? `Next: ${next.title}, ${Temporal.PlainDate.from(next.date).toLocaleString('en-US', { weekday: 'long' })}.`
           : 'Rest, or learn a bit more if you feel like it.',
-    primary: review || (ahead && next ? { kind: 'session', label: 'Start early', detail: next.title, sessionId: next.id, minutes: next.duration_minutes, track: next.subject } : null),
+    primary:
+      review ||
+      (ahead && next ? { kind: 'session', label: 'Start early', detail: next.title, sessionId: next.id, minutes: next.duration_minutes, track: next.subject } : null) ||
+      rehearse,
     secondary: [
       ...(review && ahead && next ? [{ kind: 'session' as const, label: 'Start the first session', detail: next.title, sessionId: next.id, minutes: next.duration_minutes, track: next.subject }] : []),
+      ...(rehearse && (review || (ahead && next)) ? [rehearse] : []),
       practice,
       explore,
     ],

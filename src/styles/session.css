@@ -86,20 +86,112 @@
   padding: 32px 0 8px;
   animation: rise var(--t-slow) var(--ease) both;
 }
-.beat + .beat {
+.beat.current:not(:first-child) {
   border-top: 1px solid var(--line);
   margin-top: 16px;
 }
+.beat.skipped .trail-sum {
+  opacity: 0.6;
+}
+
+/* The trail: finished steps fold to one line each, joined by a thread, and
+   open again on tap. Height animates through grid rows, not max-height. */
+.trail {
+  position: relative;
+}
 .beat.past {
-  opacity: 0.62;
-  transition: opacity var(--t) var(--ease);
+  padding: 0;
+  animation: none;
 }
-.beat.past:hover,
-.beat.past:focus-within {
-  opacity: 1;
+.trail-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 4px;
+  border-radius: var(--r-sm);
+  text-align: left;
+  color: var(--text-2);
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
 }
-.beat.skipped {
-  opacity: 0.4;
+.trail-row:hover {
+  background: var(--surface);
+  color: var(--text);
+}
+.trail-row .dot {
+  flex: none;
+  position: relative;
+  z-index: 1;
+  margin-left: 4px;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.beat.past + .beat.past .trail-row::before,
+.beat.past + .beat.current::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: -12px;
+  height: 22px;
+  width: 1px;
+  background: var(--line-2);
+}
+.beat.past + .beat.current {
+  position: relative;
+  border-top: 0;
+  margin-top: 4px;
+}
+.beat.past + .beat.current::before {
+  top: -6px;
+  height: 18px;
+}
+.trail-label {
+  flex: none;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.trail-sum {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 14px;
+}
+.trail-row svg {
+  flex: none;
+  color: var(--text-3);
+  transition: transform var(--t) var(--ease);
+}
+.trail-row[aria-expanded='true'] svg {
+  transform: rotate(90deg);
+}
+.beat-body {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows var(--t-slow) var(--ease),
+    opacity var(--t) var(--ease);
+}
+.beat-inner {
+  min-height: 0;
+  overflow: hidden;
+}
+.beat.past .beat-inner {
+  padding: 4px 0 20px 28px;
+}
+.beat.collapsed .beat-body {
+  grid-template-rows: 0fr;
+  opacity: 0;
+}
+.beat.past:not(.collapsed) .beat-inner > .blocks {
+  animation: fade var(--t) var(--ease) both;
 }
 .beat-label {
   display: flex;
@@ -336,7 +428,224 @@
   --c: var(--negative);
 }
 
+/* Earlier tries and retrying */
+.attempt {
+  margin-top: 22px;
+  padding: 14px 18px;
+  border-radius: var(--r);
+  background: var(--surface);
+  opacity: 0.78;
+}
+.attempt .label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.attempt-text {
+  margin-bottom: 10px;
+  white-space: pre-wrap;
+}
+.attempt .prose {
+  font-size: 15px;
+  color: var(--text-2);
+}
+.feedback .retry {
+  margin-top: 14px;
+}
+.answer.retrying {
+  animation: rise var(--t) var(--ease) both;
+}
+.feedback-verdict .faint {
+  font-weight: 500;
+}
+
+/* How sure are you? Three buttons that each submit. */
+.confidence {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.choices .confidence {
+  margin-top: 6px;
+}
+.confidence-options {
+  display: flex;
+  gap: 6px;
+}
+.confidence-btn {
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-weight: 500;
+}
+.confidence-btn:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.confidence-meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+}
+.confidence-meter i {
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.25;
+}
+.confidence-meter i:nth-child(1) {
+  height: 5px;
+}
+.confidence-meter i:nth-child(2) {
+  height: 8px;
+}
+.confidence-meter i:nth-child(3) {
+  height: 12px;
+}
+.confidence-meter i.on {
+  opacity: 1;
+}
+.said {
+  text-align: right;
+}
+@media (max-width: 560px) {
+  .answer-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .confidence {
+    justify-content: space-between;
+  }
+  .confidence-options {
+    flex: 1;
+  }
+  .confidence-btn {
+    flex: 1;
+    padding: 0 8px;
+    font-size: 14px;
+  }
+  .confidence > .label {
+    width: 100%;
+  }
+}
+
+/* The answer revealed: once, when feedback arrives while watching. The right
+   option fills with a sweep, a wrong pick settles with a short nudge. */
+.fresh-feedback .choice.right {
+  background-image: linear-gradient(90deg, color-mix(in srgb, var(--positive) 16%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: sweep 900ms var(--ease) both;
+}
+.fresh-feedback .choice.right .choice-key {
+  animation: pop 420ms var(--ease) both 120ms;
+}
+.fresh-feedback .choice.wrong {
+  animation: nudge 360ms var(--ease-in-out) both;
+}
+.fresh-feedback .feedback-verdict .dot {
+  animation: verdict 700ms var(--ease) both;
+}
+@keyframes sweep {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+@keyframes nudge {
+  25% {
+    transform: translateX(-4px);
+  }
+  60% {
+    transform: translateX(3px);
+  }
+}
+@keyframes verdict {
+  0% {
+    transform: scale(0.4);
+    box-shadow: 0 0 0 0 var(--c);
+  }
+  60% {
+    transform: scale(1.3);
+    box-shadow: 0 0 0 6px transparent;
+  }
+}
+
 /* Asking the tutor inline */
+.ask-quote {
+  margin: 0 0 8px;
+  padding-left: 12px;
+  border-left: 2px solid var(--c, var(--line-3));
+  color: var(--text-2);
+  font-family: var(--serif);
+  font-size: 15px;
+  font-style: italic;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Highlight a passage to ask about it */
+.select-ask {
+  position: fixed;
+  z-index: 40;
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--raised);
+  box-shadow: var(--shadow-pop);
+  transform: translateX(-50%);
+  animation: select-in 180ms var(--ease) both;
+  max-width: calc(100vw - 24px);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.select-ask.above {
+  transform: translate(-50%, -100%);
+}
+.select-ask .chip {
+  flex: none;
+  min-height: 36px;
+  background: transparent;
+  box-shadow: none;
+}
+@keyframes select-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+.dock-quote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 4px 12px;
+  border-radius: 12px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+  color: var(--text-2);
+  font-size: 13px;
+  animation: rise var(--t) var(--ease) both;
+}
+.dock-quote span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-style: italic;
+}
 .ask {
   margin-top: 26px;
   padding-left: 18px;
@@ -530,17 +839,33 @@
   margin-top: 8px;
   max-width: 320px;
 }
+/* The bar starts where the idea stood before the session and moves to where
+   it stands now, once. The old position stays as a faint mark. */
 .complete-meter i {
-  animation: grow-x 900ms var(--ease) both 300ms;
+  animation: grow-from 1100ms var(--ease) both 450ms;
 }
 .complete-meter i.before {
   background: var(--text-4);
   animation: none;
 }
+@keyframes grow-from {
+  from {
+    transform: scaleX(var(--from, 0));
+  }
+}
 @keyframes grow-x {
   from {
     transform: scaleX(0);
   }
+}
+.complete-delta {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--positive);
+  animation: fade 400ms var(--ease) both 1300ms;
+}
+.complete-delta.down {
+  color: var(--text-3);
 }
 .complete-actions {
   display: flex;

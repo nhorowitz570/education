@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Blocks } from './blocks';
 import { Icon } from '@/components/icons';
-import type { Beat, Block, Feedback } from '@/lib/learning/run';
+import { CONFIDENCE_LABEL, canRetry, type Beat, type Block, type Confidence, type Feedback } from '@/lib/learning/run';
 import type { RunState } from './use-run';
 
 export const BEAT_LABEL: Record<string, string> = {
@@ -28,23 +28,50 @@ const BUILDING: Record<string, string> = {
   recap: 'Looking back over the session',
   roleplay: 'Casting your counterpart',
 };
-const VERDICT: Record<Feedback['verdict'], string> = {
+export const VERDICT: Record<Feedback['verdict'], string> = {
   solid: 'Solid',
   partial: 'Partly there',
   missed: 'Not yet',
 };
+const CONFIDENCES: Confidence[] = ['low', 'medium', 'high'];
+
+// Plain first sentence of some blocks, for one-line summaries.
+export function firstSentence(blocks: Block[] | undefined, max = 110) {
+  const text = (blocks || [])
+    .filter((b) => b.type !== 'visual')
+    .map((b) => (b as { md: string }).md)
+    .join(' ')
+    .replace(/[*_`>#]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  const first = text.split(/(?<=[.!?])\s/)[0] || text;
+  return first.length > max ? first.slice(0, max - 1).trimEnd() + '…' : first;
+}
+
+// What a finished step comes down to, for the trail.
+function summary(beat: Beat) {
+  if (beat.status === 'skipped') return 'Skipped';
+  if (beat.type === 'break') return `${beat.minutes}-minute break`;
+  if (beat.type === 'roleplay') return beat.practice?.status === 'done' ? firstSentence(beat.feedback?.blocks) || 'Practised out loud' : 'Practice conversation';
+  if (beat.feedback) return firstSentence(beat.feedback.blocks);
+  return firstSentence(beat.blocks);
+}
 
 export function BeatView({
   beat,
   state,
   current,
   track,
+  collapsed = false,
+  onToggle,
   children,
 }: {
   beat: Beat;
   state: RunState;
   current: boolean;
   track: string;
+  collapsed?: boolean;
+  onToggle?: () => void;
   children?: React.ReactNode;
 }) {
   const live = state.live[beat.id],
@@ -52,68 +79,135 @@ export function BeatView({
     asking = state.asking[beat.id];
   const blocks = beat.blocks || live?.partial || [];
   const streaming = !beat.blocks && !!live && !live.error;
+  const past = !current;
+  // Feedback that arrives while watching animates once; reloaded feedback
+  // is simply there.
+  const [fresh, setFresh] = useState(false);
+  const wasGrading = useRef(false);
+  useEffect(() => {
+    if (grading) wasGrading.current = true;
+    else if (wasGrading.current && beat.feedback) {
+      wasGrading.current = false;
+      setFresh(true);
+    }
+  }, [grading, beat.feedback]);
+  const [retrying, setRetrying] = useState(false);
+  useEffect(() => {
+    if (beat.attempts?.length) setRetrying(false);
+  }, [beat.attempts?.length]);
+  const verdict = beat.feedback?.verdict;
+  const label = BEAT_LABEL[beat.type] || beat.type;
   return (
     <section
-      className={'beat' + (current ? ' current' : ' past') + (beat.status === 'skipped' ? ' skipped' : '')}
+      className={
+        'beat' +
+        (current ? ' current' : ' past') +
+        (collapsed ? ' collapsed' : '') +
+        (beat.status === 'skipped' ? ' skipped' : '') +
+        (fresh ? ' fresh-feedback' : '')
+      }
       data-beat={beat.type}
+      data-beat-id={beat.id}
       id={'beat-' + beat.id}
       aria-busy={streaming || undefined}
     >
-      <header className={'beat-label t-' + (beat.type === 'recall' ? 'review' : track)}>
-        <i className="dot" />
-        {BEAT_LABEL[beat.type] || beat.type}
-        {beat.optional && <span className="faint">· optional</span>}
-      </header>
-      {live?.error ? (
-        <div className="beat-error">
-          <p>{live.error}</p>
-          <button className="btn small" onClick={() => state.retry(beat.id)}>
-            <Icon name="refresh" size={16} /> Try again
-          </button>
-        </div>
-      ) : streaming && !blocks.length ? (
-        <Building label={BUILDING[beat.type] || 'Preparing'} />
+      {past ? (
+        <button
+          className={'trail-row t-' + (beat.type === 'recall' ? 'review' : track)}
+          onClick={onToggle}
+          aria-expanded={!collapsed}
+          aria-controls={'beat-body-' + beat.id}
+        >
+          <i className={'dot' + (verdict ? ' v-' + verdict : ' lit')} aria-hidden="true" />
+          <span className="trail-label">{label}</span>
+          <span className="trail-sum">{verdict ? `${VERDICT[verdict]} · ` : ''}{summary(beat)}</span>
+          <Icon name="chevron" size={16} />
+        </button>
       ) : (
-        <Blocks blocks={blocks} streaming={streaming} />
+        <header className={'beat-label t-' + (beat.type === 'recall' ? 'review' : track)}>
+          <i className="dot" />
+          {label}
+          {beat.optional && <span className="faint">· optional</span>}
+        </header>
       )}
-      {beat.question && beat.blocks && <Question beat={beat} state={state} current={current} />}
-      {(grading || beat.feedback) && (
-        <FeedbackView
-          verdict={grading ? grading.verdict : beat.feedback!.verdict}
-          blocks={grading ? grading.blocks : beat.feedback!.blocks}
-          streaming={!!grading}
-        />
-      )}
-      {children}
-      {(beat.asks || []).map((a) => (
-        <div className="ask" key={a.id}>
-          <p className="ask-q">
-            <Icon name={a.intent === 'free' ? 'spark' : a.intent} size={15} />
-            {a.prompt}
-          </p>
-          <Blocks blocks={a.blocks} />
-        </div>
-      ))}
-      {asking && (
-        <div className="ask">
-          <p className="ask-q">
-            <Icon name={asking.intent === 'free' ? 'spark' : asking.intent} size={15} />
-            {asking.prompt || INTENT_TEXT[asking.intent]}
-          </p>
-          {asking.error ? (
+      <div className="beat-body" id={'beat-body-' + beat.id} inert={collapsed || undefined}>
+        <div className="beat-inner">
+          {live?.error ? (
             <div className="beat-error">
-              <p>{asking.error}</p>
-              <button className="btn small" onClick={() => state.dismissAsk(beat.id)}>
-                Dismiss
+              <p>{live.error}</p>
+              <button className="btn small" onClick={() => state.retry(beat.id)}>
+                <Icon name="refresh" size={16} /> Try again
               </button>
             </div>
-          ) : asking.partial.length ? (
-            <Blocks blocks={asking.partial} streaming />
+          ) : streaming && !blocks.length ? (
+            <Building label={BUILDING[beat.type] || 'Preparing'} />
           ) : (
-            <Building label="Thinking" compact />
+            <Blocks blocks={blocks} streaming={streaming} />
+          )}
+          {(beat.attempts || []).map((a, i) => (
+            <div className="attempt" key={i}>
+              <p className="label">
+                <i className={'dot v-' + a.feedback.verdict} /> {i === 0 ? 'First try' : `Try ${i + 1}`} · {VERDICT[a.feedback.verdict]}
+              </p>
+              <p className="attempt-text">{a.response.text}</p>
+              <Blocks blocks={a.feedback.blocks} />
+            </div>
+          ))}
+          {/* While retrying, the feedback stays in view above the answer being edited. */}
+          {retrying && beat.feedback && (
+            <FeedbackView verdict={beat.feedback.verdict} blocks={beat.feedback.blocks} streaming={false} />
+          )}
+          {beat.question && beat.blocks && (
+            <Question beat={beat} state={state} current={current} retrying={retrying} onCancelRetry={() => setRetrying(false)} />
+          )}
+          {(grading || beat.feedback) && !retrying && (
+            <FeedbackView
+              verdict={grading ? grading.verdict : beat.feedback!.verdict}
+              blocks={grading ? grading.blocks : beat.feedback!.blocks}
+              streaming={!!grading}
+              retried={!!beat.attempts?.length && !grading}
+            >
+              {current && !grading && canRetry(beat) && (
+                <button className="btn small quiet retry" onClick={() => setRetrying(true)}>
+                  <Icon name="refresh" size={15} /> Try again with this in mind
+                </button>
+              )}
+            </FeedbackView>
+          )}
+          {children}
+          {(beat.asks || []).map((a) => (
+            <div className="ask" key={a.id}>
+              {a.quote && <blockquote className="ask-quote">“{a.quote}”</blockquote>}
+              <p className="ask-q">
+                <Icon name={a.intent === 'free' ? 'spark' : a.intent} size={15} />
+                {a.prompt || (a.quote ? 'Explain this part' : '')}
+              </p>
+              <Blocks blocks={a.blocks} />
+            </div>
+          ))}
+          {asking && (
+            <div className="ask" id={'asking-' + beat.id}>
+              {asking.quote && <blockquote className="ask-quote">“{asking.quote}”</blockquote>}
+              <p className="ask-q">
+                <Icon name={asking.intent === 'free' ? 'spark' : asking.intent} size={15} />
+                {asking.prompt || INTENT_TEXT[asking.intent] || 'Explain this part'}
+              </p>
+              {asking.error ? (
+                <div className="beat-error">
+                  <p>{asking.error}</p>
+                  <button className="btn small" onClick={() => state.dismissAsk(beat.id)}>
+                    Dismiss
+                  </button>
+                </div>
+              ) : asking.partial.length ? (
+                <Blocks blocks={asking.partial} streaming />
+              ) : (
+                <Building label="Thinking" compact />
+              )}
+            </div>
           )}
         </div>
-      )}
+      </div>
     </section>
   );
 }
@@ -144,28 +238,98 @@ export function Building({ label, compact = false }: { label: string; compact?: 
   );
 }
 
-function FeedbackView({ verdict, blocks, streaming }: { verdict?: Feedback['verdict']; blocks: Block[]; streaming: boolean }) {
+function FeedbackView({
+  verdict,
+  blocks,
+  streaming,
+  retried,
+  children,
+}: {
+  verdict?: Feedback['verdict'];
+  blocks: Block[];
+  streaming: boolean;
+  retried?: boolean;
+  children?: React.ReactNode;
+}) {
   return (
     <div className={'feedback' + (verdict ? ' v-' + verdict : '')} aria-live="polite">
       <p className="feedback-verdict">
         <i className="dot" />
         {verdict ? VERDICT[verdict] : 'Reading your answer'}
+        {retried && <span className="faint">· second try</span>}
       </p>
       {blocks.length ? <Blocks blocks={blocks} streaming={streaming} /> : streaming && <Building label="" compact />}
+      {children}
     </div>
   );
 }
 
-function Question({ beat, state, current }: { beat: Beat; state: RunState; current: boolean }) {
+// "How sure are you?" doubles as the submit button: one tap commits the
+// answer and the confidence together, so rating costs nothing extra.
+function ConfidenceSubmit({
+  disabled,
+  onSubmit,
+  groupRef,
+}: {
+  disabled: boolean;
+  onSubmit: (c: Confidence) => void;
+  groupRef?: React.Ref<HTMLDivElement>;
+}) {
+  return (
+    <div className="confidence" role="group" aria-label="Check your answer: how sure are you?" ref={groupRef}>
+      <span className="label">How sure?</span>
+      <div className="confidence-options">
+        {CONFIDENCES.map((c) => (
+          <button key={c} className={'btn confidence-btn c-' + c} disabled={disabled} onClick={() => onSubmit(c)}>
+            <span className="confidence-meter" aria-hidden="true">
+              {CONFIDENCES.map((x, i) => (
+                <i key={x} className={i <= CONFIDENCES.indexOf(c) ? 'on' : ''} />
+              ))}
+            </span>
+            {CONFIDENCE_LABEL[c]}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Question({
+  beat,
+  state,
+  current,
+  retrying,
+  onCancelRetry,
+}: {
+  beat: Beat;
+  state: RunState;
+  current: boolean;
+  retrying: boolean;
+  onCancelRetry: () => void;
+}) {
   const q = beat.question!;
-  const answered = !!beat.response;
+  const answered = !!beat.response && !retrying;
   const [choice, setChoice] = useState<number | null>(beat.response?.choice ?? null);
   const [text, setText] = useState('');
-  const area = useRef<HTMLTextAreaElement>(null);
+  const area = useRef<HTMLTextAreaElement>(null),
+    group = useRef<HTMLDivElement>(null);
   const correct = (beat as Beat & { correct_index?: number }).correct_index;
   useEffect(() => {
     if (current && !answered && q.kind === 'text') area.current?.focus({ preventScroll: true });
   }, [current, answered, q.kind]);
+  // A retry starts from the first answer, so it can be edited rather than retyped.
+  useEffect(() => {
+    if (retrying) {
+      const first = beat.response?.text || '';
+      setText(first);
+      requestAnimationFrame(() => {
+        area.current?.focus();
+        area.current?.setSelectionRange(first.length, first.length);
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retrying]);
+  const confidence = beat.response?.confidence;
   if (q.kind === 'choice')
     return (
       <div className="choices" role="radiogroup" aria-label="Options">
@@ -188,27 +352,30 @@ function Question({ beat, state, current }: { beat: Beat; state: RunState; curre
             </button>
           );
         })}
-        {!answered && (
-          <div className="answer-row">
-            <button className="btn primary" disabled={choice === null} onClick={() => state.answer(beat.id, { choice: choice! })}>
-              Check
-            </button>
-          </div>
+        {answered ? (
+          confidence && <p className="label said">You said: {CONFIDENCE_LABEL[confidence].toLowerCase()}</p>
+        ) : (
+          <ConfidenceSubmit disabled={choice === null} onSubmit={(c) => state.answer(beat.id, { choice: choice!, confidence: c })} />
         )}
       </div>
     );
   if (answered)
     return (
       <blockquote className="your-answer">
-        <span className="label">You wrote</span>
+        <span className="label">
+          {beat.attempts?.length ? 'Your second try' : 'You wrote'}
+          {confidence ? ` · ${CONFIDENCE_LABEL[confidence].toLowerCase()}` : ''}
+        </span>
         <p>{beat.response?.text}</p>
       </blockquote>
     );
-  const submit = () => {
-    if (text.trim().length >= 2) void state.answer(beat.id, { text: text.trim() });
+  const ok = text.trim().length >= 2;
+  const submit = (c: Confidence) => {
+    if (ok) void state.answer(beat.id, { text: text.trim(), confidence: c }, retrying);
   };
   return (
-    <div className="answer">
+    <div className={'answer' + (retrying ? ' retrying' : '')}>
+      {retrying && <p className="label">Your second try: edit your answer with the feedback in mind.</p>}
       <textarea
         ref={area}
         className={'textarea' + (q.long ? ' long' : '')}
@@ -216,19 +383,28 @@ function Question({ beat, state, current }: { beat: Beat; state: RunState; curre
         value={text}
         onChange={(e) => setText(e.target.value)}
         onKeyDown={(e) => {
-          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
+          // ⌘↵ moves to the confidence buttons, which submit.
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && ok) {
             e.preventDefault();
-            submit();
+            group.current?.querySelector<HTMLButtonElement>('button')?.focus();
           }
         }}
         aria-label="Your answer"
         rows={q.long ? 7 : 3}
       />
       <div className="answer-row">
-        <span className="label">{text.trim() ? `${text.trim().split(/\s+/).length} words` : 'Dictation works well here.'}</span>
-        <button className="btn primary" disabled={text.trim().length < 2} onClick={submit}>
-          Submit <span className="kbd">⌘↵</span>
-        </button>
+        <span className="label">
+          {text.trim() ? `${text.trim().split(/\s+/).length} words` : 'Dictation works well here.'}
+          {retrying && (
+            <>
+              {' · '}
+              <button className="link" onClick={onCancelRetry}>
+                Keep my first answer
+              </button>
+            </>
+          )}
+        </span>
+        <ConfidenceSubmit disabled={!ok} onSubmit={submit} groupRef={group} />
       </div>
     </div>
   );

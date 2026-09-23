@@ -785,7 +785,10 @@
 }
 .kmap-node .core {
   fill: var(--c);
-  transition: r var(--t) var(--ease);
+  transition:
+    transform 700ms var(--ease),
+    opacity 700ms var(--ease),
+    fill var(--t);
 }
 .kmap-node.l-new .core {
   fill: var(--bg);
@@ -796,6 +799,19 @@
   fill: none;
   stroke: var(--c);
   stroke-opacity: 0.4;
+  transition:
+    opacity 600ms var(--ease),
+    transform 600ms var(--ease);
+}
+.kmap-node .halo.off {
+  opacity: 0;
+  transform: scale(0.6);
+}
+.kmap .kmap-edge {
+  transition: stroke-opacity 700ms var(--ease);
+}
+.kmap.ahead .kmap-edge {
+  stroke-opacity: 0.5;
 }
 .kmap-node:hover .core,
 .kmap-node:focus-visible .core {
@@ -1000,4 +1016,345 @@
 }
 .passkey-nudge {
   justify-content: space-between;
+}
+
+/* Mastery: looking ahead */
+.insights-link {
+  align-self: end;
+}
+.forecast {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 20px;
+  padding: 18px 20px;
+  border-radius: var(--r-lg);
+  background: var(--raised);
+  box-shadow: var(--inner), 0 0 0 1px var(--line);
+}
+.forecast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.forecast-line {
+  margin-top: 4px;
+  font-size: 16px;
+  color: var(--text-2);
+}
+.forecast-line b {
+  color: var(--text);
+  font-weight: 600;
+}
+.scrub {
+  position: relative;
+  display: grid;
+  gap: 8px;
+}
+.scrub input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.scrub input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--review) calc(var(--p) * 100%), var(--surface-3) 0);
+}
+.scrub input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--review) calc(var(--p) * 100%), var(--surface-3) 0);
+}
+.scrub input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -9px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 4px var(--raised), 0 4px 14px rgba(0, 0, 0, 0.3);
+  transition: transform var(--t-fast) var(--ease);
+}
+.scrub input[type='range']::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 4px var(--raised);
+}
+.scrub input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.scrub input[type='range']:focus-visible {
+  outline: 2px solid var(--text);
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+.scrub-stops {
+  display: flex;
+  justify-content: space-between;
+}
+.scrub-stops button {
+  font-size: 12px;
+  color: var(--text-3);
+  transition: color var(--t-fast);
+}
+.scrub-stops button.on {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.calib {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  height: 180px;
+}
+.calib-col {
+  display: grid;
+  grid-template-rows: auto 1fr auto auto;
+  justify-items: center;
+  gap: 6px;
+  text-align: center;
+}
+.calib-pct {
+  font-size: 18px;
+}
+.calib-bar {
+  position: relative;
+  width: min(100%, 44px);
+  border-radius: 10px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.calib-bar i {
+  position: absolute;
+  inset: auto 0 0 0;
+  border-radius: 10px;
+  transform-origin: bottom;
+  animation: grow-y 900ms var(--ease) both;
+}
+.c-low .calib-bar i {
+  background: color-mix(in srgb, var(--review) 55%, transparent);
+}
+.c-medium .calib-bar i {
+  background: color-mix(in srgb, var(--review) 78%, transparent);
+}
+.c-high .calib-bar i {
+  background: var(--review);
+}
+.calib-label {
+  font-size: 13px;
+  font-weight: 500;
+}
+.calib-read {
+  margin-top: 4px;
+  font-size: 14px;
+}
+
+.portfolio-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.portfolio-groups {
+  display: grid;
+  gap: 28px;
+}
+.portfolio-group {
+  display: grid;
+  gap: 12px;
+}
+.portfolio-milestone {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.portfolio-milestone p:first-child {
+  font-weight: 500;
+}
+.portfolio-group:not(.upcoming) .portfolio-milestone .dot {
+  --c: var(--positive);
+}
+.portfolio-group .evidence {
+  padding-left: 20px;
+}
+.portfolio-empty {
+  padding-left: 20px;
+  font-size: 14px;
+}
+
+/* Today: a new weekly read */
+.insight-glyph {
+  color: var(--review);
+}
+.new-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--review);
+  box-shadow: 0 0 10px var(--review);
+}
+
+/* Practice: replay and redo */
+.brief-resume {
+  display: grid;
+  gap: 6px;
+  padding: 14px 18px;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--communication) 9%, var(--surface));
+}
+.brief-resume blockquote {
+  margin: 0;
+  font-size: 18px;
+  line-height: 1.45;
+}
+.turn.earlier {
+  opacity: 0.5;
+}
+.replay {
+  display: grid;
+  gap: 12px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.replay-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.timeline {
+  display: flex;
+  gap: 2px;
+  height: 34px;
+  align-items: end;
+}
+.tl-seg {
+  position: relative;
+  flex-basis: 0;
+  min-width: 5px;
+  height: 14px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  transform-origin: bottom;
+  animation: grow-y 520ms var(--ease) both;
+  transition:
+    height var(--t-fast) var(--ease),
+    background var(--t-fast);
+}
+.tl-seg.user {
+  height: 22px;
+  background: color-mix(in srgb, var(--communication) 55%, var(--surface-3));
+}
+.tl-seg:hover,
+.tl-seg:focus-visible {
+  height: 30px;
+}
+.tl-seg.user:hover {
+  background: var(--communication);
+}
+.tl-mark {
+  position: absolute;
+  left: 50%;
+  top: -9px;
+  width: 7px;
+  height: 7px;
+  margin-left: -3.5px;
+  border-radius: 50%;
+  background: var(--text);
+  animation: pop 400ms var(--ease) both 500ms;
+}
+.tl-seg.k-strength .tl-mark {
+  background: var(--positive);
+}
+.tl-seg.k-change .tl-mark {
+  background: var(--caution);
+}
+.tl-seg.k-moment .tl-mark {
+  background: var(--review);
+}
+.tl-legend {
+  display: flex;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.tl-legend span::before {
+  content: '';
+  display: inline-block;
+  width: 10px;
+  height: 6px;
+  margin-right: 6px;
+  border-radius: 2px;
+  vertical-align: middle;
+}
+.tl-legend .you::before {
+  background: var(--communication);
+}
+.tl-legend .them::before {
+  background: var(--surface-3);
+}
+.tl-legend .noted::before {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--text);
+}
+.replay-thread .turn {
+  position: relative;
+  padding: 10px 12px;
+  margin: 0 -12px;
+  border-radius: var(--r);
+  transition: background 600ms var(--ease);
+}
+.replay-thread .turn.lit {
+  background: var(--surface);
+}
+.line-note {
+  display: grid;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 10px 14px;
+  border-left: 2px solid var(--c, var(--text-3));
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  background: var(--raised);
+  font-size: 15px;
+  line-height: 1.45;
+  animation: rise var(--t) var(--ease) both;
+}
+.line-note.k-strength {
+  --c: var(--positive);
+}
+.line-note.k-change {
+  --c: var(--caution);
+}
+.line-note.k-moment {
+  --c: var(--review);
+}
+.line-note .label {
+  color: var(--c);
+  font-weight: 600;
+}
+.turn .redo {
+  justify-self: start;
+  margin-top: 4px;
+  opacity: 0.55;
+  transition: opacity var(--t-fast);
+}
+.turn:hover .redo,
+.turn .redo:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .turn .redo {
+    opacity: 0.8;
+  }
 }

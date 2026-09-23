@@ -12,6 +12,8 @@ export const NAV = [
   { href: '/learn', label: 'Learn', icon: 'learn' },
   { href: '/practice', label: 'Practice', icon: 'practice' },
   { href: '/mastery', label: 'Mastery', icon: 'mastery' },
+  // Wide screens only; phones reach it from Mastery and Today.
+  { href: '/insights', label: 'Insights', icon: 'insights', rail: true },
   { href: '/life', label: 'Life', icon: 'life' },
 ] as const;
 
@@ -78,7 +80,7 @@ export function Shell({ children }: { children: ReactNode }) {
         </main>
         {!focus && (
           <nav className="tabbar" aria-label="Main">
-            {NAV.map((n) => (
+            {NAV.filter((n) => !('rail' in n)).map((n) => (
               <Link key={n.href} href={n.href} aria-current={active(path, n.href) ? 'page' : undefined}>
                 <Icon name={n.icon} size={22} />
                 <span>{n.label}</span>

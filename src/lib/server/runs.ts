@@ -13,9 +13,12 @@ import {
   isQuestionBeat,
   type Beat,
   type Block,
+  type Confidence,
   type Feedback,
+  type Response,
   type RunView,
   type AskIntent,
+  canRetry,
 } from '@/lib/learning/run';
 import { strength } from '@/lib/learning/model';
 import { NEUTRAL, observe, styleLayer, type Signal, type Style } from '@/lib/learning/style';
@@ -31,6 +34,11 @@ type RunContext = {
   exposed?: string[];
   deeper?: number;
   diagnosis?: Record<string, string>;
+  // Written ahead of the learning window; "opened" once the learner begins.
+  prepared?: boolean;
+  opened?: boolean;
+  break_until?: string | null;
+  milestone?: { title: string; date: string };
 };
 type Key = {
   answer_index: number | null;
@@ -79,21 +87,24 @@ export function view(row: RunRow, plan?: Plan): RunView {
     started_at: row.started_at,
     minutes_planned: row.minutes_planned,
     session: s ? { id: s.id, title: s.title, subject: s.subject, date: s.date, objective: s.objective } : null,
+    break_until: row.context.break_until || null,
   };
 }
 
 export async function activeRuns(userId: string) {
   const { data } = await db()
     .from('runs')
-    .select('id,kind,title,session_id,cursor,beats,updated_at,status,minutes_planned')
+    .select('id,kind,title,session_id,cursor,beats,updated_at,status,minutes_planned,context')
     .eq('user_id', userId)
     .eq('status', 'active')
     .neq('kind', 'practice') // practice conversations resume from Practice
     .order('updated_at', { ascending: false })
     .limit(5);
-  return (data || []) as (Pick<RunRow, 'id' | 'kind' | 'title' | 'session_id' | 'cursor' | 'beats' | 'status' | 'minutes_planned'> & {
+  // A session written ahead of time is not something to "pick up": it waits
+  // behind Begin until the learner opens it.
+  return ((data || []) as (Pick<RunRow, 'id' | 'kind' | 'title' | 'session_id' | 'cursor' | 'beats' | 'status' | 'minutes_planned' | 'context'> & {
     updated_at: string;
-  })[];
+  })[]).filter((r) => !(r.context?.prepared && !r.context.opened));
 }
 
 // ---------- Starting a run: instant, no model call ----------
@@ -101,13 +112,15 @@ export async function activeRuns(userId: string) {
 export async function startRun(
   userId: string,
   input: {
-    kind: 'session' | 'review' | 'explore' | 'return';
+    kind: 'session' | 'review' | 'explore' | 'return' | 'rehearsal';
     sessionId?: string;
     minutes?: number;
     topic?: string;
     concepts?: string[];
+    milestone?: string; // rehearsal: the milestone's date
+    prepare?: boolean; // written ahead by the scheduler, not opened yet
   },
-) {
+): Promise<RunView> {
   const state = await readState(userId),
     plan = state.plan;
   const now = nowIso();
@@ -123,17 +136,44 @@ export async function startRun(
       .eq('session_id', session.id)
       .eq('status', 'active')
       .maybeSingle();
-    if (open) return view(open as RunRow, plan);
+    if (open) {
+      const row = open as RunRow;
+      if (input.prepare) return view(row, plan);
+      if (row.context.prepared && !row.context.opened) {
+        // A session written ahead of time for a different length or kind
+        // (say, "Only 20 minutes") is replaced rather than reused.
+        const wanted = input.minutes || state.overrides[session.id]?.duration_minutes || session.duration_minutes;
+        if (row.kind !== input.kind || (row.minutes_planned && row.minutes_planned !== wanted)) {
+          await db().from('runs').update({ status: 'abandoned' }).eq('id', row.id).eq('user_id', userId);
+        } else {
+          // Its clock starts when the learner does.
+          const started_at = nowIso();
+          await db().from('runs').update({ started_at }).eq('id', row.id).eq('user_id', userId);
+          await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { opened: true } });
+          return view({ ...row, started_at, context: { ...row.context, opened: true } }, plan);
+        }
+      } else return view(row, plan);
+    }
   }
+  const milestone =
+    input.kind === 'rehearsal' ? plan?.milestones.find((m) => m.date === input.milestone) : undefined;
+  if (input.kind === 'rehearsal' && !milestone) throw new HttpError('That milestone isn’t in your plan.', 404);
   const graph = plan ? await concepts(userId, plan) : { list: [], mapped: false };
   const learned = plan ? await states(userId, plan.plan_id) : new Map();
-  const upcoming = session ? conceptsFor(session, graph.list).map((c) => c.key) : [];
+  const upcoming = session
+    ? conceptsFor(session, graph.list).map((c) => c.key)
+    : milestone && plan
+      ? rehearsalConcepts(plan, graph.list, learned, milestone.date, now)
+      : [];
   const due =
-    input.kind === 'review' && input.concepts?.length
+    input.kind === 'rehearsal'
+      ? []
+      : input.kind === 'review' && input.concepts?.length
       ? input.concepts.filter((k) => graph.list.some((c) => c.key === k))
       : dueConcepts(learned, graph.list, now, upcoming).filter((k) => !upcoming.includes(k));
   const override = session ? state.overrides[session.id] : undefined;
-  const minutes = input.minutes || override?.duration_minutes || session?.duration_minutes || (input.kind === 'review' ? 10 : 20);
+  const minutes =
+    input.minutes || override?.duration_minutes || session?.duration_minutes || (input.kind === 'review' ? 10 : input.kind === 'rehearsal' ? 30 : 20);
   const weekIndex =
     session && plan
       ? Math.floor(Temporal.PlainDate.from(plan.start_date).until(Temporal.PlainDate.from(session.date)).days / 7)
@@ -155,14 +195,16 @@ export async function startRun(
     known,
     dueReviews: due,
     commitmentMinutes: weekIndex < 2 && minutes > 60 ? 60 : undefined,
-    evidence: producesEvidence ? session!.evidence : undefined,
+    evidence: producesEvidence ? session!.evidence : milestone?.title,
     voice: !!process.env.OPENAI_API_KEY,
   }).map((b) => ({ ...b, status: 'pending' as const }));
 
   const title =
     kind === 'review'
       ? 'Review'
-      : kind === 'explore'
+      : kind === 'rehearsal'
+        ? `Rehearsal: ${milestone!.title}`.slice(0, 200)
+        : kind === 'explore'
         ? (input.topic || 'Exploration').slice(0, 120)
         : session!.title;
   const { data, error } = await db()
@@ -175,7 +217,12 @@ export async function startRun(
       title,
       beats,
       outline: beats.map(({ id, type, minutes, concept, optional }) => ({ id, type, minutes, concept, optional })),
-      context: { session_concepts: upcoming, topic: input.topic } satisfies RunContext,
+      context: {
+        session_concepts: upcoming,
+        topic: input.topic,
+        ...(input.prepare ? { prepared: true } : {}),
+        ...(milestone ? { milestone: { title: milestone.title, date: milestone.date } } : {}),
+      } satisfies RunContext,
       minutes_planned: minutes,
     })
     .select('*')
@@ -186,6 +233,24 @@ export async function startRun(
     throw new Error('The session could not start.');
   }
   return view(data as RunRow, plan);
+}
+
+// A rehearsal draws on what the milestone depends on: ideas taught before it,
+// weakest first, so the mock finds the gaps while there is time to close them.
+function rehearsalConcepts(
+  plan: Plan,
+  list: { key: string; session_ids: string[] }[],
+  learned: Map<string, import('@/lib/learning/model').ConceptState>,
+  date: string,
+  now: string,
+) {
+  const before = new Set(plan.sessions.filter((s) => s.date <= date).map((s) => s.id));
+  return list
+    .filter((c) => c.session_ids.some((id) => before.has(id)))
+    .map((c) => ({ key: c.key, s: learned.get(c.key) }))
+    .sort((a, b) => (a.s ? strength(a.s, now) : 0.5) - (b.s ? strength(b.s, now) : 0.5))
+    .slice(0, 3)
+    .map((c) => c.key);
 }
 
 // ---------- Context assembly ----------
@@ -209,15 +274,19 @@ function transcript(row: RunRow, upto: number, full = false) {
     const recent = full || i >= upto - 6;
     lines.push(`[${b.type}] Tutor: ${plainText(b.blocks, recent ? 700 : 160)}`);
     if (b.question?.options) lines.push(`Options: ${b.question.options.map((o, j) => `${j + 1}. ${o}`).join(' | ')}`);
+    for (const a of b.attempts || [])
+      lines.push(`Learner (first try): ${a.response.text || ''}`.slice(0, recent ? 800 : 150), `Assessment: ${a.feedback.verdict}.`);
     if (b.response)
       lines.push(
-        `Learner: ${b.response.choice !== undefined ? `chose ${b.response.choice + 1}. ` : ''}${b.response.text || ''}`.slice(0, recent ? 1200 : 200),
+        `Learner${b.attempts?.length ? ' (retry)' : ''}: ${b.response.choice !== undefined ? `chose ${b.response.choice + 1}. ` : ''}${b.response.text || ''}${b.response.confidence ? ` [said: ${CONFIDENCE_WORD[b.response.confidence]}]` : ''}`.slice(0, recent ? 1200 : 200),
       );
     if (b.feedback) lines.push(`Assessment: ${b.feedback.verdict} (${b.feedback.score.toFixed(2)}). ${plainText(b.feedback.blocks, recent ? 400 : 100)}`);
     for (const a of b.asks || []) lines.push(`Learner asked: ${a.prompt}\nTutor: ${plainText(a.blocks, recent ? 500 : 120)}`);
   });
   return lines.join('\n');
 }
+
+const CONFIDENCE_WORD: Record<Confidence, string> = { low: 'guessing', medium: 'fairly sure', high: 'certain' };
 
 async function style(userId: string): Promise<Style> {
   const { data } = await db().from('learner_profiles').select('style').eq('user_id', userId).maybeSingle();
@@ -275,9 +344,14 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
             `Plan guidance: ${session.generation_instructions.slice(0, 600)}`,
             sources.length ? `Reference sources the learner can open: ${sources.map((s) => `${s.title} (${s.url})`).join('; ')}` : '',
           ].join('\n')
-        : row.context.topic
-          ? `Exploration requested by the learner: ${row.context.topic}`
-          : null,
+        : row.context.milestone
+          ? [
+              `Milestone rehearsal. The learner is preparing for: ${row.context.milestone.title} (due ${row.context.milestone.date}).`,
+              'Make the produce step a realistic mock of that deliverable, judged as the milestone would be. Warm-ups and checks probe the weakest prerequisite ideas.',
+            ].join('\n')
+          : row.context.topic
+            ? `Exploration requested by the learner: ${row.context.topic}`
+            : null,
     },
     {
       name: 'session_state',
@@ -449,18 +523,27 @@ export async function answerBeat(
   userId: string,
   runId: string,
   beatId: string,
-  response: { choice?: number; text?: string },
+  response: { choice?: number; text?: string; confidence?: Confidence },
   send: Send,
+  retry = false,
 ) {
   const row = await loadRun(userId, runId);
   const at = row.beats.findIndex((b) => b.id === beatId),
     beat = row.beats[at],
     key = row.secrets[beatId];
   if (!beat || !beat.question || !key) throw new HttpError('This step isn’t ready for an answer yet.', 409);
-  if (beat.feedback) return send({ t: 'done', data: beat });
-  const answered = { ...response, at: nowIso() };
-  await patch(userId, runId, beatId, { response: answered, status: 'answered' });
-  row.beats[at] = { ...beat, response: answered };
+  // One retry of a text answer that missed, with the feedback in view.
+  const retrying = retry && canRetry(beat);
+  if (beat.feedback && !retrying) return send({ t: 'done', data: beat });
+  const first = retrying ? { response: beat.response!, feedback: beat.feedback! } : null;
+  const attempts = first ? [...(beat.attempts || []), first] : beat.attempts;
+  const answered: Response = { ...response, at: nowIso() };
+  await patch(userId, runId, beatId, {
+    response: answered,
+    status: 'answered',
+    ...(first ? { attempts, feedback: null } : {}),
+  });
+  row.beats[at] = { ...beat, response: answered, attempts, feedback: undefined };
 
   const choiceCorrect =
     beat.question.kind === 'choice' && key.answer_index !== null ? response.choice === key.answer_index : null;
@@ -486,7 +569,22 @@ export async function answerBeat(
           .join('\n'),
       },
     ],
-    input: `Assess this response to the ${beat.type} step.\n${response.choice !== undefined ? `Chosen option: ${response.choice + 1}. ${beat.question.options?.[response.choice] || ''}\n` : ''}${response.text ? `Written response: ${response.text}` : ''}`,
+    input: [
+      `Assess this response to the ${beat.type} step.`,
+      first
+        ? `This is a second attempt after feedback. First attempt: ${first.response.text || ''}\nFeedback it received: ${plainText(first.feedback.blocks, 500)}\nJudge the new answer on its own merits and say plainly whether it closed the gap.`
+        : '',
+      response.choice !== undefined ? `Chosen option: ${response.choice + 1}. ${beat.question.options?.[response.choice] || ''}` : '',
+      response.text ? `Written response: ${response.text}` : '',
+      response.confidence ? `Before seeing feedback, the learner said they were ${CONFIDENCE_WORD[response.confidence]}.` : '',
+      response.confidence === 'high'
+        ? 'If this is wrong, the learner believes something false: name that belief plainly and show exactly why it fails, so the correction sticks.'
+        : response.confidence === 'low'
+          ? 'If this is right, briefly confirm why it is right, so a guess becomes knowledge.'
+          : '',
+    ]
+      .filter(Boolean)
+      .join('\n'),
     onPartial: (p) => {
       const v = p as Partial<z.infer<typeof gradeSchema>>;
       send({ t: 'snap', data: { feedback: { verdict: v.verdict, blocks: v.blocks || [] } } });
@@ -501,11 +599,12 @@ export async function answerBeat(
     beat.question.kind === 'choice' && key.answer_index !== null ? { correct_index: key.answer_index } : {};
   await patch(userId, runId, beatId, { feedback, status: 'done', ...reveal });
   send({ t: 'meta', tier: out.tier });
-  send({ t: 'done', data: { ...beat, response: answered, feedback, status: 'done', ...reveal } });
+  send({ t: 'done', data: { ...beat, response: answered, attempts, feedback, status: 'done', ...reveal } });
 
   // Learner model and style updates do not hold up the response.
   const concept = beat.concept;
-  const assisted = (beat.asks?.length || 0) > 0;
+  // Asking for help, or retrying after feedback, halves the evidence.
+  const assisted = (beat.asks?.length || 0) > 0 || !!first;
   const effects: Promise<unknown>[] = [];
   if (concept && row.plan_id)
     effects.push(
@@ -515,8 +614,9 @@ export async function answerBeat(
         assisted,
         options: beat.question.options?.length,
         misconception: out.data.misconception,
+        confidence: response.confidence,
         at: nowIso(),
-        detail: { beat: beat.type, verdict },
+        detail: { beat: beat.type, verdict, confidence: response.confidence || null, retry: !!first },
       }),
     );
   if (verdict === 'solid' && !assisted) effects.push(signal(userId, 'fast_correct'));
@@ -570,6 +670,7 @@ export async function askBeat(
   prompt: string,
   intent: AskIntent,
   send: Send,
+  quote?: string,
 ) {
   const row = await loadRun(userId, runId);
   const at = row.beats.findIndex((b) => b.id === beatId),
@@ -577,7 +678,9 @@ export async function askBeat(
   if (!beat) throw new HttpError('Step not found.', 404);
   if (intent === 'deeper') row.context.deeper = (row.context.deeper || 0) + 1;
   const { layers: ctx } = await layers(userId, row, beat, at + 1);
-  const question = intent === 'free' ? prompt : INTENT_PROMPT[intent] + (prompt ? ` (${prompt})` : '');
+  const asked = intent === 'free' ? prompt : INTENT_PROMPT[intent] + (prompt ? ` (${prompt})` : '');
+  // A highlighted passage narrows the question to exactly that part.
+  const question = quote ? `About this passage — "${quote}": ${asked || 'Explain this part.'}` : asked;
   // Never leak the key while a question is still open.
   const open = beat.question && !beat.feedback;
   const out = await generate({
@@ -595,6 +698,7 @@ export async function askBeat(
   const ask = {
     id: crypto.randomUUID(),
     prompt: intent === 'free' ? prompt : INTENT_PROMPT[intent],
+    ...(quote ? { quote } : {}),
     intent,
     blocks: out.data.blocks,
     follow_ups: out.data.follow_ups.slice(0, 2),
@@ -627,10 +731,29 @@ export async function advance(userId: string, runId: string, beatId: string, ski
   await db().rpc('merge_run', {
     p_run: runId,
     p_user: userId,
-    p_context: { exposed: [...exposed] },
+    p_context: { exposed: [...exposed], ...(row.context.break_until ? { break_until: null } : {}) },
     p_fields: { cursor },
   });
   return { cursor };
+}
+
+// ---------- Breaks ----------
+
+// Starting a break records when it ends. The route waits that long in the
+// background and sends a push, unless the learner has already come back.
+export async function startBreak(userId: string, runId: string, beatId: string) {
+  const row = await loadRun(userId, runId);
+  const beat = row.beats.find((b) => b.id === beatId);
+  if (!beat || beat.type !== 'break') throw new HttpError('That step isn’t a break.', 409);
+  if (row.context.break_until && Date.parse(row.context.break_until) > Date.now())
+    return { until: row.context.break_until, fresh: false };
+  const until = new Date(Date.now() + beat.minutes * 60000).toISOString();
+  await db().rpc('merge_run', { p_run: runId, p_user: userId, p_context: { break_until: until } });
+  return { until, fresh: true };
+}
+export async function breakStillRunning(userId: string, runId: string, until: string) {
+  const row = await loadRun(userId, runId).catch(() => null);
+  return !!row && row.status === 'active' && row.context.break_until === until;
 }
 
 // Finishing records completion against the plan and consolidates memory.

@@ -11,11 +11,12 @@ export async function POST(r: Request) {
     const { user } = await context(r);
     const v = z
       .object({
-        kind: z.enum(['session', 'review', 'explore', 'return']),
+        kind: z.enum(['session', 'review', 'explore', 'return', 'rehearsal']),
         sessionId: z.string().max(100).optional(),
         minutes: z.number().int().min(5).max(240).optional(),
         topic: z.string().trim().min(2).max(400).optional(),
         concepts: z.array(z.string().max(80)).max(8).optional(),
+        milestone: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       })
       .parse(await body(r));
     return NextResponse.json({ run: await startRun(user.id, v) });
