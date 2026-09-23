@@ -2,7 +2,7 @@ import { NextResponse, after } from 'next/server';
 import { z } from 'zod';
 import { context, body, fail, HttpError } from '@/lib/server/http';
 import { readState } from '@/lib/server/state';
-import { buildInsight, claimWeek, getInsight, listInsights, markSeen, trailingWeek, zoneFor } from '@/lib/server/insights';
+import { adoptFocus, askInsight, buildInsight, claimWeek, getInsight, listInsights, markSeen, trailingWeek, zoneFor } from '@/lib/server/insights';
 
 // Generation runs Astra at high effort in the background of this request.
 export const maxDuration = 800;
@@ -28,12 +28,16 @@ export async function POST(r: Request) {
       .discriminatedUnion('action', [
         z.object({ action: z.literal('generate') }),
         z.object({ action: z.literal('seen'), id: z.string().uuid() }),
+        z.object({ action: z.literal('adopt'), id: z.string().uuid(), on: z.boolean() }),
+        z.object({ action: z.literal('ask'), id: z.string().uuid(), question: z.string().trim().min(3).max(300) }),
       ])
       .parse(await body(r));
     if (v.action === 'seen') {
       await markSeen(user.id, v.id);
       return NextResponse.json({ ok: true });
     }
+    if (v.action === 'adopt') return NextResponse.json({ focus: await adoptFocus(user.id, v.id, v.on) });
+    if (v.action === 'ask') return NextResponse.json({ answer: await askInsight(user.id, v.id, v.question) });
     // On demand only for a first read, or to retry one that failed. After
     // that, insights arrive once a week on their own.
     const weeks = await listInsights(user.id);

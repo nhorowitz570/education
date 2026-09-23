@@ -19,6 +19,7 @@ export const TASKS = {
   'memory.extract': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 1500 },
   'run.summary': { tier: 'fast', effort: 'none', verbosity: 'low', maxOutput: 700 },
   'today.hook': { tier: 'fast', effort: 'none', verbosity: 'low', maxOutput: 200 },
+  'insights.ask': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 900 },
   'food.estimate': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 600 },
   'visual.repair': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 1500 },
   'plan.chapters': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 2500 },

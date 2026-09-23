@@ -61,6 +61,13 @@ export function Runner({ id }: { id: string }) {
     if (last) void state.finish();
     else void state.next();
   }, [canContinue, last, state]);
+  // Leaving an exploration once its question has been answered finishes it,
+  // so it doesn't linger and what it showed about the learner is remembered.
+  const leave = useCallback(() => {
+    if (run?.kind === 'explore' && run.status === 'active' && run.beats.some((b) => ['ready', 'answered', 'done'].includes(b.status)))
+      void api(`/api/runs/${run.id}`, { action: 'finish' }).catch(() => {});
+    router.push('/');
+  }, [run, router]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const typing = (e.target as HTMLElement)?.closest('input,textarea,[contenteditable]');
@@ -101,7 +108,7 @@ export function Runner({ id }: { id: string }) {
   return (
     <div className="session" data-track={track}>
       {run.adaptive ? (
-        <ClockBar run={run} state={state} track={track} onClose={() => router.push('/')} />
+        <ClockBar run={run} state={state} track={track} onClose={leave} />
       ) : (
         <TopBar
           title={run.title}
@@ -109,7 +116,7 @@ export function Runner({ id }: { id: string }) {
           index={index}
           track={track}
           remaining={remaining}
-          onClose={() => router.push('/')}
+          onClose={leave}
         />
       )}
       <div className="session-col">

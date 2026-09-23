@@ -11,51 +11,38 @@ export function useProgress() {
   return useCached<Progress>('/api/progress', user.id);
 }
 
-// Level, streak and today's quests: the small daily game around learning.
-export function ProgressCard({ progress }: { progress: Progress }) {
+// Level, streak and today's quests in one quiet line. The detail (XP, quests,
+// badges) opens in a sheet.
+export function ProgressStrip({ progress }: { progress: Progress }) {
   const [open, setOpen] = useState(false);
   const p = progress;
   const done = p.quests.filter((q) => q.done).length;
   return (
-    <section className="xp-card" aria-label="Level, streak and today’s quests">
-      <button className="xp-head" onClick={() => setOpen(true)} aria-label={`Level ${p.level}, ${p.xp} XP. Show badges`}>
-        <LevelRing level={p.level} fill={p.into / p.span} />
-        <div className="grow">
-          <p className="xp-rank">
-            {p.rank} <span className="num">· {p.xp.toLocaleString()} XP</span>
-          </p>
-          <div className="xp-bar" style={{ '--p': p.into / p.span } as React.CSSProperties}>
-            <i />
-          </div>
-          <p className="label num">
-            {(p.next - p.xp).toLocaleString()} XP to level {p.level + 1}
-            {p.todayXp > 0 ? ` · +${p.todayXp} today` : ''}
-          </p>
-        </div>
+    <>
+      <button
+        className="xp-strip"
+        onClick={() => setOpen(true)}
+        aria-label={`Level ${p.level}, ${p.streak.current}-day streak, ${done} of ${p.quests.length} quests done. Show details`}
+      >
+        <LevelRing level={p.level} fill={p.into / p.span} size={40} />
+        <span className="grow">
+          <b>{p.rank}</b>
+          <span className="label num">{p.todayXp > 0 ? `+${p.todayXp} XP today` : `${(p.next - p.xp).toLocaleString()} XP to level ${p.level + 1}`}</span>
+        </span>
+        <span className="xp-quests" aria-hidden="true">
+          <span className="quest-pips">
+            {p.quests.map((q) => (
+              <i key={q.id} className={q.done ? 'on' : ''} />
+            ))}
+          </span>
+          <span className="label num">
+            {done}/{p.quests.length}
+          </span>
+        </span>
         <Streak n={p.streak.current} lit={p.streak.todayDone} />
       </button>
-      <div className="quests">
-        <p className="eyebrow">
-          Today’s quests <span className="num faint">{done}/{p.quests.length}</span>
-        </p>
-        {p.quests.map((q) => (
-          <div key={q.id} className={'quest' + (q.done ? ' done' : '')}>
-            <span className="quest-check" aria-hidden="true">
-              {q.done && <Icon name="check" size={13} strokeWidth={2.4} />}
-            </span>
-            <span className="grow">{q.label}</span>
-            {q.target > 1 && !q.done && (
-              <span className="label num">
-                {q.progress}/{q.target}
-              </span>
-            )}
-            <span className="quest-xp num">+{q.xp}</span>
-          </div>
-        ))}
-        {done === p.quests.length && <p className="label quest-all">All three done: +30 XP bonus.</p>}
-      </div>
-      {open && <BadgeSheet progress={p} onClose={() => setOpen(false)} />}
-    </section>
+      {open && <ProgressSheet progress={p} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 
@@ -89,12 +76,40 @@ export function Streak({ n, lit }: { n: number; lit: boolean }) {
   );
 }
 
-function BadgeSheet({ progress, onClose }: { progress: Progress; onClose: () => void }) {
-  const earned = progress.badges.filter((b) => b.earned).length;
+function ProgressSheet({ progress, onClose }: { progress: Progress; onClose: () => void }) {
+  const p = progress;
+  const earned = p.badges.filter((b) => b.earned).length;
+  const done = p.quests.filter((q) => q.done).length;
   return (
-    <Sheet title={`Level ${progress.level} · ${progress.rank}`} subtitle={`${earned} of ${progress.badges.length} badges`} onClose={onClose}>
+    <Sheet title={`Level ${p.level} · ${p.rank}`} subtitle={`${p.xp.toLocaleString()} XP · ${(p.next - p.xp).toLocaleString()} to level ${p.level + 1}`} onClose={onClose}>
+      <div className="xp-bar" style={{ '--p': p.into / p.span } as React.CSSProperties}>
+        <i />
+      </div>
+      <div className="quests">
+        <p className="eyebrow">
+          Today’s quests <span className="num faint">{done}/{p.quests.length}</span>
+        </p>
+        {p.quests.map((q) => (
+          <div key={q.id} className={'quest' + (q.done ? ' done' : '')}>
+            <span className="quest-check" aria-hidden="true">
+              {q.done && <Icon name="check" size={13} strokeWidth={2.4} />}
+            </span>
+            <span className="grow">{q.label}</span>
+            {q.target > 1 && !q.done && (
+              <span className="label num">
+                {q.progress}/{q.target}
+              </span>
+            )}
+            <span className="quest-xp num">+{q.xp}</span>
+          </div>
+        ))}
+        <p className="label">{done === p.quests.length ? 'All three done: +30 XP bonus.' : 'All three earn a +30 XP bonus.'}</p>
+      </div>
+      <p className="eyebrow">
+        Badges <span className="num faint">{earned}/{p.badges.length}</span>
+      </p>
       <div className="badge-grid">
-        {progress.badges.map((b) => (
+        {p.badges.map((b) => (
           <div key={b.id} className={'badge' + (b.earned ? ' earned' : '')}>
             <span className="badge-mark" aria-hidden="true">
               <Icon name={b.earned ? 'star' : 'key'} size={18} />
@@ -105,7 +120,7 @@ function BadgeSheet({ progress, onClose }: { progress: Progress; onClose: () => 
         ))}
       </div>
       <p className="label">
-        Best streak: <span className="num">{progress.streak.best}</span> learning days. Days without a planned session never break a streak.
+        Best streak: <span className="num">{p.streak.best}</span> learning days. Days without a planned session never break a streak.
       </p>
     </Sheet>
   );

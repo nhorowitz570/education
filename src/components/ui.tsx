@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './icons';
 
 export function Button({
@@ -122,6 +122,106 @@ export function Segmented<T extends string>({
         </button>
       ))}
     </div>
+  );
+}
+
+export function Switch({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+}: {
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      className="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+    >
+      <i />
+    </button>
+  );
+}
+
+// A section that stays folded until asked for. Its body mounts on open, so
+// anything that animates in (charts, counters) plays when it is seen.
+export function Disclosure({
+  title,
+  teaser,
+  children,
+  className = '',
+  defaultOpen = false,
+}: {
+  title: string;
+  teaser?: ReactNode;
+  children: ReactNode;
+  className?: string;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const id = useId();
+  return (
+    <section className={('disclosure ' + className).trim()} data-open={open || undefined}>
+      <button type="button" className="disclosure-head" aria-expanded={open} aria-controls={id} onClick={() => setOpen((o) => !o)}>
+        <span className="grow">
+          <span className="disclosure-title">{title}</span>
+          {teaser && <span className="disclosure-teaser">{teaser}</span>}
+        </span>
+        <Icon name="down" size={18} className="disclosure-chev" />
+      </button>
+      {open && (
+        <div id={id} className="disclosure-body">
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
+
+// One line in a settings index: a label, its current state, and a way in.
+export function IndexRow({
+  icon,
+  title,
+  detail,
+  badge,
+  onClick,
+  children,
+}: {
+  icon: string;
+  title: string;
+  detail?: ReactNode;
+  badge?: ReactNode;
+  onClick?: () => void;
+  children?: ReactNode;
+}) {
+  const body = (
+    <>
+      <span className="row-glyph">
+        <Icon name={icon} size={18} />
+      </span>
+      <div className="grow">
+        <p>{title}</p>
+        {detail && <p className="sub">{detail}</p>}
+      </div>
+      {badge}
+      {children}
+      {onClick && <Icon name="chevron" size={18} />}
+    </>
+  );
+  return onClick ? (
+    <button type="button" className="row index-row" onClick={onClick}>
+      {body}
+    </button>
+  ) : (
+    <div className="row index-row">{body}</div>
   );
 }
 

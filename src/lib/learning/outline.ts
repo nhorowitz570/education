@@ -72,7 +72,7 @@ export function outline(i: OutlineInput): OutlineBeat[] {
   return [
     beat('explain', 'Answer the learner’s curiosity directly and well, with a visual if it helps.', { concept: main, minutes: 6 }),
     beat('check', 'One question that makes them apply the idea just explored.', { concept: main, optional: true, minutes: 4 }),
-    beat('recap', 'Connect what they explored to their plan or goals, briefly.', { minutes: 2, optional: true }),
+    beat('recap', 'Two or three lines on what they now know, and one thread worth pulling next time. This is a side trip, not part of their plan.', { minutes: 2, optional: true }),
   ];
 }
 

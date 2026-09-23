@@ -199,8 +199,10 @@ export async function startRun(
     : milestone && plan
       ? rehearsalConcepts(plan, graph.list, learned, milestone.date, now)
       : [];
+  // Explorations are off-plan: they pull in no reviews of plan ideas.
+  const offPlan = input.kind === 'explore' || (input.kind === 'session' && !session);
   const due =
-    input.kind === 'rehearsal'
+    input.kind === 'rehearsal' || offPlan
       ? []
       : input.kind === 'review' && input.concepts?.length
       ? input.concepts.filter((k) => graph.list.some((c) => c.key === k))
@@ -264,7 +266,9 @@ export async function startRun(
     .from('runs')
     .insert({
       user_id: userId,
-      plan_id: plan?.plan_id || null,
+      // An exploration belongs to no plan, so what it covers never lands in
+      // the plan's progress or reviews. Memory still learns from it.
+      plan_id: kind === 'explore' ? null : plan?.plan_id || null,
       session_id: session?.id || null,
       kind,
       title,

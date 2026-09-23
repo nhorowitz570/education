@@ -5,7 +5,9 @@ import { api } from '@/lib/client/api';
 import { useCached } from '@/lib/client/cached';
 import { useApp } from '@/components/app/provider';
 import { Icon } from '@/components/icons';
+import { Disclosure, Sheet } from '@/components/ui';
 import {
+  GRADE_BANDS,
   GRADE_HINT,
   GRADE_KEYS,
   GRADE_LABEL,
@@ -18,6 +20,7 @@ import {
 } from '@/lib/insights';
 
 type Data = { weeks: InsightSummary[]; insight: InsightRow | null };
+type Point = { week: string; score: number | null };
 
 const band = (s: number | null) => (s === null ? 'none' : s >= 75 ? 'high' : s >= 60 ? 'good' : s >= 45 ? 'mixed' : 'low');
 const rangeLabel = (start: string, end: string) => {
@@ -25,10 +28,15 @@ const rangeLabel = (start: string, end: string) => {
   const sameMonth = start.slice(0, 7) === end.slice(0, 7);
   return `${f(start, { month: 'short', day: 'numeric' })} – ${f(end, sameMonth ? { day: 'numeric' } : { month: 'short', day: 'numeric' })}`;
 };
+const shortDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+const hourLabel = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`;
+const plural = (n: number, one: string, many = one + 's') => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
 const reduced = () => typeof window !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // Sections rise into view as they're reached, and their charts draw then.
 // Runs after every render so sections that appear later are picked up too.
+// Folded sections don't use it: their content is marked in when it mounts,
+// so charts draw as the fold opens.
 function useReveal() {
   const root = useRef<HTMLDivElement>(null);
   const io = useRef<IntersectionObserver | null>(null);
@@ -108,7 +116,7 @@ export function Insights() {
   const [id, setId] = useState<string | null>(null);
   const { data, error, refresh } = useCached<Data>(id ? `/api/insights?id=${id}` : '/api/insights', user.id);
   const insight = data?.insight || null;
-  const weeks = data?.weeks || [];
+  const weeks = useMemo(() => data?.weeks || [], [data]);
   const [starting, setStarting] = useState(false),
     [startError, setStartError] = useState('');
 
@@ -144,10 +152,9 @@ export function Insights() {
 
   const report = insight?.status === 'ready' ? insight.report : null;
   const metrics = insight?.status === 'ready' && 'totals' in (insight.metrics || {}) ? (insight.metrics as InsightMetrics) : null;
-  const previous = useMemo(() => {
-    if (!insight) return null;
-    return weeks.find((w) => w.week_start < insight.week_start && w.status === 'ready') || null;
-  }, [weeks, insight]);
+  const ready = useMemo(() => weeks.filter((w) => w.status === 'ready'), [weeks]);
+  const previous = useMemo(() => (insight ? ready.find((w) => w.week_start < insight.week_start) || null : null), [ready, insight]);
+  const latest = !!insight && ready[0]?.id === insight.id;
   const root = useReveal();
 
   return (
@@ -162,20 +169,7 @@ export function Insights() {
           <p className="eyebrow">Insights</p>
           <h1 className="title">Your week, read honestly.</h1>
         </div>
-        {weeks.length > 1 && (
-          <nav className="week-picker" aria-label="Choose a week">
-            {weeks.map((w) => (
-              <button
-                key={w.id}
-                className={'chip' + (w.id === insight?.id ? ' on' : '')}
-                aria-pressed={w.id === insight?.id}
-                onClick={() => setId(w.id)}
-              >
-                {rangeLabel(w.week_start, w.week_end)}
-              </button>
-            ))}
-          </nav>
-        )}
+        {insight && <WeekStepper weeks={weeks} current={insight} onPick={setId} />}
       </header>
 
       {!data && !error && <InsightsSkeleton />}
@@ -195,7 +189,7 @@ export function Insights() {
           <h2 className="heading">Your first read</h2>
           <p className="muted">
             Once a week, Fieldwork looks at how you actually learned: time, follow-through, curiosity, what stuck and what
-            didn’t. It grades each area against fixed anchors and says plainly what it sees. Each Monday brings a new one.
+            didn’t. Each area is graded against fixed anchors. A new read arrives every Monday.
           </p>
           <button className="btn primary large" onClick={() => void start()}>
             <Icon name="insights" size={18} /> Read my last seven days
@@ -229,9 +223,29 @@ export function Insights() {
       )}
 
       {insight && report && metrics && (
-        <Report key={insight.id} insight={insight} report={report} metrics={metrics} previous={previous} />
+        <Report key={insight.id} insight={insight} report={report} metrics={metrics} previous={previous} weeks={ready} latest={latest} />
       )}
     </div>
+  );
+}
+
+// One week at a time, stepped through like pages.
+function WeekStepper({ weeks, current, onPick }: { weeks: InsightSummary[]; current: InsightRow; onPick: (id: string) => void }) {
+  const i = weeks.findIndex((w) => w.id === current.id);
+  const older = weeks[i + 1],
+    newer = i > 0 ? weeks[i - 1] : undefined;
+  return (
+    <nav className="week-step" aria-label="Choose a week">
+      <button className="btn icon small ghost" disabled={!older} onClick={() => older && onPick(older.id)} aria-label="Earlier week">
+        <Icon name="chevron" size={18} className="flip" />
+      </button>
+      <span className="week-step-label num" aria-live="polite">
+        {rangeLabel(current.week_start, current.week_end)}
+      </span>
+      <button className="btn icon small ghost" disabled={!newer} onClick={() => newer && onPick(newer.id)} aria-label="Later week">
+        <Icon name="chevron" size={18} />
+      </button>
+    </nav>
   );
 }
 
@@ -240,23 +254,49 @@ function Report({
   report,
   metrics,
   previous,
+  weeks,
+  latest,
 }: {
   insight: InsightRow;
   report: InsightReport;
   metrics: InsightMetrics;
   previous: InsightSummary | null;
+  weeks: InsightSummary[];
+  latest: boolean;
 }) {
   const prev = new Map((previous?.grades || []).map((g) => [g.key, g.score]));
   const t = metrics.totals;
   const graded = report.grades.filter((g) => g.score !== null);
   const overall = graded.length ? Math.round(graded.reduce((s, g) => s + g.score!, 0) / graded.length) : null;
+  const [howOpen, setHowOpen] = useState(false);
+  // Up to eight weeks of each grade, oldest first, ending at this one.
+  const trend = useMemo(() => {
+    const span = weeks
+      .filter((w) => w.week_start <= insight.week_start)
+      .slice(0, 8)
+      .reverse();
+    return new Map<GradeKey, Point[]>(
+      GRADE_KEYS.map((k) => [k, span.map((w) => ({ week: w.week_start, score: w.grades.find((g) => g.key === k)?.score ?? null }))]),
+    );
+  }, [weeks, insight.week_start]);
+  const peak = metrics.by_hour.indexOf(Math.max(...metrics.by_hour));
+  const hasHours = metrics.by_hour.some((h) => h > 0);
+  const a = metrics.answers;
+  const kinds = report.patterns.reduce<Record<string, number>>((m, p) => ((m[p.kind] = (m[p.kind] || 0) + 1), m), {});
+  const lowest = [...graded].sort((x, y) => x.score! - y.score!)[0];
+
+  const secondary = [
+    plural(t.answers, 'answer'),
+    plural(t.words_written, 'word') + ' written',
+    plural(t.questions_asked, 'question') + ' asked',
+    t.words_spoken > 0 ? plural(t.words_spoken, 'word') + ' spoken' : '',
+    t.practices > 0 ? plural(t.practices, 'practice conversation') : '',
+  ].filter(Boolean);
+
   return (
     <>
       <section className="ins-hero" data-reveal>
-        <p className="eyebrow">
-          {rangeLabel(insight.week_start, insight.week_end)}
-          {previous ? ' · compared with the week before' : ''}
-        </p>
+        <p className="eyebrow">{previous ? 'Compared with the week before' : 'Your first read'}</p>
         <h2 className="ins-headline">{report.headline}</h2>
         <p className="ins-summary">{report.summary}</p>
         {report.data_note && (
@@ -266,15 +306,15 @@ function Report({
         )}
       </section>
 
+      <FocusCard insight={insight} report={report} previous={previous} latest={latest} />
+
       <section className="ins-stats" data-reveal aria-label="The week in numbers">
-        <Stat value={t.minutes} label="minutes learning" />
-        <Stat value={t.days_active} label="days active" of={7} />
-        <Stat value={t.sessions_finished} label={`session${t.sessions_finished === 1 ? '' : 's'} finished`} />
-        <Stat value={t.answers} label="answers given" />
-        <Stat value={t.words_written} label="words written" />
-        <Stat value={t.questions_asked} label="questions asked" />
-        {t.words_spoken > 0 && <Stat value={t.words_spoken} label="words spoken" />}
-        {t.practices > 0 && <Stat value={t.practices} label={`practice${t.practices === 1 ? '' : 's'}`} />}
+        <div className="ins-stats-main">
+          <Stat value={t.minutes} label="minutes learning" />
+          <Stat value={t.days_active} label="days active" of={7} />
+          <Stat value={t.sessions_finished} label={`session${t.sessions_finished === 1 ? '' : 's'} finished`} />
+        </div>
+        <p className="ins-stats-more">{secondary.join(' · ')}</p>
       </section>
 
       <section className="ins-grades" data-reveal>
@@ -292,58 +332,11 @@ function Report({
         <div className="grade-list">
           {GRADE_KEYS.map((k, i) => {
             const g = report.grades.find((x) => x.key === k);
-            return g ? <GradeCard key={k} g={g} prev={prev.get(k) ?? null} i={i} /> : null;
+            return g ? <GradeRow key={k} g={g} prev={prev.get(k) ?? null} trend={trend.get(k) || []} i={i} /> : null;
           })}
+          <p className="label grade-list-key">Tap an area for the evidence. The tick marks last week.</p>
         </div>
       </section>
-
-      <section className="ins-rhythm" data-reveal>
-        <div className="ins-card">
-          <p className="eyebrow">Day by day</p>
-          <Days days={metrics.by_day} />
-        </div>
-        <div className="ins-card">
-          <p className="eyebrow">When you learn</p>
-          <Clock hours={metrics.by_hour} />
-        </div>
-      </section>
-
-      {metrics.answers.total > 0 && (
-        <section className="ins-answers ins-card" data-reveal>
-          <p className="eyebrow">How your answers landed</p>
-          <Answers a={metrics.answers} schedule={metrics.schedule} />
-        </section>
-      )}
-
-      {report.patterns.length > 0 && (
-        <section className="ins-section" data-reveal>
-          <p className="eyebrow">How you learn</p>
-          <div className="patterns">
-            {report.patterns.map((p, i) => (
-              <article key={i} className={'pattern k-' + p.kind} style={{ '--i': i } as React.CSSProperties}>
-                <span className="pattern-kind">{p.kind === 'strength' ? 'Strength' : p.kind === 'watch' ? 'Watch' : 'Noticed'}</span>
-                <h3>{p.title}</h3>
-                <p>{p.body}</p>
-              </article>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {report.mind.length > 0 && (
-        <section className="ins-section ins-mind" data-reveal>
-          <p className="eyebrow">Behind the numbers</p>
-          <div className="mind">
-            {report.mind.map((m, i) => (
-              <article key={i} style={{ '--i': i } as React.CSSProperties}>
-                <h3>{m.title}</h3>
-                <p className="serif">{m.body}</p>
-              </article>
-            ))}
-          </div>
-          <p className="label mind-note">Observations from how you worked this week, not a diagnosis of anything.</p>
-        </section>
-      )}
 
       {report.moment && (
         <section className="ins-moment" data-reveal>
@@ -353,24 +346,166 @@ function Report({
         </section>
       )}
 
-      <section className="ins-focus" data-reveal>
-        <p className="eyebrow">Next week</p>
-        <h3>{report.focus.title}</h3>
-        <p className="muted">{report.focus.why}</p>
-        <div className="focus-try">
-          <Icon name="target" size={18} />
-          <p>{report.focus.try}</p>
-        </div>
-      </section>
+      <div className="ins-more" data-reveal>
+        <Disclosure
+          title="Rhythm"
+          teaser={`${plural(t.days_active, 'active day')}${hasHours ? ` · most active around ${hourLabel(peak)}` : ''}`}
+        >
+          <div className="ins-rhythm in">
+            <div className="ins-card">
+              <p className="eyebrow">Day by day</p>
+              <Days days={metrics.by_day} />
+            </div>
+            <div className="ins-card">
+              <p className="eyebrow">When you learn</p>
+              <Clock hours={metrics.by_hour} />
+            </div>
+          </div>
+        </Disclosure>
+        {a.total > 0 && (
+          <Disclosure
+            title="How your answers landed"
+            teaser={`${plural(a.total, 'answer')}${a.avg_score !== null ? ` · average ${Math.round(a.avg_score * 100)}` : ''} · ${a.solid} solid`}
+          >
+            <div className="ins-card ins-answers in">
+              <Answers a={a} schedule={metrics.schedule} />
+            </div>
+          </Disclosure>
+        )}
+        {report.patterns.length > 0 && (
+          <Disclosure
+            title="How you learn"
+            teaser={[
+              kinds.strength ? plural(kinds.strength, 'strength') : '',
+              kinds.watch ? `${kinds.watch} to watch` : '',
+              kinds.observation ? `${kinds.observation} noticed` : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          >
+            <div className="patterns in">
+              {report.patterns.map((p, i) => (
+                <article key={i} className={'pattern k-' + p.kind} style={{ '--i': i } as React.CSSProperties}>
+                  <span className="pattern-kind">{p.kind === 'strength' ? 'Strength' : p.kind === 'watch' ? 'Watch' : 'Noticed'}</span>
+                  <h3>{p.title}</h3>
+                  <p>{p.body}</p>
+                </article>
+              ))}
+            </div>
+          </Disclosure>
+        )}
+        {report.mind.length > 0 && (
+          <Disclosure title="Behind the numbers" teaser={report.mind.map((m) => m.title).join(' · ')}>
+            <div className="mind in">
+              {report.mind.map((m, i) => (
+                <article key={i} style={{ '--i': i } as React.CSSProperties}>
+                  <h3>{m.title}</h3>
+                  <p className="serif">{m.body}</p>
+                </article>
+              ))}
+              <p className="label">Observations from how you worked this week, not a diagnosis of anything.</p>
+            </div>
+          </Disclosure>
+        )}
+      </div>
+
+      <AskWeek id={insight.id} lowest={lowest} />
 
       <footer className="ins-foot" data-reveal>
         <p className="label">
           Written by {insight.model?.includes('astra') ? 'Astra' : 'the reasoning model'} from{' '}
-          {t.answers + t.questions_asked + t.steps_done} measured moments. Grades use the same fixed anchors every week: 60 means
-          doing what the plan asks, well. They aren’t adjusted to encourage you or to push you.
+          {plural(t.answers + t.questions_asked + t.steps_done, 'measured moment')}.{' '}
+          <button className="link inline-link" onClick={() => setHowOpen(true)}>
+            How grades work
+          </button>
         </p>
       </footer>
+      {howOpen && <HowGrades onClose={() => setHowOpen(false)} />}
     </>
+  );
+}
+
+const VERDICT: Record<NonNullable<InsightReport['focus_check']>['verdict'], string> = {
+  yes: 'Done',
+  partly: 'Partly',
+  no: 'Not yet',
+  unclear: 'Unclear',
+};
+
+// What to do next, first: it is the part of the read you can act on.
+function FocusCard({
+  insight,
+  report,
+  previous,
+  latest,
+}: {
+  insight: InsightRow;
+  report: InsightReport;
+  previous: InsightSummary | null;
+  latest: boolean;
+}) {
+  const { toast } = useApp();
+  const [focus, setFocus] = useState(report.focus),
+    [busy, setBusy] = useState(false);
+  const check = report.focus_check;
+  async function toggle() {
+    setBusy(true);
+    try {
+      const r = await api<{ focus: InsightReport['focus'] }>('/api/insights', { action: 'adopt', id: insight.id, on: !focus.adopted });
+      setFocus(r.focus);
+      toast(r.focus.adopted ? 'Pinned. Your sessions will lean into it this week.' : 'Focus removed from memory.');
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="ins-focus" data-reveal>
+      {check && (
+        <p className={'focus-check v-' + check.verdict}>
+          <span className="focus-check-tag">{VERDICT[check.verdict]}</span>
+          <span>
+            <b>Last week{previous?.focus ? `: ${previous.focus}` : ''}.</b> {check.note}
+          </span>
+        </p>
+      )}
+      <p className="eyebrow">Your focus next week</p>
+      <h3>{focus.title}</h3>
+      <p className="muted">{focus.why}</p>
+      <div className="focus-try">
+        <Icon name="target" size={18} />
+        <p>{focus.try}</p>
+      </div>
+      {latest ? (
+        <div className="focus-actions">
+          <button
+            className={'btn ' + (focus.adopted ? 'quiet' : 'primary')}
+            onClick={() => void toggle()}
+            disabled={busy}
+            data-busy={busy || undefined}
+            aria-pressed={!!focus.adopted}
+          >
+            {focus.adopted ? (
+              <>
+                <Icon name="check" size={16} /> Your focus this week
+              </>
+            ) : (
+              'Make this my focus'
+            )}
+          </button>
+          <p className="label">
+            {focus.adopted ? 'Pinned to memory, so every session works on it with you. Tap to remove.' : 'Pins it to memory so your tutor works on it with you.'}
+          </p>
+        </div>
+      ) : (
+        focus.adopted && (
+          <p className="label focus-was">
+            <Icon name="check" size={14} /> You made this your focus.
+          </p>
+        )
+      )}
+    </section>
   );
 }
 
@@ -448,40 +583,106 @@ function Radar({ grades, previous }: { grades: Grade[]; previous: Map<GradeKey, 
   );
 }
 
-function GradeCard({ g, prev, i }: { g: Grade; prev: number | null; i: number }) {
+// A grade as one line: name, bar against last week, score. The evidence and
+// the trend across weeks fold out.
+function GradeRow({ g, prev, trend, i }: { g: Grade; prev: number | null; trend: Point[]; i: number }) {
+  const [open, setOpen] = useState(false);
   const delta = g.score !== null && prev !== null ? g.score - prev : null;
+  const shown = trend.filter((p) => p.score !== null).length;
+  const levels = ['low', 'medium', 'high'];
   return (
-    <article className={'grade b-' + band(g.score)} style={{ '--i': i } as React.CSSProperties}>
-      <div className="grade-top">
-        <div>
-          <h3>{GRADE_LABEL[g.key]}</h3>
-          <p className="grade-hint">{GRADE_HINT[g.key]}</p>
-        </div>
-        <div className="grade-score">
+    <article className={'grade b-' + band(g.score)} style={{ '--i': i } as React.CSSProperties} data-open={open || undefined}>
+      <button className="grade-head" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+        <span className="grade-name">
+          <b>{GRADE_LABEL[g.key]}</b>
+          <span className="grade-tag">{g.label}</span>
+        </span>
+        {shown >= 2 ? <Spark points={trend} /> : <span className="spark" aria-hidden="true" />}
+        <span className="grade-bar" aria-hidden="true">
+          <i style={{ '--v': (g.score ?? 0) / 100 } as React.CSSProperties} />
+          {prev !== null && <b style={{ left: `${prev}%` }} />}
+        </span>
+        <span className="grade-score">
           {g.score === null ? <span className="grade-na">—</span> : <Count to={g.score} />}
           {delta !== null && delta !== 0 && (
-            <span className={'grade-delta ' + (delta > 0 ? 'up' : 'down')}>
-              <Icon name={delta > 0 ? 'up' : 'down'} size={12} />
+            <span className={'grade-delta ' + (delta > 0 ? 'up' : 'down')} aria-label={`${delta > 0 ? 'up' : 'down'} ${Math.abs(delta)} from last week`}>
+              <Icon name={delta > 0 ? 'up' : 'down'} size={11} />
               {Math.abs(delta)}
             </span>
           )}
-        </div>
-      </div>
-      <div className="grade-bar" aria-hidden="true">
-        <i style={{ '--v': (g.score ?? 0) / 100 } as React.CSSProperties} />
-        {prev !== null && <b style={{ left: `${prev}%` }} />}
-      </div>
-      <p className="grade-label">
-        <span>{g.label}</span>
-        <span className={'conf c-' + g.confidence} title={`${g.confidence} confidence`}>
-          {['low', 'medium', 'high'].map((c, j) => (
-            <i key={c} className={j <= ['low', 'medium', 'high'].indexOf(g.confidence) ? 'on' : ''} />
-          ))}
-          {g.confidence} confidence
         </span>
-      </p>
-      <p className="grade-evidence">{g.evidence}</p>
+        <Icon name="down" size={16} className="grade-chev" />
+      </button>
+      {open && (
+        <div className="grade-more">
+          <p className="grade-evidence">{g.evidence}</p>
+          <p className="grade-meta">
+            <span>{GRADE_HINT[g.key]}</span>
+            <span className={'conf c-' + g.confidence}>
+              {levels.map((c, j) => (
+                <i key={c} className={j <= levels.indexOf(g.confidence) ? 'on' : ''} />
+              ))}
+              {g.confidence} confidence
+            </span>
+          </p>
+          {shown >= 2 && <Trend points={trend} />}
+        </div>
+      )}
     </article>
+  );
+}
+
+// The same grade over recent weeks, small enough to sit in the row.
+function Spark({ points }: { points: Point[] }) {
+  const w = 56,
+    h = 20;
+  const xy = points.map((p, i) => (p.score === null ? null : ([points.length < 2 ? w / 2 : (i / (points.length - 1)) * w, h - 2 - (p.score / 100) * (h - 4)] as const)));
+  const line = xy.filter(Boolean).map((p) => p!.join(',')).join(' ');
+  const last = xy.at(-1);
+  return (
+    <svg className="spark" viewBox={`-2 0 ${w + 4} ${h}`} aria-hidden="true">
+      <polyline points={line} />
+      {last && <circle cx={last[0]} cy={last[1]} r={2.4} />}
+    </svg>
+  );
+}
+
+function Trend({ points }: { points: Point[] }) {
+  // The right gutter holds the anchor's label, clear of the latest point.
+  const w = 320,
+    h = 88,
+    top = 10,
+    bottom = 22,
+    gutter = 52;
+  const x = (i: number) => (points.length < 2 ? (w - gutter) / 2 : 8 + (i / (points.length - 1)) * (w - gutter - 16));
+  const y = (s: number) => top + (1 - s / 100) * (h - top - bottom);
+  const segs: string[][] = [[]];
+  points.forEach((p, i) => (p.score === null ? segs.push([]) : segs.at(-1)!.push(`${x(i)},${y(p.score)}`)));
+  return (
+    <figure className="trend">
+      <svg viewBox={`0 0 ${w} ${h}`} role="img" aria-label={points.map((p) => `${shortDate(p.week)}: ${p.score ?? 'not graded'}`).join(', ')}>
+        <line className="trend-anchor" x1={0} x2={w - gutter + 4} y1={y(60)} y2={y(60)} />
+        <text className="trend-anchor-label" x={w} y={y(60)} textAnchor="end" dominantBaseline="middle">
+          60 solid
+        </text>
+        {segs
+          .filter((s) => s.length > 1)
+          .map((s, i) => (
+            <polyline key={i} className="trend-line" points={s.join(' ')} />
+          ))}
+        {points.map((p, i) =>
+          p.score === null ? null : (
+            <circle key={p.week} className={'trend-dot b-' + band(p.score)} cx={x(i)} cy={y(p.score)} r={i === points.length - 1 ? 4 : 3} />
+          ),
+        )}
+        <text className="trend-label" x={x(0)} y={h - 4} textAnchor="start">
+          {shortDate(points[0].week)}
+        </text>
+        <text className="trend-label" x={x(points.length - 1)} y={h - 4} textAnchor="end">
+          This week
+        </text>
+      </svg>
+    </figure>
   );
 }
 
@@ -524,11 +725,10 @@ function Clock({ hours }: { hours: number[] }) {
     outer = 104;
   const max = Math.max(1, ...hours);
   const peak = hours.indexOf(Math.max(...hours));
-  const fmt = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`;
   const total = hours.reduce((a, b) => a + b, 0);
   return (
     <div className="clock-wrap">
-      <svg className="clock" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={total ? `Most active around ${fmt(peak)}` : 'No activity'}>
+      <svg className="clock" viewBox={`0 0 ${size} ${size}`} role="img" aria-label={total ? `Most active around ${hourLabel(peak)}` : 'No activity'}>
         <circle cx={c} cy={c} r={inner - 8} className="clock-face" />
         {hours.map((v, h) => {
           const a = -Math.PI / 2 + (h / 24) * Math.PI * 2;
@@ -549,12 +749,12 @@ function Clock({ hours }: { hours: number[] }) {
           const a = -Math.PI / 2 + (h / 24) * Math.PI * 2;
           return (
             <text key={h} x={c + Math.cos(a) * (outer + 14)} y={c + Math.sin(a) * (outer + 14)} className="clock-label" textAnchor="middle" dominantBaseline="middle">
-              {h === 0 ? '12am' : h === 12 ? '12pm' : fmt(h)}
+              {h === 0 ? '12am' : h === 12 ? '12pm' : hourLabel(h)}
             </text>
           );
         })}
         <text x={c} y={c - 6} className="clock-peak" textAnchor="middle">
-          {total ? fmt(peak) : '—'}
+          {total ? hourLabel(peak) : '—'}
         </text>
         <text x={c} y={c + 12} className="clock-sub" textAnchor="middle">
           {total ? 'your peak' : 'no activity'}
@@ -653,6 +853,106 @@ function Answers({ a, schedule }: { a: InsightMetrics['answers']; schedule: Insi
         </div>
       )}
     </div>
+  );
+}
+
+// A question about the read, answered from the same week's numbers.
+function AskWeek({ id, lowest }: { id: string; lowest?: Grade }) {
+  const [q, setQ] = useState(''),
+    [thread, setThread] = useState<{ q: string; a: string }[]>([]),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const suggestions = [
+    lowest ? `Why is ${GRADE_LABEL[lowest.key].toLowerCase()} ${lowest.score}?` : '',
+    'What should I change first?',
+    'What went best this week?',
+  ].filter(Boolean);
+  async function ask(question: string) {
+    const text = question.trim();
+    if (text.length < 3 || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      const { answer } = await api<{ answer: string }>('/api/insights', { action: 'ask', id, question: text });
+      setThread((t) => [...t, { q: text, a: answer }]);
+      setQ('');
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <section className="ins-ask" data-reveal aria-label="Ask about this week">
+      <p className="eyebrow">Ask about this week</p>
+      {thread.map((t, i) => (
+        <div key={i} className="ask-turn">
+          <p className="ask-q">{t.q}</p>
+          <p className="ask-a serif">{t.a}</p>
+        </div>
+      ))}
+      {!thread.length && (
+        <div className="chips">
+          {suggestions.map((s) => (
+            <button key={s} className="chip" onClick={() => void ask(s)} disabled={busy}>
+              {s}
+            </button>
+          ))}
+        </div>
+      )}
+      <form
+        className="ask-form"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void ask(q);
+        }}
+      >
+        <input
+          className="input"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          maxLength={300}
+          placeholder="Why did retention drop?"
+          aria-label="Your question about this week"
+          enterKeyHint="send"
+        />
+        <button className="btn primary icon" disabled={q.trim().length < 3 || busy} data-busy={busy || undefined} aria-label="Ask">
+          {!busy && <Icon name="send" size={18} />}
+        </button>
+      </form>
+      {error && <p className="conversation-error">{error}</p>}
+    </section>
+  );
+}
+
+function HowGrades({ onClose }: { onClose: () => void }) {
+  return (
+    <Sheet title="How grades work" subtitle="The same fixed anchors every week." onClose={onClose}>
+      <ul className="bands">
+        {GRADE_BANDS.map((b) => (
+          <li key={b.from} className={'b-' + band(b.from)}>
+            <span className="num band-range">
+              {b.from}–{b.to}
+            </span>
+            <span>
+              <b>{b.label}</b> {b.note}
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="muted">
+        60 means doing what the plan asks, well. Grades aren’t adjusted to encourage you or to push you, and an area without enough evidence is
+        left ungraded rather than guessed.
+      </p>
+      <ul className="band-areas">
+        {GRADE_KEYS.map((k) => (
+          <li key={k}>
+            <b>{GRADE_LABEL[k]}</b>
+            <span>{GRADE_HINT[k]}</span>
+          </li>
+        ))}
+      </ul>
+    </Sheet>
   );
 }
 

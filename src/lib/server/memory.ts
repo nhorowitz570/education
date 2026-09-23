@@ -13,13 +13,14 @@ export type Memory = {
   status: 'candidate' | 'active' | 'archived';
   pinned: boolean;
   source: 'inferred' | 'user' | 'import';
+  source_run?: string | null;
   created_at: string;
   updated_at: string;
   last_used_at: string | null;
   similarity?: number;
 };
 const COLUMNS =
-  'id,kind,content,concept_keys,confidence,evidence,status,pinned,source,created_at,updated_at,last_used_at';
+  'id,kind,content,concept_keys,confidence,evidence,status,pinned,source,source_run,created_at,updated_at,last_used_at';
 
 export async function listMemories(userId: string, includeArchived = false) {
   let q = adminClient()
@@ -216,12 +217,45 @@ async function reinforce(id: string, userId: string, m: Pick<Memory, 'confidence
     .eq('user_id', userId);
 }
 
+// The learner's verdict on a tentative memory.
+export async function reviewMemory(userId: string, id: string, verdict: 'keep' | 'dismiss') {
+  const { data, error } = await adminClient()
+    .from('memories')
+    .update(
+      verdict === 'keep'
+        ? { status: 'active', confidence: 0.9, updated_at: new Date().toISOString() }
+        : { status: 'archived', updated_at: new Date().toISOString() },
+    )
+    .eq('id', id)
+    .eq('user_id', userId)
+    .select(COLUMNS)
+    .single();
+  if (error) throw new Error('The memory did not save.');
+  return data as Memory;
+}
+
 export async function writeMemory(
   userId: string,
   input: { id?: string; kind: Memory['kind']; content: string; pinned?: boolean; status?: Memory['status'] },
 ) {
-  const db = adminClient(),
-    vector = (await embed(userId, [input.content]))?.[0],
+  const db = adminClient();
+  // Pinning (same words) keeps where the memory came from; rewording makes
+  // it the learner's own.
+  if (input.id) {
+    const { data: prev } = await db.from('memories').select(COLUMNS).eq('id', input.id).eq('user_id', userId).maybeSingle();
+    if (prev && (prev as Memory).content === input.content.slice(0, 600)) {
+      const { data, error } = await db
+        .from('memories')
+        .update({ pinned: !!input.pinned, kind: input.kind, updated_at: new Date().toISOString(), ...(input.status ? { status: input.status } : {}) })
+        .eq('id', input.id)
+        .eq('user_id', userId)
+        .select(COLUMNS)
+        .single();
+      if (error) throw new Error('The memory did not save.');
+      return data as Memory;
+    }
+  }
+  const vector = (await embed(userId, [input.content]))?.[0],
     row = {
       kind: input.kind,
       content: input.content.slice(0, 600),
@@ -237,6 +271,18 @@ export async function writeMemory(
     : await db.from('memories').insert({ ...row, user_id: userId }).select(COLUMNS).single();
   if (error) throw new Error('The memory did not save.');
   return data as Memory;
+}
+
+// Where memories came from: the session or conversation each was learned in.
+export type Origin = { title: string; kind: string; at: string };
+export async function originsOf(userId: string, list: Memory[]) {
+  const ids = [...new Set(list.map((m) => m.source_run).filter((x): x is string => !!x))];
+  if (!ids.length) return {};
+  const { data } = await adminClient().from('runs').select('id,title,kind,started_at').eq('user_id', userId).in('id', ids.slice(0, 300));
+  return Object.fromEntries((data || []).map((r) => [r.id, { title: r.title, kind: r.kind, at: r.started_at } satisfies Origin])) as Record<
+    string,
+    Origin
+  >;
 }
 
 export async function deleteMemory(userId: string, id: string) {

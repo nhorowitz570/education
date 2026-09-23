@@ -48,7 +48,10 @@ export type InsightReport = {
   patterns: { kind: 'strength' | 'watch' | 'observation'; title: string; body: string }[];
   mind: { title: string; body: string }[];
   moment: { quote: string; why: string } | null;
-  focus: { title: string; why: string; try: string };
+  // adopted: the learner made this their focus; it lives on as a pinned memory.
+  focus: { title: string; why: string; try: string; adopted?: { memory_id: string; at: string } | null };
+  // Whether last week's focus showed up in this week's behaviour.
+  focus_check?: { verdict: 'yes' | 'partly' | 'no' | 'unclear'; note: string } | null;
 };
 
 type Cal = { n: number; right: number };
@@ -136,5 +139,73 @@ export type InsightSummary = {
   seen_at: string | null;
   created_at: string;
   headline: string | null;
+  focus: string | null;
   grades: { key: GradeKey; score: number | null }[];
 };
+
+// The fixed anchors every grade is read against, shared by the grading
+// prompt and the page that explains it.
+export const GRADE_BANDS: { from: number; to: number; label: string; note: string }[] = [
+  { from: 90, to: 100, label: 'Exceptional', note: 'Rare, and only with strong evidence.' },
+  { from: 75, to: 89, label: 'Strong', note: 'Clearly above what the plan asks.' },
+  { from: 60, to: 74, label: 'Solid', note: 'Doing what the plan asks, well.' },
+  { from: 45, to: 59, label: 'Mixed', note: 'Real effort with clear gaps, or uneven.' },
+  { from: 30, to: 44, label: 'Below', note: 'Below what the plan asks.' },
+  { from: 0, to: 29, label: 'Largely absent', note: 'Little to grade.' },
+];
+
+// What the model reads: the measured week, with every free-text field capped
+// and counted. It never sees transcripts, only a handful of short excerpts.
+// If the whole still runs long, free text is shed (least useful first) rather
+// than cutting the JSON mid-way.
+export const DIGEST_LIMIT = 16000;
+const clip = (s: string | null | undefined, n: number) => (s && s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s ?? null);
+export function digest(m: InsightMetrics) {
+  const peak = m.by_hour
+    .map((n, hour) => ({ hour, events: n }))
+    .filter((h) => h.events > 0)
+    .sort((a, b) => b.events - a.events)
+    .slice(0, 3);
+  const d = {
+    week: m.week,
+    totals: m.totals,
+    by_day: m.by_day,
+    peak_hours: peak,
+    schedule: m.schedule,
+    answers: {
+      ...m.answers,
+      by_type: Object.fromEntries(Object.entries(m.answers.by_type).map(([k, v]) => [k, { n: v.n, avg: Math.round(v.avg * 100) / 100 }])),
+    },
+    asks: { ...m.asks, examples: m.asks.examples.slice(0, 6).map((e) => clip(e, 140)) },
+    practice: m.practice.slice(-6).map((p) => ({
+      ...p,
+      headline: clip(p.headline, 160),
+      best: clip(p.best, 200),
+      criteria: p.criteria.slice(0, 5),
+    })),
+    concepts: { ...m.concepts, new_misconceptions: m.concepts.new_misconceptions.slice(0, 4).map((t) => clip(t, 160)) },
+    checkins: m.checkins.slice(-7),
+    reflections: m.reflections.slice(-3).map((r) => clip(r, 400)),
+    workouts: m.workouts,
+    samples: m.samples.slice(0, 6).map((x) => ({ ...x, text: clip(x.text, 300) })),
+  };
+  const shed = [
+    () => (d.reflections = d.reflections.slice(-1)),
+    () => (d.asks.examples = d.asks.examples.slice(0, 3)),
+    () => (d.practice = d.practice.slice(-3)),
+    () => (d.samples = d.samples.slice(0, 3)),
+    () => {
+      d.reflections = [];
+      d.asks.examples = [];
+      d.samples = [];
+      d.practice = d.practice.map((p) => ({ ...p, best: null, headline: null }));
+    },
+  ];
+  let out = JSON.stringify(d);
+  for (const step of shed) {
+    if (out.length <= DIGEST_LIMIT) break;
+    step();
+    out = JSON.stringify(d);
+  }
+  return out;
+}

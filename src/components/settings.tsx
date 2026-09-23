@@ -1,8 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { PasskeySettings } from './passkeys';
+import { useRouter } from 'next/navigation';
 import type { ViewProps } from './app/legacy';
-import { Button, Pill, Modal, download, dateLabel } from './ui';
+import { useApp } from './app/provider';
+import { Button, Modal, Sheet, Switch, download, dateLabel } from './ui';
 import { Icon } from './icons';
 import {
   selectNext,
@@ -407,380 +408,176 @@ export function Reflection(p: ViewProps & { close: () => void }) {
     </Modal>
   );
 }
-// Plan, calendar, reminders and data controls, shown on the You page.
-export function Settings(p: ViewProps) {
-  const [message, setMessage] = useState(''),
-    [calendar, setCalendar] = useState<{
-      connected: boolean;
-      lastSync?: string;
-      busy?: { start: string; end: string }[];
-    }>(),
-    [manualDate, setManualDate] = useState(p.today),
-    [manualStart, setManualStart] = useState('10:00'),
-    [manualEnd, setManualEnd] = useState('11:00'),
-    [deleteOpen, setDeleteOpen] = useState(false),
-    [confirm, setConfirm] = useState('');
-  const preferences =
-    p.w.state.records.find((r) => r.id === 'settings:reminders')?.data || {};
-  const [morning, setMorning] = useState(
-      String(preferences.morning || '09:45'),
-    ),
-    [followup, setFollowup] = useState(String(preferences.followup || '10:30')),
-    [quietStart, setQuietStart] = useState(
-      String(preferences.quietStart || '21:00'),
-    ),
-    [quietEnd, setQuietEnd] = useState(String(preferences.quietEnd || '08:00')),
-    [travel, setTravel] = useState(!!preferences.travel);
-  useEffect(() => {
-    if (p.config.demo) return;
-    void api<typeof calendar>('/api/calendar')
-      .then(setCalendar)
-      .catch(() => {});
-  }, [p.config.demo]);
-  async function action(fn: () => Promise<unknown>, success: string) {
-    setMessage('');
+// The You page's settings, each in its own sheet.
+
+export function PlanSheet({ onClose }: { onClose: () => void }) {
+  const { w } = useApp();
+  const router = useRouter();
+  const plan = w.state.plan;
+  return (
+    <Sheet title="Your plan" subtitle={plan ? plan.title : 'No plan imported yet.'} onClose={onClose}>
+      <div className="sheet-actions">
+        <button className="btn primary" onClick={() => router.push('/import')}>
+          <Icon name="import" size={17} /> {plan ? 'Import a new plan' : 'Import a plan'}
+        </button>
+        <button className="btn" disabled={!plan} onClick={() => download('fieldwork-plan.json', plan)}>
+          <Icon name="download" size={17} /> Export this plan
+        </button>
+        <button
+          className="btn"
+          onClick={() => download('fieldwork-progress.json', { attempts: w.state.attempts, records: w.state.records })}
+        >
+          <Icon name="download" size={17} /> Export progress
+        </button>
+      </div>
+    </Sheet>
+  );
+}
+
+export type ReminderPrefs = {
+  enabled?: boolean;
+  travel?: boolean;
+  morning?: string;
+  followup?: string;
+  quietStart?: string;
+  quietEnd?: string;
+};
+export const reminderPrefs = (records: { id: string; data: Record<string, unknown> }[]) =>
+  (records.find((r) => r.id === 'settings:reminders')?.data || {}) as ReminderPrefs;
+
+// One switch, and times that save as they change.
+export function RemindersSheet({ onClose }: { onClose: () => void }) {
+  const { w, config } = useApp();
+  const prefs = reminderPrefs(w.state.records);
+  const [on, setOn] = useState(!!prefs.enabled && !prefs.travel),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const [times, setTimes] = useState({
+    morning: prefs.morning || '09:45',
+    followup: prefs.followup || '10:30',
+    quietStart: prefs.quietStart || '21:00',
+    quietEnd: prefs.quietEnd || '08:00',
+  });
+  const unavailable = !config.push || config.demo;
+  const save = (patch: ReminderPrefs) => w.record('settings', 'settings:reminders', { ...reminderPrefs(w.state.records), ...times, ...patch });
+  async function toggle(next: boolean) {
+    setBusy(true);
+    setError('');
+    setOn(next);
     try {
-      await fn();
-      setMessage(success);
+      if (next) {
+        await requestPush();
+        await save({ enabled: true, travel: false });
+      } else await save({ enabled: false });
     } catch (e) {
-      setMessage((e as Error).message);
+      setOn(!next);
+      setError((e as Error).message || 'Notifications couldn’t be turned on.');
+    } finally {
+      setBusy(false);
+    }
+  }
+  function setTime(key: keyof typeof times, value: string) {
+    const next = { ...times, [key]: value };
+    setTimes(next);
+    if (value) void w.record('settings', 'settings:reminders', { ...reminderPrefs(w.state.records), ...next });
+  }
+  return (
+    <Sheet title="Reminders" subtitle="A morning preview, and one nudge if you haven’t started." onClose={onClose}>
+      <div className="setting-line">
+        <div className="grow">
+          <p>Reminders</p>
+          <p className="label">{on ? 'On for this device' : 'Off'}</p>
+        </div>
+        <Switch checked={on} onChange={(v) => void toggle(v)} label="Reminders" disabled={busy || unavailable} />
+      </div>
+      <fieldset className="time-grid" disabled={!on}>
+        <label>
+          Morning
+          <input type="time" value={times.morning} onChange={(e) => setTime('morning', e.target.value)} />
+        </label>
+        <label>
+          Follow-up
+          <input type="time" value={times.followup} onChange={(e) => setTime('followup', e.target.value)} />
+        </label>
+        <label>
+          Quiet from
+          <input type="time" value={times.quietStart} onChange={(e) => setTime('quietStart', e.target.value)} />
+        </label>
+        <label>
+          Until
+          <input type="time" value={times.quietEnd} onChange={(e) => setTime('quietEnd', e.target.value)} />
+        </label>
+      </fieldset>
+      {error && (
+        <p className="form-message" role="alert">
+          {error}
+        </p>
+      )}
+      <p className="label">
+        {unavailable
+          ? 'Push needs deployment configuration.'
+          : 'Nothing sensitive shows on the lock screen. On iPhone, add Fieldwork to your Home Screen first (Share → Add to Home Screen). Delivery is best-effort.'}
+      </p>
+    </Sheet>
+  );
+}
+
+export function DataSheet({ onClose }: { onClose: () => void }) {
+  const { config, toast } = useApp();
+  const [deleting, setDeleting] = useState(false),
+    [confirm, setConfirm] = useState(''),
+    [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  async function exportAll() {
+    setBusy(true);
+    try {
+      download('fieldwork-account.json', await api('/api/export'));
+      toast('Account export downloaded.');
+    } catch (e) {
+      toast((e as Error).message);
+    } finally {
+      setBusy(false);
     }
   }
   async function deleteAccount() {
-    await api('/api/account', { confirm }, 'DELETE');
-    await clearLocal();
-    location.href = '/welcome';
+    setError('');
+    try {
+      await api('/api/account', { confirm }, 'DELETE');
+      await clearLocal();
+      location.href = '/welcome';
+    } catch (e) {
+      setError((e as Error).message);
+    }
   }
   return (
-    <div className="legacy-settings">
-      <div>
-        <div className="settings-section">
-          <h3>Your plan</h3>
-          <div className="row wrap">
-            <Button kind="secondary" onClick={() => p.go('import')}>
-              Import a plan
-            </Button>
-            <Button
-              kind="secondary"
-              disabled={!p.w.state.plan}
-              onClick={() => download('fieldwork-plan.json', p.w.state.plan)}
-            >
-              Export active plan
-            </Button>
-            <Button
-              kind="secondary"
-              onClick={() =>
-                download('fieldwork-progress.json', {
-                  attempts: p.w.state.attempts,
-                  records: p.w.state.records,
-                })
-              }
-            >
-              Export progress
-            </Button>
-          </div>
-        </div>
-        <div className="settings-section">
-          <h3>Calendar & availability</h3>
-          <p className="muted">
-            Google Calendar reads busy times. It does not edit your calendar.
-          </p>
-          <div className="row wrap">
-            <Pill>
-              {calendar?.connected
-                ? 'Google connected'
-                : p.config.calendar
-                  ? 'Google ready to connect'
-                  : 'Google awaits OAuth credentials'}
-            </Pill>
-            {!calendar?.connected ? (
-              <Button
-                kind="secondary"
-                disabled={!p.config.calendar || p.config.demo}
-                onClick={() =>
-                  void action(async () => {
-                    const r = await api<{ url: string }>(
-                      '/api/calendar/connect',
-                      {},
-                    );
-                    location.href = r.url;
-                  }, 'Opening Google…')
-                }
-              >
-                Connect Google
-              </Button>
-            ) : (
-              <>
-                <Button
-                  kind="secondary"
-                  onClick={() =>
-                    void action(async () => {
-                      const r = await api<NonNullable<typeof calendar>>(
-                        '/api/calendar',
-                        {},
-                      );
-                      setCalendar(r);
-                    }, 'Busy times refreshed.')
-                  }
-                >
-                  Refresh busy times
-                </Button>
-                <Button
-                  kind="secondary"
-                  onClick={() =>
-                    void action(async () => {
-                      await api('/api/calendar', {}, 'DELETE');
-                      setCalendar({ connected: false });
-                    }, 'Calendar disconnected.')
-                  }
-                >
-                  Disconnect
-                </Button>
-              </>
-            )}
-          </div>
-          {calendar?.lastSync && (
-            <p className="muted">
-              Last synced {new Date(calendar.lastSync).toLocaleString()}.
-              Refresh before relying on old availability.
-            </p>
-          )}
-          {calendar?.busy?.slice(0, 10).map((b) => (
-            <p key={b.start + b.end} className="muted">
-              Busy {new Date(b.start).toLocaleString()} –{' '}
-              {new Date(b.end).toLocaleTimeString()}
-            </p>
-          ))}
-          <div className="row wrap">
-            <label>
-              Date
-              <input
-                type="date"
-                value={manualDate}
-                onChange={(e) => setManualDate(e.target.value)}
-              />
-            </label>
-            <label>
-              From
-              <input
-                type="time"
-                value={manualStart}
-                onChange={(e) => setManualStart(e.target.value)}
-              />
-            </label>
-            <label>
-              Until
-              <input
-                type="time"
-                value={manualEnd}
-                onChange={(e) => setManualEnd(e.target.value)}
-              />
-            </label>
-          </div>
-          <Button
-            kind="secondary"
-            disabled={manualEnd <= manualStart}
-            onClick={() =>
-              void action(
-                () =>
-                  p.w.record('busy', 'busy:' + crypto.randomUUID(), {
-                    date: manualDate,
-                    start: manualStart,
-                    end: manualEnd,
-                  }),
-                'Busy block added. Adjust your week to move a learning session.',
-              )
-            }
-          >
-            Add a manual busy block
-          </Button>
-          {p.w.state.records
-            .filter((r) => r.kind === 'busy')
-            .map((r) => (
-              <div className="row between" key={r.id}>
-                <span>
-                  {String(r.data.date)} · {String(r.data.start)}–
-                  {String(r.data.end)}
-                </span>
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    void p.w.send({
-                      type: 'delete-record',
-                      eventId: crypto.randomUUID(),
-                      id: r.id,
-                    })
-                  }
-                >
-                  Remove
-                </button>
-              </div>
-            ))}
-          <Button kind="secondary" onClick={() => p.open('schedule')}>
-            Adjust week
-          </Button>
-        </div>
-        <div className="settings-section">
-          <h3>Reminders that leave room</h3>
-          <p className="muted">
-            A morning preview and one follow-up if you haven’t started. No
-            sensitive details on the lock screen.
-          </p>
-          <div className="row wrap">
-            <label>
-              Morning
-              <input
-                type="time"
-                value={morning}
-                onChange={(e) => setMorning(e.target.value)}
-              />
-            </label>
-            <label>
-              Follow-up
-              <input
-                type="time"
-                value={followup}
-                onChange={(e) => setFollowup(e.target.value)}
-              />
-            </label>
-          </div>
-          <div className="row wrap">
-            <label>
-              Quiet from
-              <input
-                type="time"
-                value={quietStart}
-                onChange={(e) => setQuietStart(e.target.value)}
-              />
-            </label>
-            <label>
-              Until
-              <input
-                type="time"
-                value={quietEnd}
-                onChange={(e) => setQuietEnd(e.target.value)}
-              />
-            </label>
-          </div>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={travel}
-              onChange={(e) => setTravel(e.target.checked)}
-            />
-            Travel mode · pause reminders
-          </label>
-          <div className="row wrap">
-            <Button
-              kind="secondary"
-              onClick={() =>
-                void action(
-                  () =>
-                    p.w.record('settings', 'settings:reminders', {
-                      ...preferences,
-                      morning,
-                      followup,
-                      quietStart,
-                      quietEnd,
-                      travel,
-                    }),
-                  'Reminder preferences saved.',
-                )
-              }
-            >
-              Save preferences
-            </Button>
-            <Button
-              kind="secondary"
-              disabled={!p.config.push || p.config.demo}
-              onClick={() =>
-                void action(async () => {
-                  await requestPush();
-                  await p.w.record('settings', 'settings:reminders', {
-                    ...preferences,
-                    morning,
-                    followup,
-                    quietStart,
-                    quietEnd,
-                    travel,
-                    enabled: true,
-                  });
-                }, 'Notifications enabled on this device.')
-              }
-            >
-              Enable notifications
-            </Button>
-            <Button
-              kind="secondary"
-              onClick={() =>
-                void action(
-                  () =>
-                    p.w.record('settings', 'settings:reminders', {
-                      ...preferences,
-                      enabled: false,
-                    }),
-                  'Reminders paused.',
-                )
-              }
-            >
-              Pause reminders
-            </Button>
-          </div>
-          <p className="muted">
-            {p.config.push
-              ? 'On iPhone: Safari → Share → Add to Home Screen. Open the installed app, then enable notifications. If permission was denied, change it in device settings.'
-              : 'Push needs deployment configuration. Install guidance is still available in your browser.'}{' '}
-            Delivery is best-effort.
-          </p>
-        </div>
-        <div className="settings-section">
-          <h3>Data & privacy</h3>
-          <Button
-            kind="secondary"
-            disabled={p.config.demo}
-            onClick={() =>
-              void action(async () => {
-                download('fieldwork-account.json', await api('/api/export'));
-              }, 'Account export downloaded.')
-            }
-          >
-            Export all account data
-          </Button>
-          <Button kind="danger" onClick={() => setDeleteOpen(true)}>
-            Delete my account
-          </Button>
-        </div>
-        {message && (
-          <p role="status" className="form-message">
-            {message}
-          </p>
-        )}
+    <Sheet title="Data & privacy" subtitle="Everything is yours to take or remove." onClose={onClose}>
+      <div className="sheet-actions">
+        <button className="btn" disabled={config.demo || busy} data-busy={busy || undefined} onClick={() => void exportAll()}>
+          <Icon name="download" size={17} /> Export all account data
+        </button>
+        <button className="btn danger" onClick={() => setDeleting(true)}>
+          <Icon name="trash" size={17} /> Delete my account
+        </button>
       </div>
-      {deleteOpen && (
-        <Modal
-          title="Delete your private account?"
-          onClose={() => setDeleteOpen(false)}
-        >
-          <p>
-            This removes your plans, progress, memories, and private files.
-            Export anything you want to keep first.
+      {deleting && (
+        <Sheet title="Delete your account?" onClose={() => setDeleting(false)}>
+          <p className="muted">
+            This removes your plans, progress, memories and private files. Export anything you want to keep first.
           </p>
           <label>
             Type DELETE MY ACCOUNT
-            <input
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-            />
+            <input value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="off" />
           </label>
-          <Button
-            kind="danger"
-            disabled={confirm !== 'DELETE MY ACCOUNT' || p.config.demo}
-            onClick={() => void action(deleteAccount, 'Account deleted.')}
-          >
+          <button className="btn danger" disabled={confirm !== 'DELETE MY ACCOUNT' || config.demo} onClick={() => void deleteAccount()}>
             Permanently delete account
-          </Button>
-        </Modal>
+          </button>
+          {error && (
+            <p className="form-message" role="alert">
+              {error}
+            </p>
+          )}
+        </Sheet>
       )}
-    </div>
+    </Sheet>
   );
 }

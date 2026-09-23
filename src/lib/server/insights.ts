@@ -6,6 +6,7 @@ import { HttpError } from './http';
 import { readState } from './state';
 import { concepts, states } from './learner';
 import { pushTo } from './push';
+import { deleteMemory, writeMemory } from './memory';
 import { generate } from '@/lib/ai/engine';
 import { calibration, level } from '@/lib/learning/model';
 import { scheduled } from '@/lib/schedule';
@@ -14,6 +15,7 @@ import type { Beat } from '@/lib/learning/run';
 import type { PracticeState } from './practice';
 import {
   GRADE_KEYS,
+  digest,
   type InsightMetrics,
   type InsightReport,
   type InsightRow,
@@ -287,42 +289,54 @@ export async function measure(userId: string, week: { start: string; end: string
 
 // ---------- Interpreting ----------
 
+// Every field is short on purpose: the page shows the read at a glance and
+// folds the rest away, so the words have to earn their place.
 const reportSchema = z.object({
-  headline: z.string().describe('One honest sentence about the week, specific to it. No hype.'),
-  summary: z.string().describe('Two or three sentences: what happened and what it means.'),
+  headline: z.string().describe('One honest sentence about the week, specific to it, at most 16 words. No hype.'),
+  summary: z.string().describe('Two sentences: what happened and what it means.'),
   data_note: z
     .string()
     .nullable()
-    .describe('If the data is thin or skewed, say so plainly in one sentence; otherwise null.'),
+    .describe('If the data is thin or skewed, say so plainly in one short sentence; otherwise null.'),
   grades: z.array(
     z.object({
       key: z.enum(GRADE_KEYS),
       score: z.number().nullable().describe('0–100 against the anchors, or null when the data cannot support a grade.'),
       confidence: z.enum(['low', 'medium', 'high']),
       label: z.string().describe('Two or three words, e.g. "Showing up", "Coasting", "Sharp".'),
-      evidence: z.string().describe('One or two sentences citing the specific numbers or moments behind the grade.'),
+      evidence: z.string().describe('One sentence, at most 25 words, citing the specific number or moment behind the grade.'),
     }),
   ),
   patterns: z
     .array(
       z.object({
         kind: z.enum(['strength', 'watch', 'observation']),
-        title: z.string(),
-        body: z.string().describe('Two or three sentences grounded in the data.'),
+        title: z.string().describe('At most six words.'),
+        body: z.string().describe('One or two sentences grounded in the data.'),
       }),
     )
-    .describe('Three to five learning habits the data shows.'),
+    .describe('Exactly three learning habits the data shows.'),
   mind: z
-    .array(z.object({ title: z.string(), body: z.string() }))
-    .describe('Two or three observations about motivation, how they meet difficulty, and energy. Behavioural, never clinical.'),
+    .array(z.object({ title: z.string().describe('At most six words.'), body: z.string().describe('One or two sentences.') }))
+    .describe('Two observations about motivation, how they meet difficulty, and energy. Behavioural, never clinical.'),
   moment: z
-    .object({ quote: z.string().describe('The learner’s own words, quoted exactly from the samples.'), why: z.string() })
+    .object({
+      quote: z.string().describe('The learner’s own words, quoted exactly from the samples.'),
+      why: z.string().describe('One sentence.'),
+    })
     .nullable(),
   focus: z.object({
-    title: z.string(),
-    why: z.string(),
-    try: z.string().describe('One concrete thing to do next week, small enough to actually do.'),
+    title: z.string().describe('At most eight words.'),
+    why: z.string().describe('One sentence.'),
+    try: z.string().describe('One concrete thing to do next week, in one sentence, small enough to actually do.'),
   }),
+  focus_check: z
+    .object({
+      verdict: z.enum(['yes', 'partly', 'no', 'unclear']),
+      note: z.string().describe('One sentence citing what this week’s data shows about it.'),
+    })
+    .nullable()
+    .describe('Did the learner act on last week’s focus? Judge only from this week’s data. Null on a first read.'),
 });
 
 const GUIDE = `Each grade is 0–100 on fixed anchors, the same every week:
@@ -348,7 +362,11 @@ export async function interpret(userId: string, metrics: InsightMetrics, previou
   const prior = previous?.report
     ? `Last week's grades (for trend only; do not anchor to them): ${previous.report.grades
         .map((g) => `${g.key} ${g.score ?? 'n/a'}`)
-        .join(', ')}. Last week's focus: ${previous.report.focus.title} — ${previous.report.focus.try}`
+        .join(', ')}. Last week's focus: ${previous.report.focus.title} — ${previous.report.focus.try} ${
+        previous.report.focus.adopted
+          ? '(The learner adopted it as their focus, so the tutor reinforced it in sessions.)'
+          : '(The learner did not explicitly adopt it.)'
+      }`
     : 'This is the first weekly read.';
   const { data, model } = await generate({
     task: 'insights.weekly',
@@ -365,7 +383,7 @@ export async function interpret(userId: string, metrics: InsightMetrics, previou
       { name: 'grading_guide', content: GUIDE },
       { name: 'previous_week', content: prior },
     ],
-    input: `The week's measured activity (JSON; minutes are active time, capped so idle tabs don't count):\n${JSON.stringify(metrics).slice(0, 60000)}`,
+    input: `The week's measured activity (JSON; minutes are active time, capped so idle tabs don't count; free text is excerpted and capped):\n${digest(metrics)}`,
   });
   // The model grades; code keeps the shape honest.
   const grades = GRADE_KEYS.map((key) => {
@@ -387,8 +405,10 @@ export async function interpret(userId: string, metrics: InsightMetrics, previou
   const report: InsightReport = {
     ...data,
     grades,
-    patterns: data.patterns.slice(0, 5),
-    mind: data.mind.slice(0, 3),
+    patterns: data.patterns.slice(0, 3),
+    mind: data.mind.slice(0, 2),
+    focus: { ...data.focus, adopted: null },
+    focus_check: previous?.report ? data.focus_check : null,
   };
   return { report, model };
 }
@@ -413,6 +433,7 @@ export async function listInsights(userId: string): Promise<InsightSummary[]> {
     seen_at: r.seen_at,
     created_at: r.created_at,
     headline: (r.report as InsightReport | null)?.headline || null,
+    focus: (r.report as InsightReport | null)?.focus?.title || null,
     grades: ((r.report as InsightReport | null)?.grades || []).map((g) => ({ key: g.key, score: g.score })),
   }));
 }
@@ -476,6 +497,8 @@ export async function buildInsight(userId: string, id: string, week: { start: st
       .update({ status: 'ready', metrics, report: out.report, model: out.model, updated_at: new Date().toISOString() })
       .eq('id', id)
       .eq('user_id', userId);
+    // Last week's focus has had its week; a new read brings a new one.
+    if (out.report) await retireFocus(userId, id);
     if (notify && out.report)
       await pushTo(userId, `insights:${week.start}`, {
         title: 'Your week, read honestly',
@@ -490,6 +513,76 @@ export async function buildInsight(userId: string, id: string, week: { start: st
       .eq('id', id)
       .eq('user_id', userId);
   }
+}
+
+// ---------- Acting on it ----------
+
+// Earlier weeks' adopted focus stops steering the tutor. Their record of
+// having been adopted stays, for history.
+async function retireFocus(userId: string, keep: string) {
+  const { data } = await db().from('insights').select('id,report').eq('user_id', userId).neq('id', keep).not('report', 'is', null);
+  for (const row of data || []) {
+    const id = (row.report as InsightReport).focus?.adopted?.memory_id;
+    if (id) await deleteMemory(userId, id).catch(() => {});
+  }
+}
+
+// Making the week's focus yours pins it as a goal, so every session reads it.
+export async function adoptFocus(userId: string, id: string, on: boolean) {
+  const row = await getInsight(userId, id);
+  if (row.status !== 'ready' || !row.report) throw new HttpError('This week has no focus yet.', 409);
+  const { data: newest } = await db()
+    .from('insights')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('status', 'ready')
+    .order('week_start', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (newest?.id !== id) throw new HttpError('Only the latest week’s focus can be adopted.', 409);
+  const report = row.report;
+  if (report.focus.adopted) await deleteMemory(userId, report.focus.adopted.memory_id).catch(() => {});
+  let adopted: InsightReport['focus']['adopted'] = null;
+  if (on) {
+    await retireFocus(userId, id);
+    const memory = await writeMemory(userId, { kind: 'goal', pinned: true, content: `Focus for this week: ${report.focus.try}`.slice(0, 600) });
+    adopted = { memory_id: memory.id, at: new Date().toISOString() };
+  }
+  const focus = { ...report.focus, adopted };
+  const { error } = await db()
+    .from('insights')
+    .update({ report: { ...report, focus } })
+    .eq('id', id)
+    .eq('user_id', userId);
+  if (error) throw new Error('The focus did not save.');
+  return focus;
+}
+
+// A question about the read, answered from the same measured week and
+// nothing else.
+const askSchema = z.object({
+  answer: z.string().describe('Two to four sentences, at most 90 words, citing the numbers that answer the question.'),
+});
+export async function askInsight(userId: string, id: string, question: string) {
+  const row = await getInsight(userId, id);
+  if (row.status !== 'ready' || !row.report || !('totals' in row.metrics))
+    throw new HttpError('This week hasn’t been read yet.', 409);
+  const r = row.report;
+  const { data } = await generate({
+    task: 'insights.ask',
+    userId,
+    schema: askSchema,
+    context: [
+      { name: 'grading_guide', content: GUIDE },
+      {
+        name: 'report',
+        content: JSON.stringify({ headline: r.headline, summary: r.summary, grades: r.grades, patterns: r.patterns, focus: r.focus }),
+      },
+      { name: 'week', content: digest(row.metrics as InsightMetrics) },
+    ],
+    input: `The learner asks about this week: ${question}`,
+  });
+  return data.answer.trim();
 }
 
 export async function markSeen(userId: string, id: string) {

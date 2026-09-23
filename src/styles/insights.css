@@ -73,21 +73,27 @@
   flex-wrap: wrap;
   gap: 16px;
 }
-.week-picker {
-  display: flex;
-  gap: 6px;
-  max-width: 100%;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding: 2px;
+.week-step {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
 }
-.week-picker .chip {
-  flex: none;
+.week-step-label {
+  min-width: 108px;
+  padding: 0 6px;
+  font-size: 14px;
+  text-align: center;
+  color: var(--text);
 }
-.week-picker .chip.on {
-  background: var(--accent);
-  color: var(--on-accent);
-  box-shadow: none;
+.week-step .btn:disabled {
+  opacity: 0.25;
+}
+.flip {
+  transform: scaleX(-1);
 }
 
 /* Reveal on scroll */
@@ -112,12 +118,12 @@
   -webkit-backdrop-filter: blur(8px);
 }
 .ins-section,
-.ins-rhythm,
-.ins-answers,
 .ins-grades,
 .ins-stats,
 .ins-moment,
-.ins-focus {
+.ins-focus,
+.ins-more,
+.ins-ask {
   margin-top: 40px;
 }
 .ins-section > .eyebrow,
@@ -157,10 +163,14 @@
   font-size: 13px;
 }
 
-/* The week in numbers */
+/* The week in numbers: three that matter, the rest on one line */
 .ins-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+.ins-stats-main {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 }
 .ins-stat {
@@ -188,6 +198,23 @@
   font-size: 13px;
   color: var(--text-3);
 }
+.ins-stats-more {
+  font-size: 14px;
+  color: var(--text-3);
+  line-height: 1.5;
+}
+@media (max-width: 560px) {
+  .ins-stat {
+    padding: 14px;
+  }
+  .ins-stat b {
+    font-size: 28px;
+  }
+  .stat-dots i {
+    width: 6px;
+    height: 6px;
+  }
+}
 .stat-dots {
   display: flex;
   gap: 4px;
@@ -211,10 +238,6 @@
 }
 .in .ins-stat:nth-child(2) { animation-delay: 60ms; }
 .in .ins-stat:nth-child(3) { animation-delay: 120ms; }
-.in .ins-stat:nth-child(4) { animation-delay: 180ms; }
-.in .ins-stat:nth-child(5) { animation-delay: 240ms; }
-.in .ins-stat:nth-child(6) { animation-delay: 300ms; }
-.in .ins-stat:nth-child(n + 7) { animation-delay: 360ms; }
 
 /* Grades: radar + cards */
 .ins-grades {
@@ -322,50 +345,75 @@
   color: var(--text-3);
 }
 
+/* Grades as rows: the evidence and trend fold out */
 .grade-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 12px;
+  align-content: start;
 }
 .grade {
-  display: grid;
-  gap: 10px;
-  padding: 18px;
-  border-radius: var(--r-lg);
-  background: var(--raised);
-  box-shadow: var(--inner), 0 0 0 1px var(--line);
-  transition:
-    transform var(--t) var(--ease),
-    box-shadow var(--t) var(--ease);
+  border-bottom: 1px solid var(--line);
 }
-.grade:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--inner), 0 0 0 1px var(--line-2), 0 16px 40px rgba(0, 0, 0, 0.18);
+.grade:first-child {
+  border-top: 1px solid var(--line);
 }
 .in .grade {
   animation: rise 650ms var(--ease) both;
-  animation-delay: calc(var(--i) * 70ms + 150ms);
+  animation-delay: calc(var(--i) * 50ms + 150ms);
 }
-.grade-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 12px;
+.grade-head {
+  display: grid;
+  grid-template-columns: minmax(118px, 1fr) 56px minmax(72px, 1.1fr) 56px 16px;
+  align-items: center;
+  gap: 16px;
+  width: 100%;
+  min-height: 60px;
+  padding: 10px 4px;
+  text-align: left;
+  color: inherit;
+  border-radius: var(--r-sm);
+  transition: background var(--t-fast);
 }
-.grade h3 {
-  font-size: 16px;
+.grade-head:hover {
+  background: var(--surface);
+}
+.grade-name {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+.grade-name b {
+  font-size: 15px;
   font-weight: 600;
 }
-.grade-hint {
-  margin-top: 2px;
+.grade-tag {
+  overflow: hidden;
   font-size: 12.5px;
-  color: var(--text-3);
+  font-weight: 500;
+  color: var(--g);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.spark {
+  width: 56px;
+  height: 20px;
+  overflow: visible;
+}
+.spark polyline {
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.spark circle {
+  fill: var(--g);
 }
 .grade-score {
-  display: grid;
-  justify-items: end;
-  gap: 2px;
-  font-size: 32px;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 6px;
+  font-size: 24px;
   font-weight: 500;
   line-height: 1;
   color: var(--g);
@@ -376,8 +424,8 @@
 .grade-delta {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  font-size: 12px;
+  gap: 1px;
+  font-size: 11.5px;
   font-weight: 600;
 }
 .grade-delta.up {
@@ -385,6 +433,16 @@
 }
 .grade-delta.down {
   color: var(--text-3);
+}
+.grade-chev {
+  color: var(--text-4);
+  transition: transform var(--t) var(--ease), color var(--t-fast);
+}
+.grade-head:hover .grade-chev {
+  color: var(--text-2);
+}
+.grade[data-open] .grade-chev {
+  transform: rotate(180deg);
 }
 .grade-bar {
   position: relative;
@@ -404,7 +462,7 @@
 .in .grade-bar i {
   transform: scaleX(var(--v));
   transition: transform 1200ms cubic-bezier(0.16, 1, 0.3, 1);
-  transition-delay: calc(var(--i) * 70ms + 400ms);
+  transition-delay: calc(var(--i) * 60ms + 400ms);
 }
 .grade-bar b {
   position: absolute;
@@ -416,20 +474,34 @@
   background: var(--text-3);
   opacity: 0.7;
 }
-.grade-label {
+.grade-more {
+  display: grid;
+  gap: 10px;
+  padding: 2px 4px 18px;
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.grade-evidence {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text);
+  max-width: 60ch;
+}
+.grade-meta {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
-  align-items: center;
-  gap: 8px;
+  gap: 6px 16px;
   font-size: 13px;
-  font-weight: 600;
-  color: var(--g);
+  color: var(--text-3);
+}
+.grade-list-key {
+  margin-top: 12px;
 }
 .conf {
   display: inline-flex;
   align-items: flex-end;
   gap: 2px;
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 500;
   color: var(--text-3);
 }
@@ -445,10 +517,44 @@
 .conf i.on {
   opacity: 1;
 }
-.grade-evidence {
-  font-size: 14px;
-  line-height: 1.5;
-  color: var(--text-2);
+.trend svg {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+}
+.trend-anchor {
+  stroke: var(--line-2);
+  stroke-dasharray: 3 4;
+}
+.trend-anchor-label,
+.trend-label {
+  font: 500 10.5px var(--sans);
+  fill: var(--text-3);
+}
+.trend-line {
+  fill: none;
+  stroke: var(--g);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.trend-dot {
+  fill: var(--g);
+  stroke: var(--raised);
+  stroke-width: 2;
+}
+@media (max-width: 640px) {
+  .grade-head {
+    grid-template-columns: minmax(0, 1fr) minmax(64px, 88px) 48px 16px;
+    gap: 12px;
+  }
+  .grade-head .spark {
+    display: none;
+  }
+  .grade-score {
+    font-size: 21px;
+  }
 }
 
 /* Rhythm: days and hours */
@@ -784,7 +890,7 @@
 }
 
 /* Behind the numbers */
-.ins-mind .mind {
+.mind {
   display: grid;
   gap: 24px;
   max-width: 760px;
@@ -807,9 +913,6 @@
 .mind p {
   font-size: 20px;
   line-height: 1.55;
-}
-.mind-note {
-  margin-top: 16px;
 }
 
 /* Moment */
@@ -863,6 +966,143 @@
   flex: none;
   margin-top: 2px;
   color: var(--review);
+}
+.focus-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  margin-top: 6px;
+}
+.focus-actions .label {
+  flex: 1 1 220px;
+}
+.focus-was {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--positive);
+}
+.focus-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.focus-check b {
+  color: var(--text);
+  font-weight: 600;
+}
+.focus-check-tag {
+  --k: var(--text-3);
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--k) 16%, transparent);
+  color: var(--k);
+  font-size: 12px;
+  font-weight: 600;
+}
+.focus-check.v-yes .focus-check-tag { --k: var(--positive); }
+.focus-check.v-partly .focus-check-tag { --k: var(--caution); }
+.focus-check.v-no .focus-check-tag { --k: var(--negative); }
+
+/* Folded detail */
+.ins-more .disclosure-body > * {
+  margin-top: 4px;
+}
+.ins-more .patterns {
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+}
+
+/* Ask about the week */
+.ins-ask {
+  display: grid;
+  gap: 14px;
+  max-width: 720px;
+}
+.ask-form {
+  display: flex;
+  gap: 10px;
+}
+.ask-form .btn.icon {
+  flex: none;
+  width: 48px;
+  min-height: 48px;
+}
+.ask-turn {
+  display: grid;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.ask-q {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.ask-a {
+  font-size: 18px;
+  line-height: 1.5;
+}
+.inline-link {
+  font-size: inherit;
+  text-decoration: underline;
+  text-decoration-color: var(--line-3);
+  text-underline-offset: 3px;
+}
+
+/* How grades work */
+.bands {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.bands li {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: 12px;
+  align-items: baseline;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.bands b {
+  color: var(--text);
+  font-weight: 600;
+}
+.band-range {
+  color: var(--g);
+  font-size: 15px;
+}
+.band-areas {
+  display: grid;
+  gap: 8px;
+  list-style: none;
+  padding: 16px 0 0;
+  margin: 0;
+  border-top: 1px solid var(--line);
+}
+.band-areas li {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.band-areas b {
+  color: var(--text);
+  font-weight: 600;
 }
 .ins-foot {
   margin-top: 36px;

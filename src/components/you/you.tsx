@@ -1,13 +1,13 @@
 'use client';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
-import { Segmented, Sheet } from '@/components/ui';
+import { Disclosure, IndexRow, Segmented, Sheet } from '@/components/ui';
 import { useApp, type Theme } from '@/components/app/provider';
-import { useViewProps } from '@/components/app/legacy';
 import { PasskeySettings } from '@/components/passkeys';
-import { Settings } from '@/components/settings';
-import type { Memory } from '@/lib/server/memory';
+import { DataSheet, PlanSheet, RemindersSheet, reminderPrefs } from '@/components/settings';
+import type { Memory, Origin } from '@/lib/server/memory';
 import type { Style } from '@/lib/learning/style';
 
 const GROUPS: { title: string; kinds: Memory['kind'][] }[] = [
@@ -23,25 +23,233 @@ const STYLE_AXES: { key: keyof Style; left: string; right: string }[] = [
   { key: 'questions', left: 'Explain', right: 'Ask me' },
   { key: 'examples', left: 'Abstract', right: 'Concrete' },
 ];
+type Usage = { total: number; byTier: Record<string, { calls: number; usd: number }>; cacheRate: number; models: Record<string, string> };
+type Open = 'memory' | 'plan' | 'reminders' | 'signin' | 'usage' | 'data' | null;
+
+// When the learner last looked at their memory. Anything inferred after that
+// is new to them. First visits count only the last day, so a long history
+// doesn't all arrive as "new".
+export function memorySeenAt(records: { id: string; data: Record<string, unknown> }[]) {
+  const at = records.find((r) => r.id === 'settings:memory')?.data.seen_at;
+  return typeof at === 'string' ? at : new Date(Date.now() - 86400000).toISOString();
+}
+const isNew = (m: Memory, seen: string) => m.source === 'inferred' && m.created_at > seen;
 
 export function You() {
-  const { user, w, theme, setTheme, signOut, toast } = useApp();
-  const props = useViewProps();
+  const { user, w, theme, setTheme, signOut } = useApp();
   const [memories, setMemories] = useState<Memory[] | null>(null),
     [style, setStyle] = useState<Style | null>(null),
-    [usage, setUsage] = useState<{ total: number; byTier: Record<string, { calls: number; usd: number }>; cacheRate: number; models: Record<string, string> } | null>(null),
-    [adding, setAdding] = useState(''),
-    [editing, setEditing] = useState<Memory | null>(null),
-    [forget, setForget] = useState(false);
+    [origins, setOrigins] = useState<Record<string, Origin>>({}),
+    [usage, setUsage] = useState<Usage | null>(null),
+    [open, setOpen] = useState<Open>(null),
+    [focusNew, setFocusNew] = useState(false);
   useEffect(() => {
-    void api<{ memories: Memory[]; style: Style | null }>('/api/memory')
+    void api<{ memories: Memory[]; style: Style | null; origins?: Record<string, Origin> }>('/api/memory')
       .then((r) => {
         setMemories(r.memories);
         setStyle(r.style);
+        setOrigins(r.origins || {});
       })
       .catch(() => setMemories([]));
-    void api<typeof usage>('/api/usage').then(setUsage).catch(() => {});
+    void api<Usage>('/api/usage').then(setUsage).catch(() => {});
+    // Arriving from "Review" on a new-memory notice opens memory directly.
+    if (new URLSearchParams(location.search).get('memory')) {
+      setFocusNew(true);
+      setOpen('memory');
+      history.replaceState(null, '', '/you');
+    }
   }, []);
+  const plan = w.state.plan;
+  const seen = memorySeenAt(w.state.records);
+  const fresh = (memories || []).filter((m) => isNew(m, seen)).length;
+  const tentative = (memories || []).filter((m) => m.status === 'candidate').length;
+  const pinned = (memories || []).filter((m) => m.pinned).length;
+  const reminders = reminderPrefs(w.state.records);
+  const remindersOn = !!reminders.enabled && !reminders.travel;
+
+  return (
+    <div className="page narrow you">
+      <header className="page-head you-head">
+        <span className="you-avatar" aria-hidden="true">
+          {(plan?.profile.name || user.email || 'Y').slice(0, 1).toUpperCase()}
+        </span>
+        <div>
+          <h1 className="title">{plan?.profile.name || 'Your space'}</h1>
+          <p className="label">{user.email}</p>
+        </div>
+      </header>
+
+      <section className="you-group" aria-labelledby="you-learning">
+        <p className="eyebrow" id="you-learning">
+          Learning
+        </p>
+        <div className="rows">
+          <IndexRow
+            icon="memory"
+            title="Memory"
+            detail={
+              memories === null
+                ? 'Loading…'
+                : memories.length
+                  ? `${memories.length} thing${memories.length === 1 ? '' : 's'} it knows about you${pinned ? ` · ${pinned} pinned` : ''}`
+                  : 'Nothing yet'
+            }
+            badge={
+              fresh ? (
+                <span className="badge-new">{fresh} new</span>
+              ) : tentative ? (
+                <span className="badge-new quiet">{tentative} to confirm</span>
+              ) : undefined
+            }
+            onClick={() => {
+              setFocusNew(false);
+              setOpen('memory');
+            }}
+          />
+          <IndexRow icon="learn" title="Your plan" detail={plan?.title || 'Import a plan to begin'} onClick={() => setOpen('plan')} />
+          <IndexRow
+            icon="bell"
+            title="Reminders"
+            detail={remindersOn ? `On · ${reminders.morning || '09:45'} each learning morning` : 'Off'}
+            onClick={() => setOpen('reminders')}
+          />
+        </div>
+      </section>
+
+      <section className="you-group" aria-labelledby="you-app">
+        <p className="eyebrow" id="you-app">
+          App
+        </p>
+        <div className="rows">
+          <IndexRow icon={theme === 'light' ? 'sun' : 'moon'} title="Appearance">
+            <Segmented<Theme>
+              label="Theme"
+              value={theme}
+              onChange={setTheme}
+              options={[
+                { value: 'system', label: 'Auto' },
+                { value: 'dark', label: 'Dark' },
+                { value: 'light', label: 'Light' },
+              ]}
+            />
+          </IndexRow>
+          <IndexRow icon="key" title="Sign-in" detail="Passkeys for this account" onClick={() => setOpen('signin')} />
+        </div>
+      </section>
+
+      <section className="you-group" aria-labelledby="you-account">
+        <p className="eyebrow" id="you-account">
+          Account
+        </p>
+        <div className="rows">
+          <IndexRow
+            icon="spark"
+            title="AI this month"
+            detail={usage ? `$${usage.total.toFixed(2)} · ${Object.values(usage.byTier).reduce((n, t) => n + t.calls, 0)} calls` : 'Loading…'}
+            onClick={usage ? () => setOpen('usage') : undefined}
+          />
+          <IndexRow icon="download" title="Data & privacy" detail="Export everything, or delete your account" onClick={() => setOpen('data')} />
+        </div>
+      </section>
+
+      <button className="btn quiet you-signout" onClick={() => void signOut()}>
+        <Icon name="logout" size={17} /> Sign out
+      </button>
+
+      {open === 'memory' && (
+        <MemorySheet
+          memories={memories || []}
+          setMemories={setMemories}
+          style={style}
+          setStyle={setStyle}
+          origins={origins}
+          seen={seen}
+          startOnNew={focusNew}
+          onClose={() => setOpen(null)}
+        />
+      )}
+      {open === 'plan' && <PlanSheet onClose={() => setOpen(null)} />}
+      {open === 'reminders' && <RemindersSheet onClose={() => setOpen(null)} />}
+      {open === 'data' && <DataSheet onClose={() => setOpen(null)} />}
+      {open === 'signin' && (
+        <Sheet title="Sign-in" subtitle={user.email} onClose={() => setOpen(null)}>
+          <PasskeySettings demo={false} />
+          <p className="label">Without a passkey, you sign in with a link sent to your email.</p>
+        </Sheet>
+      )}
+      {open === 'usage' && usage && <UsageSheet usage={usage} onClose={() => setOpen(null)} />}
+    </div>
+  );
+}
+
+function UsageSheet({ usage, onClose }: { usage: Usage; onClose: () => void }) {
+  const name = (t: string) => (t === 'voice' ? 'Voice' : usage.models[t] || t);
+  return (
+    <Sheet title="AI this month" subtitle="Unmetered. Shown so there are no surprises." onClose={onClose}>
+      <div className="usage">
+        <div className="stat">
+          <b className="num">${usage.total.toFixed(2)}</b>
+          <span>total</span>
+        </div>
+        {(['fast', 'primary', 'reasoning', 'voice'] as const).map((t) =>
+          usage.byTier[t] ? (
+            <div className="stat" key={t}>
+              <b className="num">${usage.byTier[t].usd.toFixed(2)}</b>
+              <span>
+                {name(t)} · {usage.byTier[t].calls} calls
+              </span>
+            </div>
+          ) : null,
+        )}
+      </div>
+      {usage.cacheRate > 0 && <p className="label">{Math.round(usage.cacheRate * 100)}% of prompt tokens served from cache.</p>}
+    </Sheet>
+  );
+}
+
+// Everything Fieldwork has learned about the learner: what it isn't sure of
+// yet first, then the rest by kind, folded.
+function MemorySheet({
+  memories,
+  setMemories,
+  style,
+  setStyle,
+  origins,
+  seen,
+  startOnNew,
+  onClose,
+}: {
+  memories: Memory[];
+  setMemories: (f: (m: Memory[] | null) => Memory[] | null) => void;
+  style: Style | null;
+  setStyle: (s: Style | null) => void;
+  origins: Record<string, Origin>;
+  seen: string;
+  startOnNew: boolean;
+  onClose: () => void;
+}) {
+  const { w, toast } = useApp();
+  const [query, setQuery] = useState(''),
+    [adding, setAdding] = useState(''),
+    [editing, setEditing] = useState<Memory | null>(null),
+    [forget, setForget] = useState(false);
+  // "New" is judged against the moment the sheet opened, then the learner
+  // has seen them.
+  const [since] = useState(seen);
+  const marked = useRef(false);
+  useEffect(() => {
+    if (marked.current) return;
+    marked.current = true;
+    void w.record('settings', 'settings:memory', { seen_at: new Date().toISOString() });
+  }, [w]);
+
+  function put(memory: Memory) {
+    setMemories((list) => {
+      const rest = (list || []).filter((x) => x.id !== memory.id);
+      return memory.status === 'archived' ? rest : [memory, ...rest];
+    });
+    return memory;
+  }
   async function save(m: Partial<Memory> & { content: string }) {
     const { memory } = await api<{ memory: Memory }>('/api/memory', {
       id: m.id,
@@ -49,10 +257,13 @@ export function You() {
       content: m.content,
       pinned: m.pinned,
     });
-    setMemories((list) => {
-      const rest = (list || []).filter((x) => x.id !== memory.id);
-      return [memory, ...rest];
-    });
+    return put(memory);
+  }
+  // Keeping a tentative memory makes it count; dismissing retires it without
+  // deleting, so the same guess isn't made again.
+  async function review(m: Memory, verdict: 'keep' | 'dismiss') {
+    const { memory } = await api<{ memory: Memory }>('/api/memory', { id: m.id, review: verdict });
+    return put(memory);
   }
   async function remove(m: Memory) {
     setMemories((list) => (list || []).filter((x) => x.id !== m.id));
@@ -63,157 +274,124 @@ export function You() {
       toast((e as Error).message);
     }
   }
-  const plan = w.state.plan;
+  async function confirm(m: Memory) {
+    try {
+      await review(m, 'keep');
+      toast('Kept.');
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  }
+  async function dismiss(m: Memory) {
+    try {
+      await review(m, 'dismiss');
+      toast('Dismissed.');
+    } catch (e) {
+      toast((e as Error).message);
+    }
+  }
+
+  const q = query.trim().toLowerCase();
+  const match = (m: Memory) => !q || m.content.toLowerCase().includes(q);
+  const unsure = memories.filter((m) => m.status === 'candidate' && match(m));
+  const sure = memories.filter((m) => m.status !== 'candidate' && match(m));
+  const newCount = memories.filter((m) => isNew(m, since)).length;
+  const row = (m: Memory, tentative = false) => (
+    <MemoryRow
+      key={m.id}
+      m={m}
+      origin={m.source_run ? origins[m.source_run] : undefined}
+      fresh={isNew(m, since)}
+      tentative={tentative}
+      onPin={() => void save({ ...m, pinned: !m.pinned })}
+      onEdit={() => setEditing(m)}
+      onForget={() => void remove(m)}
+      onKeep={() => void confirm(m)}
+      onDismiss={() => void dismiss(m)}
+    />
+  );
+
   return (
-    <div className="page narrow you">
-      <header className="page-head">
-        <div>
-          <p className="eyebrow">You</p>
-          <h1 className="title">{plan?.profile.name || 'Your space'}</h1>
-          <p className="label" style={{ marginTop: 6 }}>
-            {user.email}
-            {plan ? ` · ${plan.title}` : ''}
-          </p>
-        </div>
-      </header>
-
-      <section className="you-section">
-        <div className="section-head">
-          <h2 className="heading">What Fieldwork knows</h2>
-          <p className="label">Used quietly to teach you better. Edit or remove anything.</p>
-        </div>
-        {style && style.observations > 0 && (
-          <div className="style-axes" aria-label="Your inferred teaching style">
-            {STYLE_AXES.map((a) => (
-              <div className="axis" key={a.key}>
-                <span className="label">{a.left}</span>
-                <div className="axis-track">
-                  <i style={{ left: `${Math.round((style[a.key] as number) * 100)}%` }} />
-                </div>
-                <span className="label">{a.right}</span>
+    <Sheet title="Memory" subtitle="Used quietly to teach you better. Edit or remove anything." onClose={onClose}>
+      {style && style.observations > 0 && (
+        <div className="style-axes" aria-label="Your inferred teaching style">
+          {STYLE_AXES.map((a) => (
+            <div className="axis" key={a.key}>
+              <span className="label">{a.left}</span>
+              <div className="axis-track">
+                <i style={{ left: `${Math.round((style[a.key] as number) * 100)}%` }} />
               </div>
-            ))}
-            <p className="label">Inferred from {style.observations} moments across your sessions. It moves slowly on purpose.</p>
-          </div>
-        )}
-        {memories === null ? (
-          <div className="skeleton line" style={{ width: '50%' }} />
-        ) : memories.length === 0 ? (
-          <p className="muted">Nothing yet. After a few sessions this fills with what helps you learn.</p>
-        ) : (
-          GROUPS.map((g) => {
-            const list = memories.filter((m) => g.kinds.includes(m.kind));
-            if (!list.length) return null;
-            return (
-              <div className="memory-group" key={g.title}>
-                <p className="eyebrow">{g.title}</p>
-                <div className="rows">
-                  {list.map((m) => (
-                    <div className="row memory" key={m.id}>
-                      <div className="grow">
-                        <p>{m.content}</p>
-                        <p className="sub">
-                          {m.source === 'user' ? 'You added this' : m.status === 'candidate' ? 'Tentative · seen once' : `Seen ${m.evidence}×`}
-                          {m.pinned ? ' · Pinned' : ''}
-                        </p>
-                      </div>
-                      <button className="btn icon small ghost" aria-label={m.pinned ? 'Unpin' : 'Pin'} aria-pressed={m.pinned} onClick={() => void save({ ...m, pinned: !m.pinned })}>
-                        <Icon name="pin" size={16} />
-                      </button>
-                      <button className="btn icon small ghost" aria-label="Edit" onClick={() => setEditing(m)}>
-                        <Icon name="edit" size={16} />
-                      </button>
-                      <button className="btn icon small ghost" aria-label="Forget" onClick={() => void remove(m)}>
-                        <Icon name="trash" size={16} />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })
-        )}
-        <form
-          className="add-memory"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (adding.trim().length < 3) return;
-            void save({ kind: 'preference', content: adding.trim(), pinned: true }).then(() => setAdding(''));
-          }}
-        >
-          <input
-            className="input"
-            value={adding}
-            onChange={(e) => setAdding(e.target.value)}
-            placeholder="Tell it something: “Use sports examples”, “I run a video studio”…"
-            aria-label="Add something Fieldwork should know"
-          />
-          <button className="btn" disabled={adding.trim().length < 3}>
-            Add
-          </button>
-        </form>
-        {!!memories?.length && (
-          <button className="link danger-link" onClick={() => setForget(true)}>
-            Forget everything
-          </button>
-        )}
-      </section>
-
-      <section className="you-section">
-        <div className="section-head">
-          <h2 className="heading">Appearance</h2>
-        </div>
-        <Segmented<Theme>
-          label="Theme"
-          value={theme}
-          onChange={setTheme}
-          options={[
-            { value: 'system', label: 'System' },
-            { value: 'dark', label: 'Dark' },
-            { value: 'light', label: 'Light' },
-          ]}
-        />
-      </section>
-
-      <section className="you-section">
-        <div className="section-head">
-          <h2 className="heading">Sign-in</h2>
-        </div>
-        <PasskeySettings demo={false} />
-        <button className="btn quiet" onClick={() => void signOut()}>
-          <Icon name="logout" size={17} /> Sign out
-        </button>
-      </section>
-
-      {usage && (
-        <section className="you-section">
-          <div className="section-head">
-            <h2 className="heading">AI this month</h2>
-            <p className="label">Unmetered. Shown so there are no surprises.</p>
-          </div>
-          <div className="usage">
-            <div className="stat">
-              <b className="num">${usage.total.toFixed(2)}</b>
-              <span>total</span>
+              <span className="label">{a.right}</span>
             </div>
-            {(['fast', 'primary', 'reasoning', 'voice'] as const).map((t) =>
-              usage.byTier[t] ? (
-                <div className="stat" key={t}>
-                  <b className="num">${usage.byTier[t].usd.toFixed(2)}</b>
-                  <span>
-                    {t === 'fast' ? usage.models.fast : t === 'primary' ? usage.models.primary : t === 'reasoning' ? usage.models.reasoning : 'voice'} · {usage.byTier[t].calls}
-                  </span>
-                </div>
-              ) : null,
-            )}
-          </div>
-          {usage.cacheRate > 0 && <p className="label">{Math.round(usage.cacheRate * 100)}% of prompt tokens served from cache.</p>}
-        </section>
+          ))}
+          <p className="label">Inferred from {style.observations} moments. It moves slowly on purpose.</p>
+        </div>
       )}
 
-      <section className="you-section">
-        <Settings {...props} />
-      </section>
+      {memories.length > 8 && (
+        <input
+          className="input"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={`Search ${memories.length} memories`}
+          aria-label="Search memories"
+        />
+      )}
+
+      {memories.length === 0 && <p className="muted">Nothing yet. After a few sessions this fills with what helps you learn.</p>}
+
+      {unsure.length > 0 && (
+        <div className="mem-group">
+          <p className="eyebrow">Not sure yet · {unsure.length}</p>
+          <p className="label">Seen once. Keep what’s true; dismiss what isn’t.</p>
+          <div className="mem-list">{unsure.map((m) => row(m, true))}</div>
+        </div>
+      )}
+
+      {GROUPS.map((g) => {
+        const list = sure.filter((m) => g.kinds.includes(m.kind));
+        if (!list.length) return null;
+        const newHere = list.filter((m) => isNew(m, since)).length;
+        return (
+          <Disclosure
+            key={g.title + (q ? ':q' : '')}
+            className="mem-fold"
+            title={g.title}
+            teaser={`${list.length} ${list.length === 1 ? 'memory' : 'memories'}${newHere ? ` · ${newHere} new` : ''}`}
+            defaultOpen={!!q || (startOnNew && newHere > 0) || memories.length <= 6}
+          >
+            <div className="mem-list">{list.map((m) => row(m))}</div>
+          </Disclosure>
+        );
+      })}
+      {q && !unsure.length && !sure.length && <p className="muted">Nothing matches “{query}”.</p>}
+
+      <form
+        className="add-memory"
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (adding.trim().length < 3) return;
+          void save({ kind: 'preference', content: adding.trim(), pinned: true }).then(() => setAdding(''));
+        }}
+      >
+        <input
+          className="input"
+          value={adding}
+          onChange={(e) => setAdding(e.target.value)}
+          placeholder="Tell it something: “Use sports examples”…"
+          aria-label="Add something Fieldwork should know"
+        />
+        <button className="btn" disabled={adding.trim().length < 3}>
+          Add
+        </button>
+      </form>
+      {newCount > 0 && <p className="label">{newCount} learned since you last looked, marked with a dot.</p>}
+      {memories.length > 0 && (
+        <button className="link danger-link" onClick={() => setForget(true)}>
+          Forget everything
+        </button>
+      )}
 
       {editing && (
         <EditMemory
@@ -228,7 +406,7 @@ export function You() {
             className="btn primary"
             onClick={async () => {
               await api('/api/memory', { all: true }, 'DELETE');
-              setMemories([]);
+              setMemories(() => []);
               setStyle(null);
               setForget(false);
               toast('Fieldwork will start learning about you again from scratch.');
@@ -237,6 +415,81 @@ export function You() {
             Forget everything
           </button>
         </Sheet>
+      )}
+    </Sheet>
+  );
+}
+
+function MemoryRow({
+  m,
+  origin,
+  fresh,
+  tentative,
+  onPin,
+  onEdit,
+  onForget,
+  onKeep,
+  onDismiss,
+}: {
+  m: Memory;
+  origin?: Origin;
+  fresh: boolean;
+  tentative: boolean;
+  onPin: () => void;
+  onEdit: () => void;
+  onForget: () => void;
+  onKeep: () => void;
+  onDismiss: () => void;
+}) {
+  const where = useMemo(() => {
+    if (m.source === 'user') return 'You added this';
+    if (m.source === 'import') return 'From your plan';
+    return null;
+  }, [m.source]);
+  const href = origin && m.source_run ? (origin.kind === 'practice' ? '/practice/' + m.source_run : '/session/' + m.source_run) : null;
+  return (
+    <div className={'mem' + (fresh ? ' fresh' : '')}>
+      <div className="grow">
+        <p className="mem-text">
+          {fresh && <i className="mem-dot" aria-label="New" />}
+          {m.content}
+        </p>
+        <p className="label mem-meta">
+          {where}
+          {!where && origin && href && (
+            <>
+              Learned in{' '}
+              <Link href={href} className="mem-origin">
+                {origin.title}
+              </Link>
+            </>
+          )}
+          {!where && !origin && 'Noticed in a session'}
+          {!tentative && m.source !== 'user' && m.evidence > 1 ? ` · seen ${m.evidence}×` : ''}
+          {m.pinned ? ' · pinned' : ''}
+        </p>
+      </div>
+      {tentative ? (
+        <div className="mem-actions always">
+          <button className="btn small" onClick={onKeep}>
+            <Icon name="check" size={15} /> Keep
+          </button>
+          <button className="btn icon small ghost" aria-label="Dismiss" onClick={onDismiss}>
+            <Icon name="close" size={16} />
+          </button>
+        </div>
+      ) : (
+        <div className="mem-actions">
+          <button className="btn icon small ghost" aria-label={m.pinned ? 'Unpin' : 'Pin'} aria-pressed={m.pinned} onClick={onPin}>
+            <Icon name="pin" size={16} />
+          </button>
+          <button className="btn icon small ghost" aria-label="Edit" onClick={onEdit}>
+            <Icon name="edit" size={16} />
+          </button>
+          <button className="btn icon small ghost" aria-label="Forget" onClick={onForget}>
+            <Icon name="trash" size={16} />
+          </button>
+        </div>
       )}
     </div>
   );

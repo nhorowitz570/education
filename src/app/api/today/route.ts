@@ -61,7 +61,10 @@ export async function GET(r: Request) {
     if (plan && graph.mapped && [...learned.keys()].some((k) => !graph.list.some((c) => c.key === k)))
       after(() => carryOver(user.id, plan.plan_id, graph.list).catch(() => {}));
     const due = dueConcepts(learned, graph.list, now.toISOString());
-    const run = runs.find((x) => Date.now() - Date.parse(x.updated_at) < 18 * 3600 * 1000);
+    // An exploration is a side trip: it never takes the place of the day's
+    // session. An unfinished one waits in its own row.
+    const run = runs.find((x) => x.kind !== 'explore' && Date.now() - Date.parse(x.updated_at) < 18 * 3600 * 1000);
+    const exploring = runs.find((x) => x.kind === 'explore' && Date.now() - Date.parse(x.updated_at) < 3 * 86400 * 1000);
     const view = today({
       state,
       date,
@@ -111,14 +114,68 @@ export async function GET(r: Request) {
       }
     }
     const headline = (insight?.report as { headline?: string } | null)?.headline;
+    const [recap, freshMemories] = await Promise.all([
+      recapOf(user.id, date, zone, graph.list),
+      newMemories(user.id, state.records.find((r) => r.id === 'settings:memory')?.data.seen_at),
+    ]);
     return NextResponse.json({
       today: view,
       date,
       mapped: graph.mapped,
       preview,
       insight: insight && headline ? { id: insight.id, headline } : null,
+      exploring: exploring ? { id: exploring.id, title: exploring.title } : null,
+      recap,
+      memories: { fresh: freshMemories },
     });
   } catch (e) {
     return fail(e);
   }
+}
+
+// What today's finished work added up to, for the end-of-day card.
+async function recapOf(userId: string, date: string, zone: string, list: { key: string; title: string }[]) {
+  const since = new Date(Date.now() - 36 * 3600 * 1000).toISOString();
+  const db = adminClient();
+  const [{ data: runs }, { data: events }] = await Promise.all([
+    db
+      .from('runs')
+      .select('id,kind,started_at,ended_at,minutes_planned,context')
+      .eq('user_id', userId)
+      .eq('status', 'done')
+      .neq('kind', 'practice')
+      .gte('ended_at', since),
+    db.from('learning_events').select('concept_key,kind,created_at').eq('user_id', userId).gte('created_at', since),
+  ]);
+  const today = (runs || []).filter((r) => r.ended_at && dateInZone(zone, new Date(r.ended_at)) === date);
+  if (!today.length) return null;
+  const minutes = today.reduce((n, r) => {
+    const clock = (r.context as { clock?: { active_ms: number } } | null)?.clock;
+    const raw = clock ? clock.active_ms / 60000 : (Date.parse(r.ended_at!) - Date.parse(r.started_at)) / 60000;
+    return n + Math.min(Math.max(0, raw), (r.minutes_planned || 30) * 1.6);
+  }, 0);
+  const todays = (events || []).filter((e) => dateInZone(zone, new Date(e.created_at)) === date);
+  const titles = new Map(list.map((c) => [c.key, c.title]));
+  const ideas = [...new Set(todays.map((e) => e.concept_key).filter((k): k is string => !!k && titles.has(k)))].map((k) => titles.get(k)!);
+  return {
+    minutes: Math.round(minutes),
+    sessions: today.length,
+    answers: todays.filter((e) => e.kind !== 'exposure').length,
+    ideas: ideas.slice(0, 4),
+    more: Math.max(0, ideas.length - 4),
+  };
+}
+
+// Memories inferred since the learner last looked. A first look counts only
+// the last day.
+async function newMemories(userId: string, seenAt: unknown) {
+  const since = typeof seenAt === 'string' ? seenAt : new Date(Date.now() - 86400000).toISOString();
+  const { count } = await adminClient()
+    .from('memories')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userId)
+    .eq('source', 'inferred')
+    .neq('status', 'archived')
+    .gt('created_at', since);
+  return count || 0;
 }
