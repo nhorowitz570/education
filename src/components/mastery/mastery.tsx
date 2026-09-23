@@ -127,9 +127,14 @@ export function Mastery() {
           <h1 className="title">What you can do.</h1>
         </div>
         {sessions > 0 && (
-          <Link href="/insights" className="btn quiet insights-link">
-            <Icon name="insights" size={17} /> Weekly insights
-          </Link>
+          <div className="row-inline">
+            <Link href="/notebook" className="btn quiet">
+              <Icon name="notebook" size={17} /> Notebook
+            </Link>
+            <Link href="/insights" className="btn quiet insights-link">
+              <Icon name="insights" size={17} /> Weekly insights
+            </Link>
+          </div>
         )}
       </header>
 

@@ -6,7 +6,8 @@ import { api } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
 import { Segmented, Sheet } from '@/components/ui';
 import { useApp } from '@/components/app/provider';
-import { MODES, VOICES, type Difficulty, type Mode, type Voice } from '@/lib/practice/harness';
+import { MODES, type Difficulty, type Mode, type Voice } from '@/lib/practice/harness';
+import { VoicePicker } from './voice-picker';
 import type { PracticeView } from '@/lib/server/practice';
 
 type Recent = { id: string; title: string; status: string; started_at: string; mode: Mode; score: number | null; headline: string | null };
@@ -79,7 +80,17 @@ export function PracticeHub() {
       <section className="hub-section">
         <p className="eyebrow">Recent</p>
         {recent === null ? (
-          <div className="skeleton line" style={{ width: '40%' }} />
+          <div className="rows" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <div className="row" key={i}>
+                <i className="dot hollow" />
+                <div className="grow">
+                  <div className="skeleton line" style={{ width: `${62 - i * 12}%` }} />
+                  <div className="skeleton line" style={{ width: `${38 - i * 6}%`, marginTop: 8 }} />
+                </div>
+              </div>
+            ))}
+          </div>
         ) : recent.length ? (
           <div className="rows">
             {recent.map((r) => (
@@ -108,11 +119,12 @@ export function PracticeHub() {
 
 function SetupSheet({ initial, onClose }: { initial: Setup; onClose: () => void }) {
   const router = useRouter();
+  const { prefs } = useApp();
   const [topic, setTopic] = useState(initial.topic),
     [side, setSide] = useState(initial.side || ''),
     [difficulty, setDifficulty] = useState<Difficulty>('realistic'),
     [minutes, setMinutes] = useState<'5' | '8' | '12'>('8'),
-    [voice, setVoice] = useState<Voice>('cedar'),
+    [voice, setVoice] = useState<Voice>(prefs.voice),
     [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const debate = initial.mode === 'debate';
@@ -189,13 +201,7 @@ function SetupSheet({ initial, onClose }: { initial: Setup; onClose: () => void 
       </div>
       <div className="field">
         <span>Voice</span>
-        <div className="chips">
-          {(Object.keys(VOICES) as Voice[]).map((v) => (
-            <button key={v} className="chip" aria-pressed={voice === v} onClick={() => setVoice(v)} title={VOICES[v].note}>
-              {VOICES[v].label}
-            </button>
-          ))}
-        </div>
+        <VoicePicker value={voice} onChange={setVoice} />
       </div>
       {error && <p className="conversation-error">{error}</p>}
       <button className="btn primary large wide" onClick={() => void start()} disabled={topic.trim().length < 3} data-busy={busy || undefined}>

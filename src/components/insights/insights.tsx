@@ -18,6 +18,7 @@ import {
   type InsightRow,
   type InsightSummary,
 } from '@/lib/insights';
+import { reducedMotion } from '@/lib/client/motion';
 
 type Data = { weeks: InsightSummary[]; insight: InsightRow | null };
 type Point = { week: string; score: number | null };
@@ -31,7 +32,7 @@ const rangeLabel = (start: string, end: string) => {
 const shortDate = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 const hourLabel = (h: number) => `${((h + 11) % 12) + 1}${h < 12 ? 'am' : 'pm'}`;
 const plural = (n: number, one: string, many = one + 's') => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
-const reduced = () => typeof window !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const reduced = reducedMotion;
 
 // Sections rise into view as they're reached, and their charts draw then.
 // Runs after every render so sections that appear later are picked up too.

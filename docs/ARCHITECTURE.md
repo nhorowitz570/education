@@ -85,6 +85,8 @@ All model calls go through `generate()` in `src/lib/ai/engine.ts`. Tasks are dec
 | `private.voice_sessions` | Live call lifecycle | Server only via RPC |
 | `ventures` | One Venture company per learner, with a revision | RLS: owner read; server writes |
 | `plan_chapters` | Outcome names for a plan's chapters, written once by Luna | RLS: owner read; server writes |
+| `notes` | The learner's notes on session steps, by run, step and idea | RLS: owner read; server writes |
+| `shares` | Snapshot cards shared by link, with a view count and `revoked_at` | RLS: owner read; public page reads by token on the server |
 
 ## Venture
 
@@ -113,6 +115,23 @@ Each tick also:
 - **Confidence.** Every answer is submitted with *Guessing*, *Fairly sure* or *Certain*. A right answer called a guess is weaker evidence; a confident miss raises the concept's difficulty and tells the grader to name the false belief outright. Confidence is stored in `learning_events.detail` and drives the calibration chart.
 - **Retries.** One retry of a missed text answer, graded with the first attempt in view and recorded as assisted evidence.
 - **Rehearsals** (`runs.kind = 'rehearsal'`). A mock of a milestone's deliverable, built on the weakest concepts taught before it, graded at high stakes.
+
+## Notebook
+
+`src/lib/server/notebook.ts` reads the Notebook from what already exists, so it needs no model calls and is always current. Each session step with a `concept` contributes to that idea's entry: the learner's answers (best first), the latest explanation and visual, their asks, and notes from the `notes` table. Strength and level come from the learner model. Explorations become side-trip entries keyed `trip:<run>` and never touch plan progress.
+
+- **Terms in lessons.** `/api/notebook?terms=1` returns phrases from each met idea's title. A step works out which run of its text carries each mark before rendering (`KnownTerms`), so each idea is marked once per step and the step's own idea never is.
+- **Shares.** `shares` holds a frozen card per idea, readable only by the server through its random token. The public page and its image read it; revoking sets `revoked_at`.
+
+## Preferences and time
+
+Preferences are one synced record, `settings:prefs`, parsed by `prefsOf()` with a default for every field. The server reads the session settings when a run starts (the planner's `askFamiliarity` and `breakMinutes`) and the notification switches in `pushTo`. The browser applies reading and motion settings as data attributes on `<html>`, mirrored to local storage so the first paint already uses them.
+
+The device's time zone is recorded as `settings:device`, and `zoneOf()` (`src/lib/zone.ts`) prefers it over the plan's zone everywhere a local date or hour is needed. Every run has a clock (`src/lib/learning/duration.ts`) that advances by the time between interactions, capped at 12 minutes and stopped when the run finishes.
+
+## Design tokens
+
+`src/styles/tokens.css` is the source. `npx tsx scripts/tokens.ts` writes `design/tokens/fieldwork.tokens.json` and `design/tokens/FieldworkTokens.swift` (light/dark-aware SwiftUI colours, radii, sizes, motion and font names) for the native apps; a test fails if they fall out of date.
 
 ## Security
 

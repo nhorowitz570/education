@@ -4,6 +4,7 @@ import { readState } from '@/lib/server/state';
 import { adminClient } from '@/lib/supabase/server';
 import { dateInZone } from '@/lib/plan';
 import type { Beat, Block } from '@/lib/learning/run';
+import { zoneOf } from '@/lib/zone';
 
 type Piece = { run: string; title: string; date: string; brief: string; text: string; verdict: string | null; feedback: string };
 
@@ -21,7 +22,7 @@ export async function GET(r: Request) {
     const { user } = await context(r);
     const state = await readState(user.id),
       plan = state.plan,
-      zone = plan?.schedule.timezone || 'America/Los_Angeles';
+      zone = zoneOf(state);
     const { data } = await adminClient()
       .from('runs')
       .select('id,kind,title,beats,started_at,ended_at')

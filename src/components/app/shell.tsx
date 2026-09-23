@@ -12,6 +12,8 @@ export const NAV = [
   { href: '/learn', label: 'Learn', icon: 'learn' },
   { href: '/practice', label: 'Practice', icon: 'practice' },
   { href: '/mastery', label: 'Mastery', icon: 'mastery' },
+  // Wide screens only; phones reach it from Mastery, Today and each session's end.
+  { href: '/notebook', label: 'Notebook', icon: 'notebook', rail: true },
   { href: '/venture', label: 'Venture', icon: 'venture' },
   // Wide screens only; phones reach it from Mastery and Today.
   { href: '/insights', label: 'Insights', icon: 'insights', rail: true },

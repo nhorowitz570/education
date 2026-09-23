@@ -399,6 +399,16 @@ a.row:hover {
   border-radius: 3px;
   background: var(--line-3);
 }
+@media (max-width: 699px) {
+  /* The grip and header are the handle for dragging a sheet away. */
+  .sheet-grip,
+  .sheet-head {
+    touch-action: none;
+  }
+  .sheet-grip {
+    box-shadow: 0 0 0 12px transparent;
+  }
+}
 .sheet-head {
   display: flex;
   align-items: flex-start;
@@ -506,7 +516,13 @@ a.row:hover {
   border-radius: 50%;
   background: var(--text);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  transition: transform var(--t) var(--ease);
+  /* A little overshoot, and the thumb stretches while pressed. */
+  transition:
+    transform 380ms cubic-bezier(0.3, 1.45, 0.5, 1),
+    width 200ms var(--ease);
+}
+.switch:active:not(:disabled) i {
+  width: 27px;
 }
 .switch[aria-checked='true'] {
   background: var(--positive);
@@ -514,6 +530,9 @@ a.row:hover {
 .switch[aria-checked='true'] i {
   transform: translateX(18px);
   background: #fff;
+}
+.switch[aria-checked='true']:active:not(:disabled) i {
+  transform: translateX(13px);
 }
 .switch:disabled {
   opacity: 0.4;

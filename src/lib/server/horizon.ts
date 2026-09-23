@@ -26,12 +26,12 @@ import {
   type Rolling,
 } from '@/lib/rolling';
 import type { AppState } from '@/lib/types';
+import { zoneOf } from '@/lib/zone';
 
 // Keeps each learner's plan current: converts a dated plan to a rolling one
 // once, closes weeks that have ended, and makes sure this week exists. No
 // model call happens here, so it is safe on every page load.
 
-const zoneOf = (s: AppState) => s.plan?.schedule.timezone || 'America/Los_Angeles';
 const localHour = (zone: string, now = new Date()) =>
   Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(now));
 

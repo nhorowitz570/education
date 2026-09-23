@@ -1097,3 +1097,162 @@
     animation: none;
   }
 }
+
+/* The last words being written carry a soft shimmer, like ink still wet. */
+.prose.streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 0.5em;
+  height: 0.95em;
+  margin-left: 3px;
+  vertical-align: -0.12em;
+  border-radius: 3px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--c, var(--text)) 55%, transparent), transparent);
+  background-size: 200% 100%;
+  animation: ink 1.1s linear infinite;
+  opacity: 0.8;
+}
+@keyframes ink {
+  from {
+    background-position: 150% 0;
+  }
+  to {
+    background-position: -50% 0;
+  }
+}
+
+/* An idea met in an earlier session: a quiet dotted underline in its hue. */
+.term {
+  display: inline;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-align: inherit;
+  text-decoration: underline dotted;
+  text-decoration-color: color-mix(in srgb, var(--c, var(--text-3)) 70%, transparent);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.22em;
+  border-radius: 3px;
+  cursor: help;
+  transition:
+    background var(--t-fast),
+    text-decoration-color var(--t-fast);
+}
+.term:hover,
+.term:focus-visible {
+  background: color-mix(in srgb, var(--c, var(--text)) 12%, transparent);
+  text-decoration-color: var(--c, var(--text));
+}
+.term-card {
+  position: fixed;
+  z-index: 45;
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: var(--r-lg);
+  background: var(--raised);
+  box-shadow: var(--shadow-pop);
+  animation: select-in var(--t) var(--ease) both;
+  outline: none;
+}
+.term-card .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.term-card .dot {
+  background: var(--c, var(--text-3));
+}
+.term-card-title {
+  font-family: var(--serif);
+  font-size: 21px;
+  line-height: 1.15;
+}
+.term-card .meter {
+  height: 3px;
+}
+.term-card-words {
+  margin: 0;
+  padding-left: 12px;
+  border-left: 2px solid var(--c, var(--line-3));
+  font-family: var(--lesson);
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-2);
+}
+.term-card .link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+  font-size: 14px;
+}
+
+/* Notes on a step */
+.beat-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 8px 10px 14px;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--caution) 7%, var(--surface));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--caution) 16%, transparent);
+  font-size: 15px;
+  line-height: 1.5;
+  animation: rise var(--t) var(--ease) both;
+}
+.beat-note > svg {
+  flex: none;
+  margin-top: 3px;
+  color: var(--caution);
+}
+.beat-note p {
+  white-space: pre-wrap;
+}
+.beat-note-quote {
+  margin-bottom: 4px;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--text-3);
+}
+.note-editor {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+  animation: rise var(--t) var(--ease) both;
+}
+.note-editor .textarea {
+  min-height: 72px;
+}
+.add-note {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--text-3);
+  opacity: 0;
+  transition:
+    opacity var(--t-fast),
+    color var(--t-fast);
+}
+.beat.current .add-note,
+.beat:hover .add-note,
+.add-note:focus-visible {
+  opacity: 1;
+}
+@media (hover: none) {
+  .beat.past .add-note {
+    opacity: 0.7;
+  }
+}
+.add-note:hover {
+  color: var(--text);
+}
+.beat-note .grow {
+  flex: 1;
+  min-width: 0;
+}

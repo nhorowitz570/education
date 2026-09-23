@@ -210,7 +210,7 @@ export function RollingLearn({ plan, concepts }: { plan: Rolling; concepts: Conc
         />
       )}
       {track && <TrackSheet plan={plan} track={plan.horizon.tracks.find((t) => t.id === track.id) || track} edit={edit} onClose={() => setTrack(null)} />}
-      {rhythm && <RhythmSheet plan={plan} edit={edit} onClose={() => setRhythm(false)} />}
+      {rhythm && <RhythmSheet plan={plan} onClose={() => setRhythm(false)} />}
       {adding && (
         <AddSheet
           plan={plan}
@@ -584,10 +584,17 @@ function TrackSheet({ plan, track, edit, onClose }: { plan: Rolling; track: Trac
 }
 
 // The week's shape: each weekday keeps its track, so Monday always means the
-// same thing. Changes apply from the next week drafted.
-function RhythmSheet({ plan, edit, onClose }: { plan: Rolling; edit: (e: PlanEdit, m?: string) => Promise<void>; onClose: () => void }) {
+// same thing. Changes apply from the next week drafted. It opens from Learn
+// and from You → Your rhythm.
+export function RhythmSheet({ plan, onClose }: { plan: Rolling; onClose: () => void }) {
+  const { w, today, toast } = useApp();
+  const edit = async (e: PlanEdit, message?: string) => {
+    await w.send({ type: 'plan-edit', eventId: crypto.randomUUID(), today, edit: e });
+    if (message) toast(message);
+  };
   const [days, setDays] = useState<Record<string, string>>({ ...plan.horizon.rhythm.days }),
-    [minutes, setMinutes] = useState(plan.horizon.rhythm.minutes);
+    [minutes, setMinutes] = useState(plan.horizon.rhythm.minutes),
+    [start, setStart] = useState(plan.horizon.rhythm.start_local);
   const count = Object.keys(days).length;
   const tracks = plan.horizon.tracks;
   return (
@@ -626,6 +633,11 @@ function RhythmSheet({ plan, edit, onClose }: { plan: Rolling; edit: (e: PlanEdi
           ))}
         </div>
       </div>
+      <label className="field">
+        <span>Usual start</span>
+        <input className="input" type="time" value={start} onChange={(e) => setStart(e.target.value)} />
+        <span className="label">Reminders and the session written ahead of time use this. You can still learn whenever you like.</span>
+      </label>
       <p className="label">
         {count} session{count === 1 ? '' : 's'} a week, about {Math.round((count * minutes) / 6) / 10} hours. Your planner may suggest more; it never adds them without you.
       </p>
@@ -633,7 +645,7 @@ function RhythmSheet({ plan, edit, onClose }: { plan: Rolling; edit: (e: PlanEdi
         className="btn primary"
         disabled={!count}
         onClick={() => {
-          void edit({ op: 'rhythm', days, minutes }, 'Saved. It applies from the next week drafted.');
+          void edit({ op: 'rhythm', days, minutes, ...(start ? { start_local: start } : {}) }, 'Saved. It applies from the next week drafted.');
           onClose();
         }}
       >

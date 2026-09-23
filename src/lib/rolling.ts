@@ -235,7 +235,7 @@ export type PlanEdit =
   | { op: 'add'; week: string; track: string; day: number }
   | { op: 'dismiss-suggestion'; week: string }
   | { op: 'steer'; week: string; note: string }
-  | { op: 'rhythm'; days: Record<string, string>; minutes: number }
+  | { op: 'rhythm'; days: Record<string, string>; minutes: number; start_local?: string }
   | { op: 'track'; track: string; status: 'active' | 'paused' }
   | { op: 'move-topic'; track: string; topicId: string; to: number };
 
@@ -299,7 +299,7 @@ export function applyEdit(state: AppState, e: PlanEdit, today: string): AppState
         ...state,
         plan: touch(p, (h) => ({
           ...h,
-          rhythm: { ...h.rhythm, days, minutes },
+          rhythm: { ...h.rhythm, days, minutes, ...(e.start_local && /^([01]\d|2[0-3]):[0-5]\d$/.test(e.start_local) ? { start_local: e.start_local } : {}) },
           tracks: minutes === h.rhythm.minutes ? h.tracks : h.tracks.map((t) => ({ ...t, backlog: t.backlog.map(({ minutes: _, ...x }) => x) })),
         })),
       };

@@ -32,8 +32,16 @@
   --shadow-pop: 0 0 0 1px var(--line-2), 0 18px 50px rgba(0, 0, 0, 0.5);
   --inner: inset 0 1px 0 rgba(242, 241, 237, 0.05);
 
-  --sans: var(--font-sans), ui-sans-serif, -apple-system, system-ui, sans-serif;
-  --serif: var(--font-serif), ui-serif, Georgia, serif;
+  --stack-sans: var(--font-sans), ui-sans-serif, -apple-system, system-ui, sans-serif;
+  --stack-serif: var(--font-serif), ui-serif, Georgia, serif;
+  --stack-hyper: var(--font-hyper), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --stack-dyslexic: 'OpenDyslexic', var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  --sans: var(--stack-sans);
+  --serif: var(--stack-serif);
+  /* Lesson reading: its own font, size and measure (You → Reading). */
+  --lesson: var(--stack-serif);
+  --read-scale: 1;
+  --measure: 64ch;
 
   --r-xs: 8px;
   --r-sm: 11px;
@@ -136,3 +144,49 @@
 .t-review { --c: var(--review); }
 .t-life { --c: var(--life); }
 .t-general { --c: var(--text-2); }
+.t-explore { --c: var(--text-2); }
+
+/* Reading preferences, set on <html> before the first paint. The app font
+   replaces both families outside lessons when it's chosen for legibility. */
+:root[data-app-font='serif'] {
+  --sans: var(--stack-serif);
+}
+:root[data-app-font='hyperlegible'] {
+  --sans: var(--stack-hyper);
+  --serif: var(--stack-hyper);
+}
+:root[data-app-font='dyslexic'] {
+  --sans: var(--stack-dyslexic);
+  --serif: var(--stack-dyslexic);
+}
+:root[data-lesson-font='sans'] {
+  --lesson: var(--stack-sans);
+}
+:root[data-lesson-font='hyperlegible'] {
+  --lesson: var(--stack-hyper);
+}
+:root[data-lesson-font='dyslexic'] {
+  --lesson: var(--stack-dyslexic);
+}
+/* A legibility font in lessons covers everything read there, not only the
+   tutor's paragraphs: answers, options, feedback and callouts too. */
+:root[data-lesson-font='hyperlegible'] .session,
+:root[data-lesson-font='dyslexic'] .session {
+  --sans: var(--lesson);
+  --serif: var(--lesson);
+}
+:root[data-text-size='s'] {
+  --read-scale: 0.9;
+}
+:root[data-text-size='l'] {
+  --read-scale: 1.12;
+}
+:root[data-text-size='xl'] {
+  --read-scale: 1.26;
+}
+:root[data-line='narrow'] {
+  --measure: 56ch;
+}
+:root[data-line='wide'] {
+  --measure: 76ch;
+}

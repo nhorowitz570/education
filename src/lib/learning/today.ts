@@ -235,7 +235,7 @@ export function today(input: {
       phase: 'learning-day',
       headline: returning ? 'Ease back in.' : todays.title,
       why: returning
-        ? 'A couple of mornings slipped. Twenty minutes restarts the thread; nothing piles up.'
+        ? 'A couple of sessions slipped. Twenty minutes restarts the thread; nothing piles up.'
         : catchUp
           ? `Still open from ${Temporal.PlainDate.from(todays.date).toLocaleString('en-US', { weekday: 'long' })} · ${cap(todays.subject)} · ${minutes} min`
           : todays.status === 'reduced'

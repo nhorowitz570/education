@@ -22,6 +22,7 @@ import {
 import { fallbackDebrief, fallbackEvent } from '@/lib/venture/story';
 import { TOOLS, type Tool } from '@/lib/venture/tools';
 import { APP_NAME } from '@/lib/brand';
+import { zoneOf } from '@/lib/zone';
 
 const db = () => adminClient();
 
@@ -210,7 +211,7 @@ export async function ventureAct(userId: string, a: VentureAction) {
   const m = await months(userId, v);
   if (m.available < 1) throw new HttpError('No months left. Finish a session to earn more.', 409);
   if (a.levers) v = { ...v, levers: sanitize(v, { ...v.levers, ...a.levers }) };
-  const zone = (await readState(userId)).plan?.schedule.timezone || 'America/Los_Angeles';
+  const zone = zoneOf(await readState(userId));
   const { venture, result } = simulate(v, dateInZone(zone));
   let next = venture;
   if (next.status === 'running') {

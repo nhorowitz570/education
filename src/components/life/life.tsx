@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useState } from 'react';
 import { Growth } from '@/components/growth';
-import { Checkin, Reflection } from '@/components/settings';
+import { Checkin, Reflection } from './checkin';
 import { useViewProps } from '@/components/app/legacy';
 import { Icon } from '@/components/icons';
 

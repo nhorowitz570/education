@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { dateSchema, timeSchema } from './plan';
+import { validZone } from './zone';
 const finiteJson = (value: unknown, depth = 0): boolean =>
   depth < 12 &&
   (value === null ||
@@ -101,6 +102,7 @@ export function validRecord(
     for (const key of ['morning', 'followup', 'quietStart', 'quietEnd'])
       if (data[key] !== undefined && !timeSchema.safeParse(data[key]).success)
         return false;
+    if (data.timezone !== undefined && !validZone(data.timezone)) return false;
   }
   return true;
 }

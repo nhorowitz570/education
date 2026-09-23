@@ -1,14 +1,16 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, ViewTransition } from 'react';
 import { api } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
 import { BeatView, INTENT_TEXT } from './beat';
 import { hasContent, useRun, type RunState } from './use-run';
 import { Complete } from './complete';
 import { Roleplay } from './roleplay';
+import { SessionExtras, useExtras } from './extras';
 import { sessionXp } from '@/lib/gamify';
+import { useApp } from '@/components/app/provider';
 import type { AskIntent, Beat, RunView } from '@/lib/learning/run';
 
 const INTENTS: { intent: AskIntent; icon: string }[] = [
@@ -27,6 +29,9 @@ export function Runner({ id }: { id: string }) {
   const beats = run?.beats || [];
   const current = beats[index];
   const follow = useFollow(current?.id);
+  // The end screen celebrates a session finished just now, not one reopened later.
+  const wasActive = useRef(false);
+  if (run?.status === 'active') wasActive.current = true;
   // Finished steps fold into a one-line trail; the learner can open any.
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const toggle = useCallback((beatId: string) => {
@@ -99,61 +104,63 @@ export function Runner({ id }: { id: string }) {
         </div>
       </div>
     );
-  if (run.status === 'done') return <Complete run={run} />;
+  if (run.status === 'done') return <Complete run={run} fresh={wasActive.current} />;
 
   const next = beats[index + 1];
   const atCommitment = !run.adaptive && !!next?.optional && !current?.optional;
   const remaining = beats.slice(index).filter((b) => !b.optional || current?.optional).reduce((s, b) => s + b.minutes, 0);
 
   return (
-    <div className="session" data-track={track}>
-      {run.adaptive ? (
-        <ClockBar run={run} state={state} track={track} onClose={leave} />
-      ) : (
-        <TopBar
-          title={run.title}
-          beats={beats}
-          index={index}
-          track={track}
-          remaining={remaining}
-          onClose={leave}
-        />
-      )}
-      <div className="session-col">
-        <div className="trail">
-          {beats.slice(0, index + 1).map((b, i) => (
-            <BeatView
-              key={b.id}
-              beat={b}
-              state={state}
-              current={i === index}
-              track={track}
-              collapsed={i < index && !expanded.has(b.id)}
-              onToggle={() => toggle(b.id)}
-            >
-              {b.type === 'break' && i === index && (
-                <BreakTimer runId={run.id} beatId={b.id} minutes={b.minutes} until={run.break_until} onDone={advance} />
-              )}
-              {b.type === 'roleplay' && b.blocks && <Roleplay run={run} beat={b} onDone={() => void state.next()} />}
-            </BeatView>
-          ))}
+    <SessionExtras runId={run.id}>
+      <div className="session" data-track={track}>
+        {run.adaptive ? (
+          <ClockBar run={run} state={state} track={track} onClose={leave} />
+        ) : (
+          <TopBar
+            title={run.title}
+            beats={beats}
+            index={index}
+            track={track}
+            remaining={remaining}
+            onClose={leave}
+          />
+        )}
+        <div className="session-col">
+          <div className="trail">
+            {beats.slice(0, index + 1).map((b, i) => (
+              <BeatView
+                key={b.id}
+                beat={b}
+                state={state}
+                current={i === index}
+                track={track}
+                collapsed={i < index && !expanded.has(b.id)}
+                onToggle={() => toggle(b.id)}
+              >
+                {b.type === 'break' && i === index && (
+                  <BreakTimer runId={run.id} beatId={b.id} minutes={b.minutes} until={run.break_until} onDone={advance} />
+                )}
+                {b.type === 'roleplay' && b.blocks && <Roleplay run={run} beat={b} onDone={() => void state.next()} />}
+              </BeatView>
+            ))}
+          </div>
+          <div ref={follow.end} className="session-end" />
         </div>
-        <div ref={follow.end} className="session-end" />
+        <SelectionAsk busy={(id) => !!state.asking[id] && !state.asking[id].error} onAsk={askAbout} />
+        <Dock
+          quote={quote}
+          onClearQuote={() => setQuote(null)}
+          state={state}
+          beat={current}
+          canContinue={canContinue}
+          last={last}
+          atCommitment={atCommitment}
+          canWrap={!!run.adaptive && !run.wrapping && current?.type !== 'recap'}
+          onContinue={advance}
+          onFinishHere={() => void state.finish()}
+        />
       </div>
-      <SelectionAsk busy={(id) => !!state.asking[id] && !state.asking[id].error} onAsk={askAbout} />
-      <Dock
-        quote={quote}
-        onClearQuote={() => setQuote(null)}
-        state={state}
-        beat={current}
-        canContinue={canContinue}
-        last={last}
-        atCommitment={atCommitment}
-        canWrap={!!run.adaptive && !run.wrapping && current?.type !== 'recap'}
-        onContinue={advance}
-        onFinishHere={() => void state.finish()}
-      />
-    </div>
+    </SessionExtras>
   );
 }
 
@@ -219,7 +226,9 @@ function TopBar({
         <Icon name="close" size={20} />
       </button>
       <div className="session-meta">
-        <p className="session-title">{title}</p>
+        <ViewTransition name="session-title" share="session-title">
+          <p className="session-title">{title}</p>
+        </ViewTransition>
         <div className={'track-bar t-' + track} role="progressbar" aria-valuemin={0} aria-valuemax={beats.length} aria-valuenow={index} aria-label="Session progress">
           {beats.map((b, i) => (
             <i
@@ -245,6 +254,7 @@ function TopBar({
 // Adaptive sessions measure time, not steps: the bar fills with the minutes
 // actually spent, and the session plans itself to fill the budget.
 function ClockBar({ run, state, track, onClose }: { run: RunView; state: RunState; track: string; onClose: () => void }) {
+  const { prefs } = useApp();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 20000);
@@ -261,7 +271,9 @@ function ClockBar({ run, state, track, onClose }: { run: RunView; state: RunStat
         <Icon name="close" size={20} />
       </button>
       <div className="session-meta">
-        <p className="session-title">{run.title}</p>
+        <ViewTransition name="session-title" share="session-title">
+          <p className="session-title">{run.title}</p>
+        </ViewTransition>
         <div
           className={'clock-bar t-' + track}
           role="progressbar"
@@ -280,10 +292,12 @@ function ClockBar({ run, state, track, onClose }: { run: RunView; state: RunStat
         </div>
       </div>
       <div className="session-right">
-        <span className="xp-chip num" aria-label={`${xp} XP this session`}>
-          <Icon name="spark" size={13} />
-          {xp}
-        </span>
+        {prefs.game.xp && (
+          <span className="xp-chip num" aria-label={`${xp} XP this session`}>
+            <Icon name="spark" size={13} />
+            {xp}
+          </span>
+        )}
         <p className="session-time num" aria-label={`About ${left} minutes left`}>
           {left}m
         </p>
@@ -533,6 +547,7 @@ function SelectionAsk({
   onAsk: (beatId: string, text: string, intent: AskIntent | null) => void;
 }) {
   const [sel, setSel] = useState<{ beatId: string; text: string; x: number; y: number; above: boolean } | null>(null);
+  const extras = useExtras();
   const pop = useRef<HTMLDivElement>(null);
   useEffect(() => {
     let t = 0;
@@ -579,6 +594,11 @@ function SelectionAsk({
     setSel(null);
   };
   const disabled = busy(sel.beatId);
+  const note = () => {
+    extras?.startNote(sel.beatId, sel.text.slice(0, 600));
+    document.getSelection()?.removeAllRanges();
+    setSel(null);
+  };
   return (
     <div
       ref={pop}
@@ -598,6 +618,12 @@ function SelectionAsk({
         <Icon name="spark" size={14} />
         Ask…
       </button>
+      {extras && (
+        <button className="chip" onClick={note}>
+          <Icon name="note" size={14} />
+          Note
+        </button>
+      )}
     </div>
   );
 }

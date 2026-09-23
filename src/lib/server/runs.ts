@@ -28,6 +28,9 @@ import { consolidate, memoryLayer, recall } from './memory';
 import { ventureLayer } from './venture';
 import type { Attempt } from '@/lib/types';
 import { sessionById } from '@/lib/rolling';
+import { zoneOf } from '@/lib/zone';
+import { activeMs, type Clock } from '@/lib/learning/duration';
+import { prefsOf } from '@/lib/prefs';
 
 type RunContext = {
   session_concepts?: string[];
@@ -51,9 +54,12 @@ type RunContext = {
   track?: string;
   voice?: boolean;
   wrap?: boolean;
+  // The learner's session settings when the run began (You → Sessions).
+  ask_familiarity?: boolean;
+  break_minutes?: number;
   // Active time: gaps longer than IDLE are not counted, so a session resumed
   // the next day doesn't think it ran out of time.
-  clock?: { last: string; active_ms: number };
+  clock?: Clock;
 };
 type Key = {
   answer_index: number | null;
@@ -76,6 +82,7 @@ type RunRow = {
   summary: string | null;
   minutes_planned: number | null;
   started_at: string;
+  ended_at?: string | null;
 };
 export type Send = (event: { t: string; [k: string]: unknown }) => void;
 
@@ -89,16 +96,9 @@ export async function loadRun(userId: string, id: string) {
   return data as RunRow;
 }
 
-const IDLE = 12 * 60000;
-function activeMs(row: RunRow, at = Date.now()) {
-  const c = row.context.clock;
-  if (!c) return Math.min(at - Date.parse(row.started_at), (row.minutes_planned || 60) * 60000);
-  return c.active_ms + Math.max(0, Math.min(at - Date.parse(c.last), IDLE));
-}
 // Every interaction moves the session clock forward by the time since the
 // last one, capped so that stepping away doesn't count.
 async function tick(userId: string, row: RunRow) {
-  if (!row.context.adaptive) return;
   const now = Date.now();
   const clock = { last: new Date(now).toISOString(), active_ms: Math.round(activeMs(row, now)) };
   row.context.clock = clock;
@@ -119,9 +119,8 @@ export function view(row: RunRow, plan?: Plan): RunView {
     minutes_planned: row.minutes_planned,
     session: s ? { id: s.id, title: s.title, subject: s.subject, date: s.date, objective: s.objective } : null,
     break_until: row.context.break_until || null,
-    ...(row.context.adaptive
-      ? { adaptive: true, elapsed: Math.round((activeMs(row) / 60000) * 10) / 10, wrapping: !!row.context.wrap }
-      : {}),
+    elapsed: Math.round((activeMs(row) / 60000) * 10) / 10,
+    ...(row.context.adaptive ? { adaptive: true, wrapping: !!row.context.wrap } : {}),
   };
 }
 
@@ -184,8 +183,8 @@ export async function startRun(
           const started_at = nowIso();
           const clock = { last: started_at, active_ms: 0 };
           await db().from('runs').update({ started_at }).eq('id', row.id).eq('user_id', userId);
-          await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { opened: true, ...(row.context.adaptive ? { clock } : {}) } });
-          return view({ ...row, started_at, context: { ...row.context, opened: true, ...(row.context.adaptive ? { clock } : {}) } }, plan);
+          await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { opened: true, clock } });
+          return view({ ...row, started_at, context: { ...row.context, opened: true, clock } }, plan);
         }
       } else return view(row, plan);
     }
@@ -208,6 +207,7 @@ export async function startRun(
       : input.kind === 'review' && input.concepts?.length
       ? input.concepts.filter((k) => graph.list.some((c) => c.key === k))
       : dueConcepts(learned, graph.list, now, upcoming).filter((k) => !upcoming.includes(k));
+  const prefs = prefsOf(state);
   const override = session ? state.overrides[session.id] : undefined;
   const minutes =
     input.minutes || override?.duration_minutes || session?.duration_minutes || (input.kind === 'review' ? 10 : input.kind === 'rehearsal' ? 30 : 20);
@@ -229,8 +229,10 @@ export async function startRun(
         track: session!.subject,
         voice: !!process.env.OPENAI_API_KEY,
         clock: { last: now, active_ms: 0 },
+        ask_familiarity: prefs.session.familiarity,
+        break_minutes: prefs.session.breaks,
       }
-    : {};
+    : { clock: { last: now, active_ms: 0 } };
   const beats: Beat[] = (
     adaptive
       ? extend({
@@ -245,6 +247,8 @@ export async function startRun(
           steps: [],
           evidence: planning.evidence,
           voice: planning.voice,
+          askFamiliarity: planning.ask_familiarity,
+          breakMinutes: planning.break_minutes,
         })
       : outline({
           kind: kind === 'review' || kind === 'rehearsal' ? kind : 'explore',
@@ -333,6 +337,8 @@ function planInput(row: RunRow): PlanInput {
     evidence: c.evidence,
     voice: c.voice,
     wrap: c.wrap,
+    askFamiliarity: c.ask_familiarity,
+    breakMinutes: c.break_minutes,
     steps: row.beats.map((b) => ({
       type: b.type,
       concept: b.concept,
@@ -981,6 +987,8 @@ export async function breakStillRunning(userId: string, runId: string, until: st
 export async function finishRun(userId: string, runId: string) {
   const row = await loadRun(userId, runId);
   if (row.status === 'done') return { alreadyDone: true, row };
+  // Stop the clock at the last moment of real work.
+  await tick(userId, row);
   const graded = row.beats.filter((b) => b.feedback);
   const avg = graded.length ? graded.reduce((s, b) => s + b.feedback!.score, 0) / graded.length : 0;
   await db().rpc('merge_run', {
@@ -995,7 +1003,7 @@ export async function finishRun(userId: string, runId: string) {
       const best = [...graded].sort((a, b) => b.feedback!.score - a.feedback!.score)[0],
         worst = [...graded].sort((a, b) => a.feedback!.score - b.feedback!.score)[0];
       const date = new Intl.DateTimeFormat('en-CA', {
-        timeZone: state.plan!.schedule.timezone,
+        timeZone: zoneOf(state),
       }).format(new Date());
       const attempt: Attempt = {
         id: crypto.randomUUID(),

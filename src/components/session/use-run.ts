@@ -14,9 +14,17 @@ export const hasContent = (b: Beat | undefined) => !!b && (b.type === 'break' ||
 // Client state for one session run: loads it, generates each step when it is
 // reached, prepares the next step in the background, and streams answers and
 // questions into place.
+// A run the previous screen just created, handed over so the session opens
+// on its content (and its title can carry over) instead of a loading state.
+const primed = new Map<string, RunView>();
+export const primeRun = (run: RunView) => void primed.set(run.id, run);
+
 export function useRun(id: string) {
-  const [run, setRun] = useState<RunView | null>(null),
-    [index, setIndex] = useState(0),
+  const [run, setRun] = useState<RunView | null>(() => primed.get(id) ?? null),
+    [index, setIndex] = useState(() => {
+      const r = primed.get(id);
+      return r ? Math.min(r.cursor, r.beats.length - 1) : 0;
+    }),
     [error, setError] = useState(''),
     [live, setLive] = useState<Record<string, Live>>({}),
     [grading, setGrading] = useState<Record<string, LiveFeedback>>({}),
@@ -60,6 +68,7 @@ export function useRun(id: string) {
   const load = useCallback(async () => {
     try {
       const { run } = await api<{ run: RunView }>(`/api/runs/${id}`);
+      primed.delete(id);
       setRun(run);
       setIndex((i) => (i ? i : Math.min(run.cursor, run.beats.length - 1)));
       setClock({ elapsed: run.elapsed || 0, at: Date.now() });

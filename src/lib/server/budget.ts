@@ -27,17 +27,3 @@ export async function settle(id: string, amount: number, release = false) {
   });
   if (error) throw new Error(error.message);
 }
-export function textCost(
-  usage: { input_tokens?: number; output_tokens?: number },
-  searchCalls = 0,
-) {
-  return (
-    ((usage.input_tokens || 0) *
-      Number(process.env.MODEL_INPUT_USD_PER_MILLION || 0.2)) /
-      1e6 +
-    ((usage.output_tokens || 0) *
-      Number(process.env.MODEL_OUTPUT_USD_PER_MILLION || 1.2)) /
-      1e6 +
-    searchCalls * 0.01
-  );
-}

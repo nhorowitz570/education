@@ -145,18 +145,34 @@ svg {
   letter-spacing: -0.03em;
   font-weight: 500;
 }
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
 .serif {
   font-family: var(--serif);
+}
+/* The serif for moments worth reading slowly: session titles, the end of a
+   session, Notebook entries, Insights headlines. */
+.serif-title,
+.serif-display {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-stretch: normal;
+  letter-spacing: -0.018em;
+  font-variation-settings: 'opsz' 60;
+}
+.serif-display {
+  line-height: 1.02;
 }
 
 /* Reading: tutor prose uses the serif at a comfortable measure. */
 .prose {
-  font-family: var(--serif);
-  font-size: 19px;
+  font-family: var(--lesson);
+  font-size: calc(19px * var(--read-scale));
   line-height: 1.55;
   font-variation-settings: 'opsz' 18;
   color: var(--text);
-  max-width: 64ch;
+  max-width: var(--measure);
 }
 .prose p + p,
 .prose p + ul,
@@ -197,7 +213,7 @@ svg {
 }
 @media (max-width: 600px) {
   .prose {
-    font-size: 18px;
+    font-size: calc(18px * var(--read-scale));
   }
 }
 
@@ -272,18 +288,47 @@ svg {
   }
 }
 
+/* Reduced motion follows the system unless the learner chose otherwise
+   under You → Reading. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  :root:not([data-motion='full']) *,
+  :root:not([data-motion='full']) *::before,
+  :root:not([data-motion='full']) *::after {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
   }
-  ::view-transition-group(*),
-  ::view-transition-old(*),
-  ::view-transition-new(*) {
+  :root:not([data-motion='full'])::view-transition-group(*),
+  :root:not([data-motion='full'])::view-transition-old(*),
+  :root:not([data-motion='full'])::view-transition-new(*) {
     animation: none !important;
   }
+}
+:root[data-motion='reduce'] *,
+:root[data-motion='reduce'] *::before,
+:root[data-motion='reduce'] *::after {
+  animation-duration: 1ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 1ms !important;
+  scroll-behavior: auto !important;
+}
+:root[data-motion='reduce']::view-transition-group(*),
+:root[data-motion='reduce']::view-transition-old(*),
+:root[data-motion='reduce']::view-transition-new(*) {
+  animation: none !important;
+}
+
+/* Today's headline becomes the session's title: one smooth move, not a cut. */
+::view-transition-group(session-title) {
+  animation-duration: 460ms;
+  animation-timing-function: var(--ease);
+}
+::view-transition-old(session-title),
+::view-transition-new(session-title) {
+  height: 100%;
+  object-fit: contain;
+}
+.session-card .display {
+  view-transition-class: title;
 }

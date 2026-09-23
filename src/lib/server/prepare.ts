@@ -6,6 +6,7 @@ import { today } from '@/lib/learning/today';
 import { scheduled } from '@/lib/schedule';
 import { dateInZone, instantFor } from '@/lib/plan';
 import { voiceReady } from '@/lib/ai/env';
+import { hourIn, zoneOf } from '@/lib/zone';
 
 // Up to an hour before the learning window, the day's session is created and
 // its first step written, so Begin opens straight onto content. If the
@@ -30,9 +31,9 @@ export async function prepareFor(userId: string, now: Date) {
   const state = await readState(userId),
     plan = state.plan;
   if (!plan) return false;
-  const zone = plan.schedule.timezone,
+  const zone = zoneOf(state),
     date = dateInZone(zone, now),
-    hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(now));
+    hour = hourIn(zone, now);
   // Prepare exactly what Today would offer as Begin.
   const view = today({ state, date, hour, dueCount: 0, activeRun: null, voice: voiceReady() });
   const action = view.primary;

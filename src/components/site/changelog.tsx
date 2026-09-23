@@ -16,6 +16,27 @@ type Release = {
 // Newest first. Add a release by adding an entry here.
 const RELEASES: Release[] = [
   {
+    version: '0.7',
+    date: 'September 23, 2026',
+    title: 'A Notebook that writes itself, and settings that are yours',
+    summary:
+      'Everything you learn now collects in a Notebook, in your own words. Lessons point back to ideas you already know, and nearly everything about how Fieldwork teaches, reads and nudges can be changed.',
+    feature: true,
+    changes: [
+      ['New', 'The Notebook: every idea you’ve met, with your best explanation of it, the picture that taught it, the questions you asked and your notes. Search it, export it, or recall any idea in one tap.'],
+      ['New', 'Share one idea as a card anyone can open by link, or download it as an image. It’s a snapshot, and you can turn the link off at any time.'],
+      ['New', 'Notes on any step of a session, or on a passage you select. They go straight to your Notebook.'],
+      ['New', 'Lessons underline ideas you learned before. Tap one to see what you said about it last time.'],
+      ['New', 'Reading settings: separate fonts for lessons and the app (including OpenDyslexic and Atkinson Hyperlegible), text size and line length.'],
+      ['New', 'Hear every practice voice before you choose one, in settings and when you set up a conversation.'],
+      ['New', 'Optional sounds for good answers and a finished session. Off unless you turn them on.'],
+      ['Improved', 'Settings are grouped by what they change and show their current value: session defaults, your rhythm, each kind of notification, motion and each game element.'],
+      ['Improved', 'Starting a session carries its title from Today into the lesson, and the lesson opens on its content.'],
+      ['Fixed', 'A session opened in the morning and finished at night no longer claims to have taken all day. Only active time counts.'],
+      ['Fixed', 'Greetings, “today” and reminders follow the time zone of the device you’re on.'],
+    ],
+  },
+  {
     version: '0.6',
     date: 'September 23, 2026',
     title: 'Sessions that adapt as you go, and a company to run',

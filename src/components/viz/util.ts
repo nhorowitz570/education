@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Tone } from '@/lib/viz/schema';
+import { reducedMotion } from '@/lib/client/motion';
 
 // Specs come from a model: every accessor below tolerates missing or
 // malformed data so a renderer never throws.
@@ -160,8 +161,7 @@ export function fit(text: string, max: number, size = 13, weight = 400): string 
 }
 
 // ---------- Motion ----------
-export const reducedMotion = () =>
-  typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+export { reducedMotion };
 
 /** Tween a number toward `target` over ~180ms; jumps when motion is reduced. */
 export function useTween(target: number, ms = 180): number {

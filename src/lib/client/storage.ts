@@ -1,5 +1,5 @@
 import { openDB } from 'idb';
-import type { AppState, Lesson } from '@/lib/types';
+import type { AppState } from '@/lib/types';
 import type { Command } from '@/lib/commands';
 const database = () =>
   openDB('fieldwork-private-v1', 1, {
@@ -18,6 +18,10 @@ export async function claimLocal(owner: string) {
 export async function clearLocal() {
   const db = await database();
   await db.clear('data');
+  // Notes written offline and not yet sent are private too.
+  try {
+    localStorage.removeItem('fieldwork-pending-notes');
+  } catch {}
 }
 export async function localGet<T>(
   owner: string,
@@ -37,8 +41,6 @@ export async function localSet(owner: string, key: string, value: unknown) {
 export const savedState = (owner: string) => localGet<AppState>(owner, 'state');
 export const savedQueue = (owner: string) =>
   localGet<Command[]>(owner, 'queue');
-export const savedLesson = (owner: string, id: string) =>
-  localGet<Lesson>(owner, 'lesson:' + id);
 export async function localOwner(): Promise<string | undefined> {
   return (await database()).get('data', 'owner');
 }

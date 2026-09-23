@@ -1,12 +1,13 @@
 import { Temporal } from '@js-temporal/polyfill';
 import type { AppState } from './types';
+import { zoneOf } from './zone';
 export function reminderCandidate(state: AppState, now = new Date()) {
   const p = state.plan,
     prefs = state.records.find((r) => r.id === 'settings:reminders')?.data;
   if (!p || !prefs?.enabled || prefs.travel) return null;
   const local = Temporal.Instant.fromEpochMilliseconds(
       now.getTime(),
-    ).toZonedDateTimeISO(p.schedule.timezone),
+    ).toZonedDateTimeISO(zoneOf(state)),
     date = local.toPlainDate().toString(),
     time = local.toPlainTime().toString().slice(0, 5);
   if (date < p.start_date || date > p.end_date) return null;

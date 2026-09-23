@@ -3,10 +3,25 @@ import Link from 'next/link';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
-import { Disclosure, IndexRow, Segmented, Sheet } from '@/components/ui';
+import { Disclosure, IndexRow, Segmented, SettingsGroup, Sheet, Switch } from '@/components/ui';
 import { useApp, type Theme } from '@/components/app/provider';
 import { PasskeySettings } from '@/components/passkeys';
-import { DataSheet, PlanSheet, RemindersSheet, reminderPrefs } from '@/components/settings';
+import { DataSheet, PlanSheet } from '@/components/settings';
+import { RhythmSheet } from '@/components/learn/rolling';
+import {
+  GameSheet,
+  NotificationsSheet,
+  ReadingSheet,
+  StyleSheet,
+  VoiceSheet,
+  fontSummary,
+  gameSummary,
+  notifySummary,
+  reminderPrefs,
+  toggleSound,
+} from './sheets';
+import { VOICES } from '@/lib/practice/harness';
+import { DAY_NAMES, isRolling, slots } from '@/lib/rolling';
 import type { Memory, Origin } from '@/lib/server/memory';
 import type { Style } from '@/lib/learning/style';
 
@@ -16,15 +31,8 @@ const GROUPS: { title: string; kinds: Memory['kind'][] }[] = [
   { title: 'Background and interests', kinds: ['background', 'interest', 'knowledge', 'life'] },
   { title: 'Moments worth remembering', kinds: ['episode'] },
 ];
-const STYLE_AXES: { key: keyof Style; left: string; right: string }[] = [
-  { key: 'depth', left: 'Brief', right: 'Thorough' },
-  { key: 'challenge', left: 'Gentle', right: 'Stretching' },
-  { key: 'visual', left: 'Words', right: 'Pictures' },
-  { key: 'questions', left: 'Explain', right: 'Ask me' },
-  { key: 'examples', left: 'Abstract', right: 'Concrete' },
-];
 type Usage = { total: number; byTier: Record<string, { calls: number; usd: number }>; cacheRate: number; models: Record<string, string> };
-type Open = 'memory' | 'plan' | 'reminders' | 'signin' | 'usage' | 'data' | null;
+type Open = 'memory' | 'style' | 'voice' | 'rhythm' | 'plan' | 'notify' | 'reading' | 'game' | 'signin' | 'usage' | 'data' | null;
 
 // When the learner last looked at their memory. Anything inferred after that
 // is new to them. First visits count only the last day, so a long history
@@ -34,9 +42,15 @@ export function memorySeenAt(records: { id: string; data: Record<string, unknown
   return typeof at === 'string' ? at : new Date(Date.now() - 86400000).toISOString();
 }
 const isNew = (m: Memory, seen: string) => m.source === 'inferred' && m.created_at > seen;
+const hm = (t: string) => {
+  const [h, m] = t.split(':').map(Number);
+  return new Date(2000, 0, 1, h, m).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+};
 
+// You: every setting, grouped by what it changes, each showing its current
+// value. Anything with more than one choice opens its own sheet.
 export function You() {
-  const { user, w, theme, setTheme, signOut } = useApp();
+  const { user, w, theme, setTheme, prefs, setPrefs, signOut } = useApp();
   const [memories, setMemories] = useState<Memory[] | null>(null),
     [style, setStyle] = useState<Style | null>(null),
     [origins, setOrigins] = useState<Record<string, Origin>>({}),
@@ -60,12 +74,18 @@ export function You() {
     }
   }, []);
   const plan = w.state.plan;
+  const rolling = isRolling(plan) ? plan : null;
   const seen = memorySeenAt(w.state.records);
   const fresh = (memories || []).filter((m) => isNew(m, seen)).length;
   const tentative = (memories || []).filter((m) => m.status === 'candidate').length;
   const pinned = (memories || []).filter((m) => m.pinned).length;
   const reminders = reminderPrefs(w.state.records);
-  const remindersOn = !!reminders.enabled && !reminders.travel;
+  const pushOn = !!reminders.enabled && !reminders.travel;
+  const s = prefs.session;
+  const days = rolling ? slots(rolling.horizon) : [];
+  const noPlan = !plan ? 'Import a plan first' : !rolling ? 'Set by your fixed plan' : undefined;
+  const learned = style && style.observations > 0;
+  const close = () => setOpen(null);
 
   return (
     <div className="page narrow you">
@@ -79,78 +99,143 @@ export function You() {
         </div>
       </header>
 
-      <section className="you-group" aria-labelledby="you-learning">
-        <p className="eyebrow" id="you-learning">
-          Learning
-        </p>
-        <div className="rows">
-          <IndexRow
-            icon="memory"
-            title="Memory"
-            detail={
-              memories === null
-                ? 'Loading…'
-                : memories.length
-                  ? `${memories.length} thing${memories.length === 1 ? '' : 's'} it knows about you${pinned ? ` · ${pinned} pinned` : ''}`
-                  : 'Nothing yet'
-            }
-            badge={
-              fresh ? (
-                <span className="badge-new">{fresh} new</span>
-              ) : tentative ? (
-                <span className="badge-new quiet">{tentative} to confirm</span>
-              ) : undefined
-            }
-            onClick={() => {
-              setFocusNew(false);
-              setOpen('memory');
-            }}
-          />
-          <IndexRow icon="learn" title="Your plan" detail={plan?.title || 'Import a plan to begin'} onClick={() => setOpen('plan')} />
-          <IndexRow
-            icon="bell"
-            title="Reminders"
-            detail={remindersOn ? `On · ${reminders.morning || '09:45'} each learning morning` : 'Off'}
-            onClick={() => setOpen('reminders')}
-          />
-        </div>
-      </section>
+      <SettingsGroup id="you-tutor" title="Your tutor" note="What it knows about you and how it teaches. Used in every session.">
+        <IndexRow
+          icon="memory"
+          title="Memory"
+          detail={`Your goals, background and preferences.${pinned ? ` ${pinned} pinned.` : ''}`}
+          value={memories === null ? '…' : memories.length ? `${memories.length} saved` : 'Empty'}
+          badge={
+            fresh ? (
+              <span className="badge-new">{fresh} new</span>
+            ) : tentative ? (
+              <span className="badge-new quiet">{tentative} to confirm</span>
+            ) : undefined
+          }
+          onClick={() => {
+            setFocusNew(false);
+            setOpen('memory');
+          }}
+        />
+        <IndexRow
+          icon="spark"
+          title="Teaching style"
+          detail="How it explains, learned from what you do."
+          value={style === null && memories === null ? '…' : learned ? 'Learning' : 'Not yet'}
+          onClick={() => setOpen('style')}
+        />
+        <IndexRow
+          icon="practice"
+          title="Practice voice"
+          detail="Your partner in practice conversations."
+          value={VOICES[prefs.voice].label}
+          onClick={() => setOpen('voice')}
+        />
+      </SettingsGroup>
 
-      <section className="you-group" aria-labelledby="you-app">
-        <p className="eyebrow" id="you-app">
-          App
-        </p>
-        <div className="rows">
-          <IndexRow icon={theme === 'light' ? 'sun' : 'moon'} title="Appearance">
-            <Segmented<Theme>
-              label="Theme"
-              value={theme}
-              onChange={setTheme}
-              options={[
-                { value: 'system', label: 'Auto' },
-                { value: 'dark', label: 'Dark' },
-                { value: 'light', label: 'Light' },
-              ]}
-            />
-          </IndexRow>
-          <IndexRow icon="key" title="Sign-in" detail="Passkeys for this account" onClick={() => setOpen('signin')} />
-        </div>
-      </section>
-
-      <section className="you-group" aria-labelledby="you-account">
-        <p className="eyebrow" id="you-account">
-          Account
-        </p>
-        <div className="rows">
-          <IndexRow
-            icon="spark"
-            title="AI this month"
-            detail={usage ? `$${usage.total.toFixed(2)} · ${Object.values(usage.byTier).reduce((n, t) => n + t.calls, 0)} calls` : 'Loading…'}
-            onClick={usage ? () => setOpen('usage') : undefined}
+      <SettingsGroup id="you-sessions" title="Sessions" note="How each lesson runs. Applies from the next session you start.">
+        <IndexRow title="Familiarity check" detail="Before a new idea, asks how familiar it is so it can skip what you know.">
+          <Switch checked={s.familiarity} onChange={(v) => setPrefs('session', { familiarity: v })} label="Familiarity check" />
+        </IndexRow>
+        <IndexRow title="Confidence rating" detail="Say how sure you are when you answer. It sharpens what the tutor reviews.">
+          <Switch checked={s.confidence} onChange={(v) => setPrefs('session', { confidence: v })} label="Confidence rating" />
+        </IndexRow>
+        <IndexRow title="“I don’t know yet”" detail="A way to be taught instead of guessing at a question.">
+          <Switch checked={s.dontKnow} onChange={(v) => setPrefs('session', { dontKnow: v })} label="I don’t know yet" />
+        </IndexRow>
+        <IndexRow title="Breaks" detail="A pause about every 50 minutes in sessions of an hour or more.">
+          <Segmented
+            label="Breaks"
+            value={String(s.breaks) as '0' | '5' | '10'}
+            onChange={(v) => setPrefs('session', { breaks: Number(v) as 0 | 5 | 10 })}
+            options={[
+              { value: '0', label: 'Off' },
+              { value: '5', label: '5 min' },
+              { value: '10', label: '10 min' },
+            ]}
           />
-          <IndexRow icon="download" title="Data & privacy" detail="Export everything, or delete your account" onClick={() => setOpen('data')} />
-        </div>
-      </section>
+        </IndexRow>
+      </SettingsGroup>
+
+      <SettingsGroup id="you-rhythm" title="Your rhythm" note="The shape of your week, filled in from your plan. Changes apply from the next week drafted.">
+        <IndexRow
+          icon="rhythm"
+          title="Learning days"
+          detail={rolling ? days.map((d) => `${DAY_NAMES[d.day].slice(0, 3)} ${rolling.horizon.tracks.find((t) => t.id === d.track)?.title || d.track}`).join(' · ') : noPlan}
+          value={rolling ? `${days.length} a week` : undefined}
+          onClick={rolling ? () => setOpen('rhythm') : undefined}
+          disabled={!rolling}
+        />
+        <IndexRow
+          icon="clock"
+          title="Session length and start"
+          detail={rolling ? 'Reminders and the session written ahead of time use the start.' : noPlan}
+          value={rolling ? `${rolling.horizon.rhythm.minutes} min · ${hm(rolling.horizon.rhythm.start_local)}` : undefined}
+          onClick={rolling ? () => setOpen('rhythm') : undefined}
+          disabled={!rolling}
+        />
+        <IndexRow icon="learn" title="Your plan" detail={plan?.title || 'Import a plan to begin'} value={plan ? undefined : 'None'} onClick={() => setOpen('plan')} />
+      </SettingsGroup>
+
+      <SettingsGroup id="you-notify" title="Notifications" note="A preview, one nudge, and a few moments worth knowing about.">
+        <IndexRow
+          icon="bell"
+          title="Notifications"
+          detail={pushOn ? `Preview at ${hm(reminders.morning || '09:45')} on learning days` : 'Nothing is sent to this device'}
+          value={notifySummary(pushOn, prefs)}
+          onClick={() => setOpen('notify')}
+        />
+      </SettingsGroup>
+
+      <SettingsGroup id="you-look" title="Look & feel">
+        <IndexRow icon={theme === 'light' ? 'sun' : 'moon'} title="Appearance">
+          <Segmented<Theme>
+            label="Theme"
+            value={theme}
+            onChange={setTheme}
+            options={[
+              { value: 'system', label: 'Auto' },
+              { value: 'dark', label: 'Dark' },
+              { value: 'light', label: 'Light' },
+            ]}
+          />
+        </IndexRow>
+        <IndexRow
+          icon="text"
+          title="Reading"
+          detail="Fonts for lessons and the app, text size, line length."
+          value={fontSummary(prefs.reading)}
+          onClick={() => setOpen('reading')}
+        />
+        <IndexRow icon="wave" title="Motion" detail="Animations and transitions.">
+          <Segmented
+            label="Motion"
+            value={prefs.reading.motion}
+            onChange={(v) => setPrefs('reading', { motion: v })}
+            options={[
+              { value: 'system', label: 'Auto' },
+              { value: 'reduce', label: 'Less' },
+              { value: 'full', label: 'Full' },
+            ]}
+          />
+        </IndexRow>
+        <IndexRow icon="sound" title="Sound" detail="Soft tones for good answers and a finished session.">
+          <Switch checked={prefs.sound} onChange={(v) => toggleSound(v, setPrefs)} label="Sound" />
+        </IndexRow>
+        <IndexRow icon="star" title="Game elements" detail="XP, levels, streaks and quests." value={gameSummary(prefs)} onClick={() => setOpen('game')} />
+      </SettingsGroup>
+
+      <SettingsGroup id="you-account" title="Account & data">
+        <IndexRow icon="key" title="Sign-in" detail="Passkeys for this account, or a link by email." onClick={() => setOpen('signin')} />
+        <IndexRow
+          icon="spark"
+          title="AI cost this month"
+          detail={usage ? `${Object.values(usage.byTier).reduce((n, t) => n + t.calls, 0)} calls across lessons, practice and memory` : 'Loading…'}
+          value={usage ? `$${usage.total.toFixed(2)}` : undefined}
+          onClick={usage ? () => setOpen('usage') : undefined}
+        />
+        <IndexRow icon="download" title="Data & privacy" detail="Export everything, or delete your account." onClick={() => setOpen('data')} />
+      </SettingsGroup>
 
       <button className="btn quiet you-signout" onClick={() => void signOut()}>
         <Icon name="logout" size={17} /> Sign out
@@ -160,24 +245,28 @@ export function You() {
         <MemorySheet
           memories={memories || []}
           setMemories={setMemories}
-          style={style}
           setStyle={setStyle}
           origins={origins}
           seen={seen}
           startOnNew={focusNew}
-          onClose={() => setOpen(null)}
+          onClose={close}
         />
       )}
-      {open === 'plan' && <PlanSheet onClose={() => setOpen(null)} />}
-      {open === 'reminders' && <RemindersSheet onClose={() => setOpen(null)} />}
-      {open === 'data' && <DataSheet onClose={() => setOpen(null)} />}
+      {open === 'style' && <StyleSheet style={style} onClose={close} />}
+      {open === 'voice' && <VoiceSheet onClose={close} />}
+      {open === 'rhythm' && rolling && <RhythmSheet plan={rolling} onClose={close} />}
+      {open === 'plan' && <PlanSheet onClose={close} />}
+      {open === 'notify' && <NotificationsSheet onClose={close} />}
+      {open === 'reading' && <ReadingSheet onClose={close} />}
+      {open === 'game' && <GameSheet onClose={close} />}
+      {open === 'data' && <DataSheet onClose={close} />}
       {open === 'signin' && (
-        <Sheet title="Sign-in" subtitle={user.email} onClose={() => setOpen(null)}>
+        <Sheet title="Sign-in" subtitle={user.email} onClose={close}>
           <PasskeySettings demo={false} />
           <p className="label">Without a passkey, you sign in with a link sent to your email.</p>
         </Sheet>
       )}
-      {open === 'usage' && usage && <UsageSheet usage={usage} onClose={() => setOpen(null)} />}
+      {open === 'usage' && usage && <UsageSheet usage={usage} onClose={close} />}
     </div>
   );
 }
@@ -185,7 +274,7 @@ export function You() {
 function UsageSheet({ usage, onClose }: { usage: Usage; onClose: () => void }) {
   const name = (t: string) => (t === 'voice' ? 'Voice' : usage.models[t] || t);
   return (
-    <Sheet title="AI this month" subtitle="Unmetered. Shown so there are no surprises." onClose={onClose}>
+    <Sheet title="AI cost this month" subtitle="Unmetered. Shown so there are no surprises." onClose={onClose}>
       <div className="usage">
         <div className="stat">
           <b className="num">${usage.total.toFixed(2)}</b>
@@ -212,7 +301,6 @@ function UsageSheet({ usage, onClose }: { usage: Usage; onClose: () => void }) {
 function MemorySheet({
   memories,
   setMemories,
-  style,
   setStyle,
   origins,
   seen,
@@ -221,7 +309,6 @@ function MemorySheet({
 }: {
   memories: Memory[];
   setMemories: (f: (m: Memory[] | null) => Memory[] | null) => void;
-  style: Style | null;
   setStyle: (s: Style | null) => void;
   origins: Record<string, Origin>;
   seen: string;
@@ -313,21 +400,6 @@ function MemorySheet({
 
   return (
     <Sheet title="Memory" subtitle="Used quietly to teach you better. Edit or remove anything." onClose={onClose}>
-      {style && style.observations > 0 && (
-        <div className="style-axes" aria-label="Your inferred teaching style">
-          {STYLE_AXES.map((a) => (
-            <div className="axis" key={a.key}>
-              <span className="label">{a.left}</span>
-              <div className="axis-track">
-                <i style={{ left: `${Math.round((style[a.key] as number) * 100)}%` }} />
-              </div>
-              <span className="label">{a.right}</span>
-            </div>
-          ))}
-          <p className="label">Inferred from {style.observations} moments. It moves slowly on purpose.</p>
-        </div>
-      )}
-
       {memories.length > 8 && (
         <input
           className="input"

@@ -34,9 +34,8 @@ There is no separate worker. Background work runs inside requests (`after()`), a
 | OpenAI   | `OPENAI_API_KEY`, `OPENAI_VOICE_MODEL`                                                    | GPT-Live voice practice, memory embeddings                 |
 | App      | `NEXT_PUBLIC_APP_URL`, `APP_ALLOWED_ORIGINS`, `CRON_SECRET`                               | Canonical origin, CSRF allow-list, cron authentication     |
 | Web Push | `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`                      | Optional morning reminders                                 |
-| Google   | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY`                        | Optional read-only calendar free/busy                      |
 
-AI is unmetered by default; every call's tokens and cost are still logged to `ai_calls` and shown under You → Usage. Set `AI_MONTHLY_LIMIT_USD` for a per-account guard. `AI_PROVIDER=openai` would send text models to OpenAI directly instead of OpenRouter.
+AI is unmetered by default; every call's tokens and cost are still logged to `ai_calls` and shown under You → AI cost this month. Set `AI_MONTHLY_LIMIT_USD` for a per-account guard. `AI_PROVIDER=openai` would send text models to OpenAI directly instead of OpenRouter.
 
 ## Supabase
 

@@ -77,7 +77,6 @@ Keys remain in ignored local environment files. Public documentation contains no
 ### Not yet verified or configured
 
 - **Public hosting/HTTPS:** no production domain or hosting environment was selected. Setup instructions cover both the web process and persistent worker.
-- **Google Calendar:** requires OAuth client credentials and a registered callback. Manual availability works; no successful Google authorization or calendar sync is claimed.
 - **Email delivery:** disposable accounts used admin-confirmed email and real password sign-in. Real signup confirmation/recovery delivery and production SMTP still need verification.
 - **Physical iPhone/PWA:** home-screen installation, push delivery, Bluetooth routing, microphone permissions/denial, interruption behavior, and background/foreground recovery require device testing. Responsive browser checks are not physical-device tests.
 - **Voice quality:** synthetic silence produced real audio without capturing a microphone. It proves voice selection and transport, not recognition accuracy or subjective conversational naturalness. The two WAV files are brief generated greetings. A real listening pass remains necessary.

@@ -109,36 +109,3 @@ export function PasskeySettings({ demo }: { demo: boolean }) {
     </div>
   );
 }
-
-const NUDGE_KEY = 'fieldwork-passkey-nudge';
-// Offered once, right after an email sign-in, when the device supports it and
-// the account has no passkey yet.
-export function PasskeyNudge({ demo }: { demo: boolean }) {
-  const p = usePasskeys(!demo),
-    [open, setOpen] = useState(false);
-  useEffect(() => {
-    let dismissed = false;
-    try {
-      dismissed = localStorage.getItem(NUDGE_KEY) === 'done';
-    } catch {}
-    setOpen(!dismissed && p.available && p.list?.length === 0);
-  }, [p.available, p.list]);
-  const close = () => {
-    try {
-      localStorage.setItem(NUDGE_KEY, 'done');
-    } catch {}
-    setOpen(false);
-  };
-  if (!open) return null;
-  return (
-    <div className="status-banner passkey-nudge" role="status">
-      <span>Sign in with Face ID or Touch ID next time?</span>
-      <span className="row">
-        <button onClick={() => void p.add().then((ok) => ok && close())}>
-          Add passkey
-        </button>
-        <button onClick={close}>Not now</button>
-      </span>
-    </div>
-  );
-}

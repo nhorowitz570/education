@@ -6,12 +6,13 @@ import { dateInZone } from '@/lib/plan';
 import { progress, type Activity } from '@/lib/gamify';
 import { isRolling, weekOf } from '@/lib/rolling';
 import type { Confidence } from '@/lib/learning/run';
+import { zoneOf } from '@/lib/zone';
 
 // Gathers everything XP is derived from: graded answers, finished runs and
 // Venture months, each dated in the learner's own time zone.
 export async function progressFor(userId: string, now = new Date()) {
   const state = await readState(userId);
-  const zone = state.plan?.schedule.timezone || 'America/Los_Angeles';
+  const zone = zoneOf(state);
   const local = (iso: string) => dateInZone(zone, new Date(iso));
   const today = dateInZone(zone, now);
   const db = adminClient();

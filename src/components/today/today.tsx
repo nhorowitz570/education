@@ -1,13 +1,14 @@
 'use client';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState, startTransition } from 'react';
+import { useEffect, useState, startTransition, ViewTransition } from 'react';
 import { api } from '@/lib/client/api';
 import { useCached } from '@/lib/client/cached';
 import { Icon } from '@/components/icons';
 import { useApp } from '@/components/app/provider';
-import type { Action, TodayView } from '@/lib/learning/today';
+import { greetingFor, type Action, type TodayView } from '@/lib/learning/today';
 import type { RunView } from '@/lib/learning/run';
+import { primeRun } from '@/components/session/use-run';
 import type { Progress } from '@/lib/gamify';
 import { ProgressStrip, useProgress } from '@/components/progress/progress';
 
@@ -108,6 +109,7 @@ export function Today() {
         minutes: a.minutes,
         topic: extra?.topic,
       });
+      primeRun(run);
       startTransition(() => router.push('/session/' + run.id));
     } catch (e) {
       setStartError((e as Error).message);
@@ -241,7 +243,7 @@ export function Today() {
       {t.phase === 'no-plan' ? (
         <div className="today-main">
           <section className="session-card stagger">
-            <p className="muted">{t.greeting}</p>
+            <p className="muted">{greetingFor(new Date().getHours(), w.state.plan?.profile.name)}</p>
             <h1 className="display">{t.headline}</h1>
             <p className="hero-why">{t.why}</p>
             <div className="hero-actions">
@@ -260,10 +262,13 @@ export function Today() {
               <RecapCard t={t} recap={d.recap!} progress={progress} busy={busy} onRun={(a) => void run(a)} />
             ) : (
               <section className="session-card stagger" aria-labelledby="today-headline">
-                <p className="muted">{t.greeting}</p>
-                <h1 className="display" id="today-headline">
-                  {t.headline}
-                </h1>
+                <p className="muted">{greetingFor(new Date().getHours(), w.state.plan?.profile.name)}</p>
+                {/* Carries into the session's title bar when it begins. */}
+                <ViewTransition name="session-title" share="session-title">
+                  <h1 className="display" id="today-headline">
+                    {t.headline}
+                  </h1>
+                </ViewTransition>
                 {hook && <p className="hook serif">{hook}</p>}
                 <p className="hero-why">
                   {t.primary?.track && <i className="dot lit" />}
@@ -418,11 +423,12 @@ function RecapCard({
   busy: string | null;
   onRun: (a: Action) => void;
 }) {
+  const { w } = useApp();
   // With today's session done, the focus is the next one in the plan.
   const next = t.focus;
   return (
     <section className="session-card recap stagger" aria-labelledby="today-headline">
-      <p className="muted">{t.greeting}</p>
+      <p className="muted">{greetingFor(new Date().getHours(), w.state.plan?.profile.name)}</p>
       <h1 className="display" id="today-headline">
         Today’s done.
       </h1>

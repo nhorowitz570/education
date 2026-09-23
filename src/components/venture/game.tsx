@@ -23,6 +23,7 @@ import { XP } from '@/lib/gamify';
 import { Scene } from './scene';
 import { Portrait } from './portrait';
 import { Onboarding } from './onboarding';
+import { reducedMotion } from '@/lib/client/motion';
 
 export type Tool = { id: 'forecast' | 'margin' | 'breakeven' | 'receivables' | 'capacity'; label: string; detail: string; hint: string; unlocked: boolean };
 export type View = {
@@ -279,7 +280,7 @@ function Pips({ n, kind = 'star' }: { n: number; kind?: 'star' | 'heart' }) {
 function Typewriter({ text }: { text: string }) {
   const [n, setN] = useState(0);
   useEffect(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return setN(text.length);
+    if (reducedMotion()) return setN(text.length);
     setN(0);
     const t = setInterval(() => setN((x) => (x >= text.length ? (clearInterval(t), x) : x + 3)), 16);
     return () => clearInterval(t);
@@ -656,7 +657,7 @@ function Trophies({ v }: { v: Venture }) {
 function Count({ to, format = $ }: { to: number; format?: (n: number) => string }) {
   const [n, setN] = useState(0);
   useEffect(() => {
-    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return setN(to);
+    if (reducedMotion()) return setN(to);
     const start = performance.now();
     let raf = 0;
     const tick = (t: number) => {

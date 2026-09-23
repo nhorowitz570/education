@@ -4,6 +4,9 @@ import { useWorkspace } from '@/lib/client/workspace';
 import { clearLocal } from '@/lib/client/storage';
 import { browserClient } from '@/lib/supabase/client';
 import type { AppConfig } from '@/lib/types';
+import { PREFS_RECORD, patchPrefs, prefsOf, type Prefs } from '@/lib/prefs';
+import { setSound } from '@/lib/client/sound';
+import { DEVICE_RECORD, deviceZone, zoneOf } from '@/lib/zone';
 
 export type Theme = 'system' | 'dark' | 'light';
 type Toast = { id: number; message: string; action?: { label: string; run: () => void } };
@@ -15,6 +18,8 @@ type Ctx = {
   toast: (message: string, action?: Toast['action']) => void;
   theme: Theme;
   setTheme: (t: Theme) => void;
+  prefs: Prefs;
+  setPrefs: <G extends keyof Prefs>(group: G, value: Prefs[G] extends object ? Partial<Prefs[G]> : Prefs[G]) => void;
   signOut: () => Promise<void>;
 };
 const AppContext = createContext<Ctx | null>(null);
@@ -25,6 +30,18 @@ export const useApp = () => {
 };
 
 export const THEME_KEY = 'fieldwork-theme';
+// Reading preferences are mirrored here so the first paint already uses them;
+// the layout's inline script reads this before hydration.
+export const READING_KEY = 'fieldwork-reading';
+export function applyReading(r: Prefs['reading']) {
+  const d = document.documentElement.dataset;
+  const set = (k: string, v: string, fallback: string) => (v === fallback ? delete d[k] : (d[k] = v));
+  set('appFont', r.appFont, 'sans');
+  set('lessonFont', r.lessonFont, 'serif');
+  set('textSize', r.size, 'm');
+  set('line', r.width, 'normal');
+  set('motion', r.motion, 'system');
+}
 export function applyTheme(t: Theme) {
   const root = document.documentElement;
   if (t === 'system') root.removeAttribute('data-theme');
@@ -44,7 +61,8 @@ export function AppProvider({
   config: AppConfig;
   children: ReactNode;
 }) {
-  const w = useWorkspace(user.id, false);
+  // Demo keeps everything on this device (the dev preview uses it).
+  const w = useWorkspace(user.id, config.demo);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [theme, setThemeState] = useState<Theme>('system');
   const seq = useRef(0);
@@ -81,11 +99,34 @@ export function AppProvider({
     });
     return () => data.subscription.unsubscribe();
   }, [user.id]);
-  const zone = w.state.plan?.schedule.timezone || 'America/Los_Angeles';
+  // The device's own timezone decides "today", and is kept as a synced
+  // setting so the server's greetings, reminders and streaks agree.
+  const zone = deviceZone() || zoneOf(w.state);
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
+  const savedZone = w.state.records.find((r) => r.id === DEVICE_RECORD)?.data.timezone;
+  useEffect(() => {
+    if (w.ready && zone !== savedZone) void w.record('settings', DEVICE_RECORD, { timezone: zone });
+  }, [w, zone, savedZone]);
+  const prefs = useMemo(() => prefsOf(w.state), [w.state]);
+  const prefsRef = useRef(prefs);
+  prefsRef.current = prefs;
+  const record = w.record;
+  const setPrefs = useCallback<Ctx['setPrefs']>(
+    (group, value) => void record('settings', PREFS_RECORD, patchPrefs(prefsRef.current, group, value)),
+    [record],
+  );
+  useEffect(() => setSound(prefs.sound), [prefs.sound]);
+  const reading = JSON.stringify(prefs.reading);
+  useEffect(() => {
+    if (!w.ready) return;
+    applyReading(JSON.parse(reading));
+    try {
+      localStorage.setItem(READING_KEY, reading);
+    } catch {}
+  }, [reading, w.ready]);
   const value = useMemo(
-    () => ({ user, config, w, today, toast, theme, setTheme, signOut }),
-    [user, config, w, today, toast, theme, setTheme, signOut],
+    () => ({ user, config, w, today, toast, theme, setTheme, prefs, setPrefs, signOut }),
+    [user, config, w, today, toast, theme, setTheme, prefs, setPrefs, signOut],
   );
   return (
     <AppContext.Provider value={value}>

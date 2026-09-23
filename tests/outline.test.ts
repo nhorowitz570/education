@@ -116,6 +116,15 @@ describe('adaptive planner', () => {
   it('adds a break in long sessions', () => {
     expect(types(play({ ...base, minutes: 120, evidence: 'Explain why a profitable company could run out of cash' }))).toContain('break');
   });
+  it('follows the learner’s break setting', () => {
+    const long = { ...base, minutes: 120, evidence: 'Explain why a profitable company could run out of cash' };
+    expect(types(play({ ...long, breakMinutes: 0 }))).not.toContain('break');
+    expect(play({ ...long, breakMinutes: 10 }).find((x) => x.type === 'break')?.minutes).toBe(10);
+  });
+  it('skips the familiarity question when the learner turned it off', () => {
+    expect(extend({ ...base, familiarity: {} })[0].type).toBe('gauge');
+    expect(extend({ ...base, familiarity: {}, askFamiliarity: false })[0].type).not.toBe('gauge');
+  });
   it('produces the week’s evidence once the idea has been practised', () => {
     const s = play({ ...base, minutes: 90, evidence: 'Explain why a profitable company could run out of cash' });
     const produce = s.findIndex((x) => x.type === 'produce');

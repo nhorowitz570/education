@@ -37,6 +37,8 @@ export type PlanInput = {
   evidence?: string;
   voice?: boolean;
   wrap?: boolean; // the learner asked to wrap up
+  askFamiliarity?: boolean; // off: never open an idea with "how familiar is this?"
+  breakMinutes?: number; // 0: no breaks; otherwise their length in long sessions
 };
 
 // What each kind of step realistically takes, in minutes. These are
@@ -122,7 +124,7 @@ function waitingOnQuestion(i: PlanInput) {
 // The next step for one concept, or null when it has had its turn.
 function conceptStep(c: ConceptView, i: PlanInput, main: boolean, left: number): OutlineBeat | null {
   const k = c.key;
-  if (c.f === undefined && !c.has('gauge')) return beat('gauge', 'Ask how familiar this idea is before teaching it.', k);
+  if (c.f === undefined && !c.has('gauge') && i.askFamiliarity !== false) return beat('gauge', 'Ask how familiar this idea is before teaching it.', k);
   if (!c.has('situation'))
     return beat(
       'situation',
@@ -194,7 +196,9 @@ export function nextStep(i: PlanInput): OutlineBeat | null {
     return t;
   })();
   const midIdea = !!last && (TEACH.has(last.type) || last.type === 'situation' || last.type === 'gauge');
-  if (i.minutes >= 60 && sinceBreak >= 50 && !midIdea && left >= 20) return beat('break', 'Short break.');
+  const rest = i.breakMinutes ?? EST.break;
+  if (rest > 0 && i.minutes >= 60 && sinceBreak >= 50 && !midIdea && left >= 20 + rest - EST.break)
+    return { ...beat('break', 'Short break.'), minutes: rest };
 
   const tryConcept = (k: string, isMain: boolean) => {
     const next = conceptStep(view(k, i), i, isMain, left);

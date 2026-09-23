@@ -96,6 +96,7 @@ export const commandSchema = z.discriminatedUnion('type', [
         op: z.literal('rhythm'),
         days: z.record(z.string().regex(/^[0-6]$/), trackIdSchema),
         minutes: z.number().int().min(10).max(240),
+        start_local: timeSchema.optional(),
       }),
       z.object({ op: z.literal('track'), track: trackIdSchema, status: z.enum(['active', 'paused']) }),
       z.object({ op: z.literal('move-topic'), track: trackIdSchema, topicId: z.string().max(100), to: z.number().int().min(0).max(500) }),

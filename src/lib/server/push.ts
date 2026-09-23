@@ -1,7 +1,8 @@
 import 'server-only';
 import webpush from 'web-push';
 import { adminClient } from '@/lib/supabase/server';
-import { privateRows, privateDelete } from './state';
+import { privateRows, privateDelete, readState } from './state';
+import { allowsPush, prefsOf } from '@/lib/prefs';
 
 type Sub = { user_id: string; endpoint: string; subscription: webpush.PushSubscription };
 
@@ -26,6 +27,8 @@ export async function pushTo(
   if (!pushReady()) return 0;
   const mine = (subs || (await privateRows<Sub>('push_subscriptions', userId))).filter((s) => s.user_id === userId);
   if (!mine.length) return 0;
+  // Each kind of notification has its own switch under You → Notifications.
+  if (!allowsPush(prefsOf(await readState(userId)), key)) return 0;
   const { data: claimed, error } = await adminClient().rpc('claim_notification', { p_user_id: userId, p_event_key: key });
   if (error || !claimed) return 0;
   let sent = 0;

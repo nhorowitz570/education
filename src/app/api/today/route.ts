@@ -10,6 +10,8 @@ import { conceptsFor } from '@/lib/server/learner';
 import { dateInZone } from '@/lib/plan';
 import { voiceReady } from '@/lib/ai/env';
 import { adminClient } from '@/lib/supabase/server';
+import { hourIn, zoneOf } from '@/lib/zone';
+import { activeMinutes } from '@/lib/learning/duration';
 
 const mapping = new Set<string>();
 
@@ -27,10 +29,10 @@ export async function GET(r: Request) {
     // Closes finished weeks and makes sure this one exists before reading it.
     const state = await ensureHorizon(user.id),
       plan = state.plan,
-      zone = plan?.schedule.timezone || 'America/Los_Angeles',
+      zone = zoneOf(state),
       now = new Date(),
       date = dateInZone(zone, now),
-      hour = Number(new Intl.DateTimeFormat('en-US', { timeZone: zone, hour: 'numeric', hourCycle: 'h23' }).format(now));
+      hour = hourIn(zone, now);
     const db = adminClient();
     const [runs, graph, learned, { data: rehearsals }, { data: insight }] = await Promise.all([
       activeRuns(user.id),
@@ -150,11 +152,7 @@ async function recapOf(userId: string, date: string, zone: string, list: { key: 
   ]);
   const today = (runs || []).filter((r) => r.ended_at && dateInZone(zone, new Date(r.ended_at)) === date);
   if (!today.length) return null;
-  const minutes = today.reduce((n, r) => {
-    const clock = (r.context as { clock?: { active_ms: number } } | null)?.clock;
-    const raw = clock ? clock.active_ms / 60000 : (Date.parse(r.ended_at!) - Date.parse(r.started_at)) / 60000;
-    return n + Math.min(Math.max(0, raw), (r.minutes_planned || 30) * 1.6);
-  }, 0);
+  const minutes = today.reduce((n, r) => n + activeMinutes(r as Parameters<typeof activeMinutes>[0]), 0);
   const todays = (events || []).filter((e) => dateInZone(zone, new Date(e.created_at)) === date);
   const titles = new Map(list.map((c) => [c.key, c.title]));
   const ideas = [...new Set(todays.map((e) => e.concept_key).filter((k): k is string => !!k && titles.has(k)))].map((k) => titles.get(k)!);

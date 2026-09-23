@@ -7,13 +7,15 @@ import { BEAT_LABEL } from './beat';
 import type { RunView } from '@/lib/learning/run';
 import { XP, sessionXp, type Progress } from '@/lib/gamify';
 import { SessionReward } from '@/components/progress/progress';
+import { CountUp } from '@/components/ui';
+import { play } from '@/lib/client/sound';
 
 type Mastery = {
   concepts: { key: string; title: string; track: string; strength: number; level: string; before?: number }[];
 };
 
 // The end of a session: what moved, what was shown, what happens next.
-export function Complete({ run }: { run: RunView }) {
+export function Complete({ run, fresh = false }: { run: RunView; fresh?: boolean }) {
   const [mastery, setMastery] = useState<Mastery | null>(null);
   const [progress, setProgress] = useState<Progress | null>(null);
   useEffect(() => {
@@ -31,9 +33,15 @@ export function Complete({ run }: { run: RunView }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [run.id]);
   const graded = run.beats.filter((b) => b.feedback);
-  const minutes = Math.max(1, Math.round((Date.now() - Date.parse(run.started_at)) / 60000));
+  // Active time, so a session opened in the morning and finished at night
+  // still shows the minutes actually spent on it.
+  const minutes = Math.max(1, Math.round(run.elapsed ?? 0));
   const produced = run.beats.find((b) => b.type === 'produce' && b.response?.text);
   const track = run.session?.subject || 'general';
+  useEffect(() => {
+    if (fresh) play('complete');
+  }, [fresh]);
+  const n = (to: number, i: number) => (fresh ? <CountUp to={to} delay={300 + i * 120} /> : to);
   return (
     <div className={'complete t-' + track}>
       <div className="complete-inner stagger">
@@ -53,27 +61,29 @@ export function Complete({ run }: { run: RunView }) {
         <SessionReward earned={earned} progress={progress} />
         <div className="complete-stats">
           <div>
-            <b className="num">{minutes}</b>
+            <b className="num">{n(minutes, 0)}</b>
             <span>minutes</span>
           </div>
           <div>
-            <b className="num">{run.beats.filter((b) => b.status === 'done').length}</b>
+            <b className="num">{n(run.beats.filter((b) => b.status === 'done').length, 1)}</b>
             <span>steps</span>
           </div>
           <div>
-            <b className="num">{graded.filter((b) => b.feedback!.verdict === 'solid').length}/{graded.length}</b>
+            <b className="num">
+              {n(graded.filter((b) => b.feedback!.verdict === 'solid').length, 2)}/{graded.length}
+            </b>
             <span>solid answers</span>
           </div>
         </div>
 
         {mastery && mastery.concepts.length > 0 && (
           <section className="complete-section">
-            <p className="eyebrow">What moved</p>
+            <p className="eyebrow">What moved · open any in your Notebook</p>
             <div className="rows">
               {mastery.concepts.map((c, i) => {
                 const delta = c.before !== undefined ? Math.round((c.strength - c.before) * 100) : null;
                 return (
-                  <div className={'row t-' + c.track} key={c.key}>
+                  <Link className={'row t-' + c.track} key={c.key} href={`/notebook?e=${encodeURIComponent(c.key)}`}>
                     <div className="grow">
                       <p>{c.title}</p>
                       <div
@@ -95,7 +105,8 @@ export function Complete({ run }: { run: RunView }) {
                       </span>
                     )}
                     <span className="label">{c.level}</span>
-                  </div>
+                    <Icon name="chevron" size={16} />
+                  </Link>
                 );
               })}
             </div>

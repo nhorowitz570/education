@@ -51,7 +51,7 @@ export function selectNext(state: AppState, today: string) {
       : missed.length >= 2
         ? 'Two learning days did not happen. Start with a short return.'
         : candidate.date > today
-          ? 'Your next planned morning.'
+          ? 'Your next planned session.'
           : 'One situation. Your decision.',
     returning: missed.length >= 2,
   };
@@ -138,8 +138,7 @@ export function moveRevision(
   };
   return {
     id: crypto.randomUUID(),
-    reason:
-      'You changed your availability. Friday stays open unless you choose it.',
+    reason: `Moved “${s.title}” to ${new Date(date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}.`,
     created_at: new Date().toISOString(),
     before: { [s.id]: before },
     after: { [s.id]: { ...before, date, start_local } },
@@ -224,37 +223,11 @@ export function recoveryRevision(state: AppState, today: string): Revision {
   return {
     id: crypto.randomUUID(),
     reason:
-      'Return with 20 minutes. Essential work moves into future learning slots. Optional work is dropped; later breadth may be reduced to preserve your finish date. No extra days or doubled mornings.',
+      'Return with 20 minutes. Essential work moves into future learning slots. Optional work is dropped; later breadth may be reduced to preserve your finish date. No extra days or doubled sessions.',
     created_at: new Date().toISOString(),
     before,
     after,
   };
-}
-export function dueReview(state: AppState, today: string) {
-  if (state.attempts.some((a) => a.review_of && a.date === today))
-    return undefined;
-  const intervals = Array.isArray(state.plan?.adaptation.review_day_offsets)
-    ? (state.plan!.adaptation.review_day_offsets as number[])
-    : [2, 7, 21];
-  return state.attempts
-    .filter((a) => !a.review_of && a.feedback.correct)
-    .map((a) => {
-      const reviews = state.attempts.filter((r) => r.review_of === a.id);
-      const last = reviews.at(-1) || a;
-      const offset = intervals[Math.min(reviews.length, intervals.length - 1)];
-      return {
-        attempt: a,
-        due: Temporal.PlainDate.from(last.date)
-          .add({ days: offset })
-          .toString(),
-        minutes: Math.min(
-          10,
-          Number(state.plan?.adaptation.review_cap_minutes) || 10,
-        ),
-      };
-    })
-    .filter((x) => x.due <= today)
-    .sort((a, b) => a.due.localeCompare(b.due))[0];
 }
 export function demonstrated(state: AppState, objectiveId: string) {
   const evidence = state.attempts.filter(

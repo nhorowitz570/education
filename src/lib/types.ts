@@ -109,7 +109,6 @@ export type AppConfig = {
   ai: boolean;
   voice: boolean;
   voiceProvider: string;
-  calendar: boolean;
   push: boolean;
   demo: boolean;
 };

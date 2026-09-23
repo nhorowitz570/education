@@ -17,8 +17,6 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     ai: aiReady(),
     voice: voiceReady(),
     voiceProvider: process.env.VOICE_PROVIDER || 'live',
-    calendar:
-      !!process.env.GOOGLE_CLIENT_ID && !!process.env.GOOGLE_CLIENT_SECRET && !!process.env.TOKEN_ENCRYPTION_KEY,
     push: !!process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY && !!process.env.VAPID_PRIVATE_KEY,
     demo: false,
   };

@@ -20,6 +20,8 @@ const LEARNING: [table: string, columns: string][] = [
   ['learner_profiles', '*'],
   ['ventures', 'state,revision,created_at,updated_at'],
   ['plan_chapters', 'plan_id,chapters,created_at'],
+  ['notes', 'id,run_id,beat_id,concept_key,quote,text,created_at,updated_at'],
+  ['shares', 'token,concept_key,card,views,created_at,revoked_at'],
 ];
 
 export async function GET(r: Request) {
@@ -27,6 +29,8 @@ export async function GET(r: Request) {
     const { user, db } = await context(r);
     const read = async (client: typeof db, [t, cols]: [string, string]) => {
       const { data, error } = await client.from(t).select(cols).eq('user_id', user.id);
+      // A table from a migration not yet applied has nothing to export.
+      if (error && (error.code === '42P01' || error.code === 'PGRST205')) return [t, []] as const;
       if (error) throw error;
       return [t, data] as const;
     };

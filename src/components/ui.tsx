@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Icon } from './icons';
+import { reducedMotion } from '@/lib/client/motion';
 
 export function Button({
   children,
@@ -51,8 +52,47 @@ export function Sheet({
   footer?: ReactNode;
 }) {
   const ref = useRef<HTMLDialogElement>(null),
-    downOnBackdrop = useRef(false);
+    downOnBackdrop = useRef(false),
+    drag = useRef<{ id: number; y: number; t: number; dy: number; v: number } | null>(null);
   const titleId = useRef('sheet-' + Math.random().toString(36).slice(2)).current;
+  // On phones a sheet follows the finger from its grip or header and is let
+  // go with a flick or a long pull; anything less springs back.
+  const phone = () => window.matchMedia('(max-width: 699px)').matches;
+  function dragStart(e: React.PointerEvent<HTMLDialogElement>) {
+    const el = ref.current;
+    const target = e.target as HTMLElement;
+    if (!el || !phone() || el.scrollTop > 0 || !target.closest('.sheet-grip, .sheet-head') || target.closest('button, a, input')) return;
+    drag.current = { id: e.pointerId, y: e.clientY, t: e.timeStamp, dy: 0, v: 0 };
+    el.setPointerCapture(e.pointerId);
+    el.style.transition = 'none';
+  }
+  function dragMove(e: React.PointerEvent<HTMLDialogElement>) {
+    const d = drag.current,
+      el = ref.current;
+    if (!d || !el || e.pointerId !== d.id) return;
+    const raw = e.clientY - d.y;
+    // Pulling up resists, like a rubber band.
+    const dy = raw < 0 ? -Math.sqrt(-raw) * 2 : raw;
+    d.v = (dy - d.dy) / Math.max(1, e.timeStamp - d.t);
+    d.t = e.timeStamp;
+    d.dy = dy;
+    el.style.transform = `translateY(${dy}px)`;
+  }
+  function dragEnd(e: React.PointerEvent<HTMLDialogElement>) {
+    const d = drag.current,
+      el = ref.current;
+    if (!d || !el || e.pointerId !== d.id) return;
+    drag.current = null;
+    if (d.dy > 140 || (d.dy > 24 && d.v > 0.55)) {
+      el.style.transition = 'transform 220ms cubic-bezier(0.4, 0, 1, 1)';
+      el.style.transform = 'translateY(100%)';
+      setTimeout(onClose, 200);
+    } else {
+      el.style.transition = 'transform 460ms cubic-bezier(0.2, 1.3, 0.35, 1)';
+      el.style.transform = '';
+      setTimeout(() => el && (el.style.transition = ''), 480);
+    }
+  }
   useEffect(() => {
     const el = ref.current,
       previous = document.activeElement as HTMLElement | null;
@@ -73,7 +113,11 @@ export function Sheet({
       }}
       onPointerDown={(e) => {
         downOnBackdrop.current = e.target === e.currentTarget;
+        dragStart(e);
       }}
+      onPointerMove={dragMove}
+      onPointerUp={dragEnd}
+      onPointerCancel={dragEnd}
       onClick={(e) => {
         if (downOnBackdrop.current && e.target === e.currentTarget) onClose();
         downOnBackdrop.current = false;
@@ -186,42 +230,76 @@ export function Disclosure({
   );
 }
 
-// One line in a settings index: a label, its current state, and a way in.
+// One line in a settings index: what it is, what it does, its current value
+// on the right, and a way in.
 export function IndexRow({
   icon,
   title,
   detail,
+  value,
   badge,
   onClick,
+  disabled,
   children,
 }: {
-  icon: string;
+  icon?: string;
   title: string;
   detail?: ReactNode;
+  value?: ReactNode;
   badge?: ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
   children?: ReactNode;
 }) {
   const body = (
     <>
-      <span className="row-glyph">
-        <Icon name={icon} size={18} />
-      </span>
+      {icon && (
+        <span className="row-glyph">
+          <Icon name={icon} size={18} />
+        </span>
+      )}
       <div className="grow">
         <p>{title}</p>
         {detail && <p className="sub">{detail}</p>}
       </div>
       {badge}
+      {value !== undefined && <span className="row-value">{value}</span>}
       {children}
-      {onClick && <Icon name="chevron" size={18} />}
+      {onClick && <Icon name="chevron" size={18} className="row-chev" />}
     </>
   );
   return onClick ? (
-    <button type="button" className="row index-row" onClick={onClick}>
+    <button type="button" className="row index-row" onClick={onClick} disabled={disabled}>
       {body}
     </button>
   ) : (
-    <div className="row index-row">{body}</div>
+    <div className={'row index-row' + (disabled ? ' disabled' : '')}>{body}</div>
+  );
+}
+
+// A group of settings: a name, one line on what it changes, and its rows.
+export function SettingsGroup({ id, title, note, children }: { id: string; title: string; note?: string; children: ReactNode }) {
+  return (
+    <section className="you-group" aria-labelledby={id}>
+      <div className="you-group-head">
+        <h2 className="eyebrow" id={id}>
+          {title}
+        </h2>
+        {note && <p className="label">{note}</p>}
+      </div>
+      <div className="rows">{children}</div>
+    </section>
+  );
+}
+
+// A labelled choice inside a settings sheet, with the effect spelled out.
+export function Field({ label, hint, children }: { label: string; hint?: ReactNode; children: ReactNode }) {
+  return (
+    <div className="field setting-field">
+      <span>{label}</span>
+      {children}
+      {hint && <p className="label">{hint}</p>}
+    </div>
   );
 }
 
@@ -277,10 +355,18 @@ function inline(src: string): Inline[] {
   if (last < src.length) out.push(src.slice(last).replace(/\*\*?$|`$/, ''));
   return out;
 }
+// Lets a surrounding screen decorate plain runs of text (a lesson marks the
+// ideas the learner has met before). Outside such a screen, text is text.
+export type Decorate = (text: string, key: string) => ReactNode;
+export const DecorateText = createContext<Decorate | null>(null);
+function Plain({ text, k }: { text: string; k: string }) {
+  const decorate = useContext(DecorateText);
+  return <>{decorate ? decorate(text, k) : text}</>;
+}
 function renderInline(parts: Inline[], key = ''): ReactNode[] {
   return parts.map((p, i) =>
     typeof p === 'string' ? (
-      p
+      <Plain key={key + i} text={p} k={key + i} />
     ) : p.t === 'code' ? (
       <code key={key + i}>{p.c as string}</code>
     ) : p.t === 'b' ? (
@@ -297,29 +383,37 @@ export function splitParagraphs(md: string) {
     .map((p) => p.trim())
     .filter(Boolean);
 }
-export function Paragraph({ src }: { src: string }) {
+// A paragraph's shape: a list, a quote, or plain text, as inline parts.
+function shape(src: string): { kind: 'ul' | 'ol' | 'quote' | 'p'; items: Inline[][] } {
   const lines = src.split('\n');
-  if (lines.every((l) => /^\s*[-*•]\s+/.test(l)))
-    return (
-      <ul>
-        {lines.map((l, i) => (
-          <li key={i}>{renderInline(inline(l.replace(/^\s*[-*•]\s+/, '')))}</li>
-        ))}
-      </ul>
-    );
-  if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l)))
-    return (
-      <ol>
-        {lines.map((l, i) => (
-          <li key={i}>{renderInline(inline(l.replace(/^\s*\d+[.)]\s+/, '')))}</li>
-        ))}
-      </ol>
-    );
-  if (lines.every((l) => /^\s*>/.test(l)))
-    return <blockquote>{renderInline(inline(lines.map((l) => l.replace(/^\s*>\s?/, '')).join(' ')))}</blockquote>;
+  if (lines.every((l) => /^\s*[-*•]\s+/.test(l))) return { kind: 'ul', items: lines.map((l) => inline(l.replace(/^\s*[-*•]\s+/, ''))) };
+  if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) return { kind: 'ol', items: lines.map((l) => inline(l.replace(/^\s*\d+[.)]\s+/, ''))) };
+  if (lines.every((l) => /^\s*>/.test(l))) return { kind: 'quote', items: [inline(lines.map((l) => l.replace(/^\s*>\s?/, '')).join(' '))] };
   // Headings are outside the contract; show them as emphasis, not structure.
-  const text = lines.map((l) => l.replace(/^#{1,6}\s+/, '')).join('\n');
-  return <p>{renderInline(inline(text))}</p>;
+  return { kind: 'p', items: [inline(lines.map((l) => l.replace(/^#{1,6}\s+/, '')).join('\n'))] };
+}
+export function Paragraph({ src }: { src: string }) {
+  const { kind, items } = shape(src);
+  if (kind === 'ul' || kind === 'ol') {
+    const List = kind;
+    return (
+      <List>
+        {items.map((parts, i) => (
+          <li key={i}>{renderInline(parts)}</li>
+        ))}
+      </List>
+    );
+  }
+  if (kind === 'quote') return <blockquote>{renderInline(items[0])}</blockquote>;
+  return <p>{renderInline(items[0])}</p>;
+}
+// The plain runs of text Markdown would render, in order: what a decorator
+// will be handed, so it can decide ahead of time which run gets what.
+export function plainRuns(md: string): string[] {
+  const out: string[] = [];
+  const walk = (parts: Inline[]) => parts.forEach((p) => (typeof p === 'string' ? out.push(p) : p.t !== 'code' && walk(p.c as Inline[])));
+  for (const para of splitParagraphs(md)) shape(para).items.forEach(walk);
+  return out;
 }
 export function Markdown({ src, className = 'prose' }: { src: string; className?: string }) {
   return (
@@ -329,4 +423,24 @@ export function Markdown({ src, className = 'prose' }: { src: string; className?
       ))}
     </div>
   );
+}
+
+// A number that counts up from zero once, after a short delay, so a result
+// lands rather than just appearing. Static when motion is reduced.
+export function CountUp({ to, delay = 0, ms = 900, format = (n: number) => String(Math.round(n)) }: { to: number; delay?: number; ms?: number; format?: (n: number) => string }) {
+  const [v, setV] = useState(to);
+  useEffect(() => {
+    if (!Number.isFinite(to) || reducedMotion()) return setV(to);
+    setV(0);
+    let raf = 0;
+    const t0 = performance.now() + delay;
+    const tick = (now: number) => {
+      const p = Math.max(0, Math.min(1, (now - t0) / ms));
+      setV(to * (1 - (1 - p) ** 3));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [to, delay, ms]);
+  return <>{format(v)}</>;
 }

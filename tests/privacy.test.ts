@@ -9,10 +9,8 @@ import {
   savedQueue,
 } from '@/lib/client/storage';
 import { emptyState } from '@/lib/types';
-import { DEMO_PLAN } from '@/lib/seed';
 import { practicePoints } from '@/lib/progress';
 import { validRecord } from '@/lib/records';
-import { openSlot, overlap, allBusy } from '@/lib/availability';
 import { route } from '@/lib/ai/tasks';
 import type { Command } from '@/lib/commands';
 beforeEach(() => clearLocal());
@@ -72,28 +70,6 @@ describe('growth and scheduling', () => {
     expect(validRecord('food', { protein: 9 })).toBe(false);
     expect(validRecord('settings', { morning: '25:30' })).toBe(false);
     expect(validRecord('body', { kg: Infinity })).toBe(false);
-  });
-  it('avoids manual blocks, existing lessons, and Friday', () => {
-    const state = {
-      ...structuredClone(emptyState),
-      plan: structuredClone(DEMO_PLAN),
-    };
-    state.records.push({
-      id: 'busy',
-      kind: 'busy',
-      updated_at: new Date().toISOString(),
-      data: { date: '2026-09-28', start: '10:00', end: '12:00' },
-    });
-    expect(allBusy(state)[0].start).toBe('2026-09-28T17:00:00Z');
-    const slot = openSlot(state, state.plan.sessions[0], '2026-09-28');
-    expect(slot?.date).not.toBe('2026-09-28');
-    expect(slot?.date).not.toBe('2026-10-02');
-    expect(
-      overlap(
-        { start: '2026-01-01T10:00Z', end: '2026-01-01T11:00Z' },
-        { start: '2026-01-01T11:00Z', end: '2026-01-01T12:00Z' },
-      ),
-    ).toBe(false);
   });
 });
 describe('model routing', () => {

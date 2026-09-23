@@ -5,6 +5,9 @@ import { Icon } from '@/components/icons';
 import { CONFIDENCE_LABEL, canRetry, type Beat, type Block, type Confidence, type Feedback, type Gauge } from '@/lib/learning/run';
 import { answerXp } from '@/lib/gamify';
 import type { RunState } from './use-run';
+import { useApp } from '@/components/app/provider';
+import { play } from '@/lib/client/sound';
+import { BeatNotes, KnownTerms } from './extras';
 
 export const BEAT_LABEL: Record<string, string> = {
   gauge: 'Where you’re starting',
@@ -103,6 +106,8 @@ export function BeatView({
     else if (wasGrading.current && beat.feedback) {
       wasGrading.current = false;
       setFresh(true);
+      // A soft cue for a good answer; a miss stays quiet.
+      if (!beat.response?.unknown && beat.feedback.verdict !== 'missed') play(beat.feedback.verdict === 'solid' ? 'solid' : 'partial');
     }
   }, [grading, beat.feedback]);
   const [retrying, setRetrying] = useState(false);
@@ -112,6 +117,8 @@ export function BeatView({
   const verdict = beat.feedback?.verdict;
   const label = BEAT_LABEL[beat.type] || beat.type;
   const unknown = !!beat.response?.unknown;
+  const { prefs } = useApp();
+  const pops = prefs.game.pops && prefs.game.xp;
   const xp = beat.feedback ? answerXp(beat.feedback.verdict, beat.response?.confidence, unknown, beat.feedback.score) : 0;
   return (
     <section
@@ -158,7 +165,9 @@ export function BeatView({
           ) : streaming && !blocks.length ? (
             <Building label={BUILDING[beat.type] || 'Preparing'} />
           ) : (
-            <Blocks blocks={blocks} streaming={streaming} />
+            <KnownTerms except={beat.concept} blocks={streaming ? [] : blocks}>
+              <Blocks blocks={blocks} streaming={streaming} />
+            </KnownTerms>
           )}
           {(beat.attempts || []).map((a, i) => (
             <div className="attempt" key={i}>
@@ -184,8 +193,8 @@ export function BeatView({
               streaming={!!grading}
               retried={!!beat.attempts?.length && !grading}
               unknown={unknown}
-              xp={!grading && fresh ? xp : 0}
-              combo={!grading && fresh ? combo(state, beat.id) : 0}
+              xp={!grading && fresh && pops ? xp : 0}
+              combo={!grading && fresh && prefs.game.pops ? combo(state, beat.id) : 0}
             >
               {current && !grading && canRetry(beat) && (
                 <button className="btn small quiet retry" onClick={() => setRetrying(true)}>
@@ -195,6 +204,7 @@ export function BeatView({
             </FeedbackView>
           )}
           {children}
+          <BeatNotes beatId={beat.id} canAdd={!!beat.blocks && beat.type !== 'break' && beat.type !== 'gauge'} />
           {(beat.asks || []).map((a) => (
             <div className="ask" key={a.id}>
               {a.quote && <blockquote className="ask-quote">“{a.quote}”</blockquote>}
@@ -345,9 +355,19 @@ function ConfidenceSubmit({
   groupRef,
 }: {
   disabled: boolean;
-  onSubmit: (c: Confidence) => void;
+  onSubmit: (c?: Confidence) => void;
   groupRef?: React.Ref<HTMLDivElement>;
 }) {
+  const { prefs } = useApp();
+  // Confidence ratings can be turned off under You → Sessions.
+  if (!prefs.session.confidence)
+    return (
+      <div className="confidence" ref={groupRef}>
+        <button className="btn primary" disabled={disabled} onClick={() => onSubmit()}>
+          Check my answer <Icon name="arrow" size={17} />
+        </button>
+      </div>
+    );
   return (
     <div className="confidence" role="group" aria-label="Check your answer: how sure are you?" ref={groupRef}>
       <span className="label">How sure?</span>
@@ -451,7 +471,7 @@ function Question({
       </blockquote>
     );
   const ok = text.trim().length >= 2;
-  const submit = (c: Confidence) => {
+  const submit = (c?: Confidence) => {
     if (ok) void state.answer(beat.id, { text: text.trim(), confidence: c }, retrying);
   };
   return (
@@ -494,6 +514,8 @@ function Question({
 
 // Not knowing yet is a fine answer: the tutor teaches it instead of grading.
 function DontKnow({ onClick }: { onClick: () => void }) {
+  const { prefs } = useApp();
+  if (!prefs.session.dontKnow) return null;
   return (
     <button className="link dont-know" onClick={onClick}>
       I don’t know yet — teach me

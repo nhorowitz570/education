@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { Instrument_Sans, Newsreader } from 'next/font/google';
+import { Atkinson_Hyperlegible, Instrument_Sans, Newsreader } from 'next/font/google';
+import '@fontsource/opendyslexic/400.css';
+import '@fontsource/opendyslexic/400-italic.css';
+import '@fontsource/opendyslexic/700.css';
 import '@/styles/tokens.css';
 import '@/styles/base.css';
 import '@/styles/components.css';
@@ -22,6 +25,15 @@ const serif = Newsreader({
   style: ['normal', 'italic'],
   variable: '--font-serif',
   display: 'swap',
+});
+// Only downloaded when chosen under You → Reading.
+const hyper = Atkinson_Hyperlegible({
+  subsets: ['latin'],
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-hyper',
+  display: 'swap',
+  preload: false,
 });
 export const metadata: Metadata = {
   title: 'Fieldwork',
@@ -47,13 +59,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${serif.variable}`}
+      className={`${sans.variable} ${serif.variable} ${hyper.variable}`}
       suppressHydrationWarning
     >
       <body>
-        {/* Apply a saved theme before hydration so there is no flash. */}
+        {/* Apply the saved theme and reading choices before hydration so there is no flash. */}
         <Script id="theme" strategy="beforeInteractive">
-          {"try{var t=localStorage.getItem('fieldwork-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t}}catch(e){}"}
+          {
+            "try{var d=document.documentElement.dataset,t=localStorage.getItem('fieldwork-theme');if(t==='dark'||t==='light'){d.theme=t}var r=JSON.parse(localStorage.getItem('fieldwork-reading')||'{}');if(r.appFont&&r.appFont!=='sans')d.appFont=r.appFont;if(r.lessonFont&&r.lessonFont!=='serif')d.lessonFont=r.lessonFont;if(r.size&&r.size!=='m')d.textSize=r.size;if(r.width&&r.width!=='normal')d.line=r.width;if(r.motion&&r.motion!=='system')d.motion=r.motion}catch(e){}"
+          }
         </Script>
         {children}
       </body>

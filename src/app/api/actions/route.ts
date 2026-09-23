@@ -4,6 +4,7 @@ import { mutate, readState } from '@/lib/server/state';
 import { commandSchema, applyCommand } from '@/lib/commands';
 import { dateInZone } from '@/lib/plan';
 import type { Attempt } from '@/lib/types';
+import { zoneOf } from '@/lib/zone';
 export async function POST(request: Request) {
   try {
     const { user } = await context(request),
@@ -18,9 +19,7 @@ export async function POST(request: Request) {
     if (['shorten', 'recover', 'undo', 'plan-edit'].includes(command.type)) {
       const s = await readState(user.id);
       if ('today' in command)
-        command.today = dateInZone(
-          s.plan?.schedule.timezone || 'America/Los_Angeles',
-        );
+        command.today = dateInZone(zoneOf(s));
     }
     if (command.type === 'activate')
       throw new HttpError('Use the reviewed import flow to activate a plan.');

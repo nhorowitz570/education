@@ -22,6 +22,8 @@ import {
   type InsightRow,
   type InsightSummary,
 } from '@/lib/insights';
+import { zoneOf } from '@/lib/zone';
+import { activeMinutes } from '@/lib/learning/duration';
 
 // Once a week, an honest read of how the learner is actually learning. The
 // numbers are measured here, in code; the reasoning tier interprets them and
@@ -31,8 +33,8 @@ const db = () => adminClient();
 
 // ---------- The week ----------
 
-export function zoneFor(state: { plan?: { schedule: { timezone: string } } }) {
-  return state.plan?.schedule.timezone || 'America/Los_Angeles';
+export function zoneFor(state: Parameters<typeof zoneOf>[0]) {
+  return zoneOf(state);
 }
 // The last complete Monday–Sunday week.
 export function lastWeek(zone: string, now = new Date()) {
@@ -109,12 +111,8 @@ export async function measure(userId: string, week: { start: string; end: string
 
   const lessons = runs.filter((r) => r.kind !== 'practice');
   const practices = runs.filter((r) => r.kind === 'practice');
-  const minutesOf = (r: RunRow) => {
-    const end = Date.parse(r.ended_at || r.updated_at),
-      raw = Math.max(0, (end - Date.parse(r.started_at)) / 60000);
-    // Tabs left open overnight are not study time.
-    return Math.min(raw, Math.max(20, (r.minutes_planned || 30) * 1.6));
-  };
+  // Active time only: tabs left open overnight are not study time.
+  const minutesOf = (r: RunRow) => activeMinutes(r as Parameters<typeof activeMinutes>[0], Date.parse(r.ended_at || r.updated_at));
 
   const answers: InsightMetrics['answers'] = {
     total: 0,

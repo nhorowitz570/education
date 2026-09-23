@@ -27,6 +27,7 @@ import {
   textWidth,
   type Ctx,
 } from './pixel';
+import { reducedMotion } from '@/lib/client/motion';
 
 export type SceneProps = {
   kind: KindId;
@@ -88,7 +89,7 @@ export function Scene(props: SceneProps) {
     const skyline = Array.from({ length: 14 }, (_, i) => ({ x: i * 20 - 6, w: 16 + rand() * 10, h: 28 + rand() * 40, lit: Array.from({ length: 12 }, () => rand() > 0.55) }));
     const walkers: Walker[] = [];
     const particles: Particle[] = [];
-    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const reduce = reducedMotion();
     let frame = 0,
       last = 0,
       visible = true,

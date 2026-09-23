@@ -1,0 +1,261 @@
+{
+  "$description": "Generated from src/styles/tokens.css by scripts/tokens.ts. Dark is the reference; light is in $extensions.",
+  "color": {
+    "bg": {
+      "$type": "color",
+      "$value": "#09090a",
+      "$extensions": {
+        "app.fieldwork.light": "#f5f4f0"
+      }
+    },
+    "raised": {
+      "$type": "color",
+      "$value": "#111113",
+      "$extensions": {
+        "app.fieldwork.light": "#ffffff"
+      }
+    },
+    "surface": {
+      "$type": "color",
+      "$value": "#161618",
+      "$extensions": {
+        "app.fieldwork.light": "#efeee9"
+      }
+    },
+    "surface-2": {
+      "$type": "color",
+      "$value": "#1d1d20",
+      "$extensions": {
+        "app.fieldwork.light": "#e7e6e0"
+      }
+    },
+    "surface-3": {
+      "$type": "color",
+      "$value": "#26262a",
+      "$extensions": {
+        "app.fieldwork.light": "#dcdbd4"
+      }
+    },
+    "line": {
+      "$type": "color",
+      "$value": "#f2f1ed12",
+      "$extensions": {
+        "app.fieldwork.light": "#13131612"
+      }
+    },
+    "line-2": {
+      "$type": "color",
+      "$value": "#f2f1ed1f",
+      "$extensions": {
+        "app.fieldwork.light": "#1313161f"
+      }
+    },
+    "line-3": {
+      "$type": "color",
+      "$value": "#f2f1ed33",
+      "$extensions": {
+        "app.fieldwork.light": "#13131638"
+      }
+    },
+    "text": {
+      "$type": "color",
+      "$value": "#f2f1ed",
+      "$extensions": {
+        "app.fieldwork.light": "#141416"
+      }
+    },
+    "text-2": {
+      "$type": "color",
+      "$value": "#a4a3a8",
+      "$extensions": {
+        "app.fieldwork.light": "#5c5b61"
+      }
+    },
+    "text-3": {
+      "$type": "color",
+      "$value": "#6d6c72",
+      "$extensions": {
+        "app.fieldwork.light": "#8d8c92"
+      }
+    },
+    "text-4": {
+      "$type": "color",
+      "$value": "#48484d",
+      "$extensions": {
+        "app.fieldwork.light": "#b4b3b8"
+      }
+    },
+    "accent": {
+      "$type": "color",
+      "$value": "#f2f1ed",
+      "$extensions": {
+        "app.fieldwork.light": "#141416"
+      }
+    },
+    "on-accent": {
+      "$type": "color",
+      "$value": "#0b0b0c",
+      "$extensions": {
+        "app.fieldwork.light": "#ffffff"
+      }
+    },
+    "glow": {
+      "$type": "color",
+      "$value": "#f2f1ed80",
+      "$extensions": {
+        "app.fieldwork.light": "#1414162e"
+      }
+    },
+    "finance": {
+      "$type": "color",
+      "$value": "#5fe0a4",
+      "$extensions": {
+        "app.fieldwork.light": "#13875a"
+      }
+    },
+    "communication": {
+      "$type": "color",
+      "$value": "#f3b862",
+      "$extensions": {
+        "app.fieldwork.light": "#b07015"
+      }
+    },
+    "judgment": {
+      "$type": "color",
+      "$value": "#a898ff",
+      "$extensions": {
+        "app.fieldwork.light": "#6552dc"
+      }
+    },
+    "review": {
+      "$type": "color",
+      "$value": "#7cc4ff",
+      "$extensions": {
+        "app.fieldwork.light": "#2877c0"
+      }
+    },
+    "life": {
+      "$type": "color",
+      "$value": "#ff8f70",
+      "$extensions": {
+        "app.fieldwork.light": "#d0532f"
+      }
+    },
+    "positive": {
+      "$type": "color",
+      "$value": "#5fe0a4",
+      "$extensions": {
+        "app.fieldwork.light": "#13875a"
+      }
+    },
+    "negative": {
+      "$type": "color",
+      "$value": "#ff7a66",
+      "$extensions": {
+        "app.fieldwork.light": "#d2432e"
+      }
+    },
+    "caution": {
+      "$type": "color",
+      "$value": "#f3b862",
+      "$extensions": {
+        "app.fieldwork.light": "#b07015"
+      }
+    },
+    "hatch": {
+      "$type": "color",
+      "$value": "#f2f1ed1a",
+      "$extensions": {
+        "app.fieldwork.light": "#1414161a"
+      }
+    }
+  },
+  "radius": {
+    "r-xs": {
+      "$type": "dimension",
+      "$value": "8px"
+    },
+    "r-sm": {
+      "$type": "dimension",
+      "$value": "11px"
+    },
+    "r": {
+      "$type": "dimension",
+      "$value": "14px"
+    },
+    "r-lg": {
+      "$type": "dimension",
+      "$value": "20px"
+    },
+    "r-xl": {
+      "$type": "dimension",
+      "$value": "28px"
+    }
+  },
+  "size": {
+    "gutter": {
+      "$type": "dimension",
+      "$value": "16px"
+    },
+    "rail": {
+      "$type": "dimension",
+      "$value": "76px"
+    },
+    "tabbar": {
+      "$type": "dimension",
+      "$value": "64px"
+    }
+  },
+  "duration": {
+    "t-fast": {
+      "$type": "duration",
+      "$value": "160ms"
+    },
+    "t": {
+      "$type": "duration",
+      "$value": "240ms"
+    },
+    "t-slow": {
+      "$type": "duration",
+      "$value": "420ms"
+    }
+  },
+  "easing": {
+    "ease": {
+      "$type": "cubicBezier",
+      "$value": [
+        0.2,
+        0.8,
+        0.2,
+        1
+      ]
+    },
+    "ease-in-out": {
+      "$type": "cubicBezier",
+      "$value": [
+        0.65,
+        0,
+        0.35,
+        1
+      ]
+    }
+  },
+  "font": {
+    "sans": {
+      "$type": "fontFamily",
+      "$value": "Instrument Sans"
+    },
+    "serif": {
+      "$type": "fontFamily",
+      "$value": "Newsreader"
+    },
+    "hyperlegible": {
+      "$type": "fontFamily",
+      "$value": "Atkinson Hyperlegible"
+    },
+    "dyslexic": {
+      "$type": "fontFamily",
+      "$value": "OpenDyslexic"
+    }
+  }
+}

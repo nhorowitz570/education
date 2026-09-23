@@ -120,6 +120,12 @@ describe('steering a week', () => {
     const last = edit(s, { op: 'track', track: 'communication', status: 'paused' });
     expect(last).toBe(s);
   });
+  it('keeps a new usual start time, and ignores a malformed one', () => {
+    const s = edit(base, { op: 'rhythm', days: { 0: 'finance' }, minutes: 45, start_local: '07:30' });
+    expect((s.plan as Rolling).horizon.rhythm.start_local).toBe('07:30');
+    const t = edit(s, { op: 'rhythm', days: { 0: 'finance' }, minutes: 45, start_local: '25:99' });
+    expect((t.plan as Rolling).horizon.rhythm.start_local).toBe('07:30');
+  });
   it('changes the rhythm for weeks still to come', () => {
     const s = edit(base, { op: 'rhythm', days: { 0: 'finance', 2: 'communication' }, minutes: 45 });
     const picks = planWeek(s.plan as Rolling, W2);

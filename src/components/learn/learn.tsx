@@ -8,7 +8,7 @@ import { Icon } from '@/components/icons';
 import { Sheet, dateLabel } from '@/components/ui';
 import { useApp } from '@/components/app/provider';
 import { useViewProps } from '@/components/app/legacy';
-import { Schedule } from '@/components/settings';
+import { Schedule } from './adjust';
 import { scheduled } from '@/lib/schedule';
 import type { Plan, Session } from '@/lib/plan';
 import { chapters, type ChapterName } from '@/lib/chapters';
