@@ -1,6 +1,6 @@
 import { NextResponse, after } from 'next/server';
 import { context, fail } from '@/lib/server/http';
-import { readState } from '@/lib/server/state';
+import { ensureHorizon } from '@/lib/server/horizon';
 import { activeRuns } from '@/lib/server/runs';
 import { carryOver, concepts, dueConcepts, mapCurriculum, states } from '@/lib/server/learner';
 import { today } from '@/lib/learning/today';
@@ -24,7 +24,8 @@ function progressOf(run: { cursor: number; beats: unknown[]; minutes_planned: nu
 export async function GET(r: Request) {
   try {
     const { user } = await context(r);
-    const state = await readState(user.id),
+    // Closes finished weeks and makes sure this one exists before reading it.
+    const state = await ensureHorizon(user.id),
       plan = state.plan,
       zone = plan?.schedule.timezone || 'America/Los_Angeles',
       now = new Date(),

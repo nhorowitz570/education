@@ -60,6 +60,7 @@ export type Activity = {
   requiredDays: string[]; // dates with a planned, non-optional session
   learningDay: boolean; // today has a planned session
   venture: boolean; // has a Venture company to play
+  weekly?: boolean; // a rolling plan: the streak counts weeks, not days
 };
 
 // ---------- Streak ----------
@@ -83,6 +84,29 @@ export function streak(a: Activity) {
   }
   return { current: run, best, todayDone: active.has(a.today) };
 }
+
+// A rolling plan's streak counts weeks: a week keeps it going once you've
+// learned on two days of it. A week with nothing planned (away) neither adds
+// nor breaks, and the current week never breaks it while it's still going.
+export function weeklyStreak(a: Activity) {
+  const active = new Set([...a.answers.map((e) => e.date), ...a.runs.map((r) => r.date)]);
+  const required = new Set(a.requiredDays);
+  const first = [...active].sort()[0];
+  if (!first) return { current: 0, best: 0, todayDone: false };
+  const now = mondayOf(a.today);
+  let run = 0,
+    best = 0;
+  for (let w = mondayOf(first); w <= now; w = addDays(w, 7)) {
+    const days = Array.from({ length: 7 }, (_, i) => addDays(w, i));
+    const learned = days.filter((d) => active.has(d)).length;
+    const planned = days.some((d) => required.has(d));
+    if (learned >= 2 || (learned >= 1 && !planned)) run++;
+    else if (w !== now && planned) run = 0;
+    best = Math.max(best, run);
+  }
+  return { current: run, best, todayDone: active.has(a.today) };
+}
+const mondayOf = (date: string) => addDays(date, -((new Date(date + 'T12:00:00Z').getUTCDay() + 6) % 7));
 
 export function addDays(date: string, n: number) {
   const t = new Date(date + 'T12:00:00Z');
@@ -142,11 +166,15 @@ function badges(a: Activity, s: { best: number }, level: number): Badge[] {
   const certainRight = a.answers.filter((e) => e.confidence === 'high' && (e.score ?? 0) >= 0.75).length;
   const sessions = a.runs.filter((r) => r.kind === 'session' || r.kind === 'return').length;
   const b = (id: string, label: string, detail: string, earned: boolean): Badge => ({ id, label, detail, earned });
+  // Streak badges stay earned however the streak is counted: a day streak
+  // earned before a plan went weekly still counts, so no XP is ever lost.
+  const days = streak(a).best,
+    weeks = a.weekly ? weeklyStreak(a).best : 0;
   return [
     b('first-session', 'First light', 'Finish your first session', sessions >= 1),
     b('ten-sessions', 'Regular', 'Finish 10 sessions', sessions >= 10),
-    b('streak-5', 'On a roll', 'A 5-day learning streak', s.best >= 5),
-    b('streak-20', 'Unbroken', 'A 20-day learning streak', s.best >= 20),
+    b('streak-5', 'On a roll', a.weekly ? '3 weeks in a row' : 'A 5-day learning streak', s.best >= 5 || days >= 5 || weeks >= 3),
+    b('streak-20', 'Unbroken', a.weekly ? '8 weeks in a row' : 'A 20-day learning streak', s.best >= 20 || days >= 20 || weeks >= 8),
     b('solid-25', 'Sharp', '25 solid answers', solid >= 25),
     b('calibrated-10', 'Knows what they know', '10 answers that were certain and correct', certainRight >= 10),
     b('honest', 'Honest start', 'Say “I don’t know yet” and learn it', a.answers.some((e) => e.unknown)),
@@ -191,7 +219,7 @@ export function progress(a: Activity) {
   }
   // Badges are worth XP too; their XP can lift the level, which can earn a
   // level badge, so settle in two passes.
-  const s = streak(a);
+  const s = a.weekly ? weeklyStreak(a) : streak(a);
   let earned = badges(a, s, levelOf(xp).level).filter((b) => b.earned).length;
   earned = badges(a, s, levelOf(xp + earned * XP.badge).level).filter((b) => b.earned).length;
   xp += earned * XP.badge;
@@ -200,7 +228,7 @@ export function progress(a: Activity) {
     xp,
     todayXp,
     ...lv,
-    streak: s,
+    streak: { ...s, unit: a.weekly ? ('week' as const) : ('day' as const) },
     quests: questsFor(a.today, a.learningDay, day(a.today), a.venture),
     badges: badges(a, s, lv.level),
   };

@@ -2,6 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 import { adminClient } from '@/lib/supabase/server';
 import type { Plan, Session } from '@/lib/plan';
+import { curriculumSessions } from '@/lib/rolling';
 import {
   fresh,
   update,
@@ -32,7 +33,7 @@ export const slug = (s: string) =>
 
 // Until the full concept graph exists, each session stands for its own idea.
 export function sessionConcepts(plan: Plan): Concept[] {
-  return plan.sessions.map((s, position) => ({
+  return curriculumSessions(plan).map((s, position) => ({
     key: slug(s.id),
     title: s.title,
     track: s.subject,
@@ -155,7 +156,8 @@ const mapSchema = z.object({
   ),
 });
 export async function mapCurriculum(userId: string, plan: Plan) {
-  const input = plan.sessions
+  const all = curriculumSessions(plan);
+  const input = all
     .filter((s) => !s.optional || !/optional|travel|maintenance/i.test(s.title))
     .map((s) => `${s.id} | ${s.date} | ${s.subject} | ${s.title} — ${s.objective.slice(0, 220)}`)
     .join('\n');
@@ -165,7 +167,7 @@ export async function mapCurriculum(userId: string, plan: Plan) {
     schema: mapSchema,
     input: `Plan: ${plan.title}\nGoals: ${plan.profile.goals.join('; ')}\n\nSessions (id | date | track | title — objective):\n${input}`,
   });
-  const valid = new Set(plan.sessions.map((s) => s.id));
+  const valid = new Set(all.map((s) => s.id));
   const keys = new Set<string>();
   const rows = data.concepts
     .map((c, position) => ({ ...c, key: slug(c.key), position }))

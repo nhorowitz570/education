@@ -11,6 +11,7 @@ import { generate } from '@/lib/ai/engine';
 import { calibration, level } from '@/lib/learning/model';
 import { scheduled } from '@/lib/schedule';
 import { dateInZone, instantFor } from '@/lib/plan';
+import { isRolling, weekMeta } from '@/lib/rolling';
 import type { Beat } from '@/lib/learning/run';
 import type { PracticeState } from './practice';
 import {
@@ -221,6 +222,14 @@ export async function measure(userId: string, week: { start: string; end: string
     reduced: state.attempts.filter((a) => a.date >= week.start && a.date <= week.end && a.reduced).length,
     optional_steps_taken: optionalTaken,
   };
+  // A rolling week that has closed sent its unfinished sessions back to their
+  // tracks; what it planned is kept on the week itself.
+  const closed = isRolling(plan) ? weekMeta(plan, week.start) : undefined;
+  if (closed?.status === 'done' && closed.planned !== undefined) {
+    schedule.planned = closed.planned;
+    schedule.completed = closed.done ?? schedule.completed;
+    schedule.missed = Math.max(0, closed.planned - (closed.done ?? 0));
+  }
 
   let conceptSummary: InsightMetrics['concepts'] = { total: 0, touched: 0, levels: {}, due: 0, new_misconceptions: [] };
   if (plan) {
@@ -349,7 +358,7 @@ const GUIDE = `Each grade is 0–100 on fixed anchors, the same every week:
 Grades:
  effort — time invested against what was planned, finishing what was started, thoughtfulness and length of written answers, retries after feedback, optional steps taken. Not correctness.
  engagement — active curiosity: questions asked of the tutor (and how deep: why/deeper vs simpler), highlighting passages, explorations, voluntary practice; skipping lowers it.
- consistency — showing up on planned days, spacing across the week, reviewing what was due.
+ consistency — finishing the week's planned sessions (on any day of the week), spacing across the week, reviewing what was due.
  understanding — quality of answers on new material (checks, explanations).
  retention — warm-up recalls and reviews of earlier ideas.
  transfer — applying ideas in changed situations and producing work.

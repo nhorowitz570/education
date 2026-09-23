@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { validRecord, validGymSettings } from './records';
-import { dateSchema, timeSchema, planSchema } from './plan';
+import { dateSchema, timeSchema, planSchema, trackIdSchema } from './plan';
+import { applyEdit } from './rolling';
 import type { AppState, UserRecord, Attempt } from './types';
 import {
   applyRevision,
@@ -82,6 +83,25 @@ export const commandSchema = z.discriminatedUnion('type', [
     reviewOf: z.string().uuid().optional(),
   }),
   z.object({
+    type: z.literal('plan-edit'),
+    eventId: z.string().uuid(),
+    today: dateSchema,
+    edit: z.discriminatedUnion('op', [
+      z.object({ op: z.literal('swap'), sessionId: z.string().max(100), topicId: z.string().max(100) }),
+      z.object({ op: z.literal('remove'), sessionId: z.string().max(100) }),
+      z.object({ op: z.literal('add'), week: dateSchema, track: trackIdSchema, day: z.number().int().min(0).max(6) }),
+      z.object({ op: z.literal('dismiss-suggestion'), week: dateSchema }),
+      z.object({ op: z.literal('steer'), week: dateSchema, note: z.string().max(600) }),
+      z.object({
+        op: z.literal('rhythm'),
+        days: z.record(z.string().regex(/^[0-6]$/), trackIdSchema),
+        minutes: z.number().int().min(10).max(240),
+      }),
+      z.object({ op: z.literal('track'), track: trackIdSchema, status: z.enum(['active', 'paused']) }),
+      z.object({ op: z.literal('move-topic'), track: trackIdSchema, topicId: z.string().max(100), to: z.number().int().min(0).max(500) }),
+    ]),
+  }),
+  z.object({
     type: z.literal('activate'),
     eventId: z.string().uuid(),
     plan: planSchema,
@@ -142,6 +162,11 @@ export function applyCommand(
             ),
           }
         : state;
+    case 'plan-edit': {
+      const next = applyEdit(state, c.edit, c.today);
+      // An edit must leave a valid plan, or it doesn't happen.
+      return next.plan && next !== state && !planSchema.safeParse(next.plan).success ? state : next;
+    }
     case 'activate':
       return {
         ...state,

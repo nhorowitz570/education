@@ -27,6 +27,7 @@ import { concepts, conceptsFor, describeState, dueConcepts, record, states } fro
 import { consolidate, memoryLayer, recall } from './memory';
 import { ventureLayer } from './venture';
 import type { Attempt } from '@/lib/types';
+import { sessionById } from '@/lib/rolling';
 
 type RunContext = {
   session_concepts?: string[];
@@ -105,7 +106,7 @@ async function tick(userId: string, row: RunRow) {
 }
 
 export function view(row: RunRow, plan?: Plan): RunView {
-  const s = row.session_id ? plan?.sessions.find((x) => x.id === row.session_id) : undefined;
+  const s = sessionById(plan, row.session_id);
   return {
     id: row.id,
     kind: row.kind,
@@ -433,7 +434,7 @@ export async function signal(userId: string, s: Signal) {
 async function layers(userId: string, row: RunRow, beat: Beat, at: number): Promise<{ layers: Layer[]; plan?: Plan; session?: Session }> {
   const state = await readState(userId),
     plan = state.plan,
-    session = row.session_id ? plan?.sessions.find((s) => s.id === row.session_id) : undefined;
+    session = sessionById(plan, row.session_id);
   const now = nowIso();
   // Memories are retrieved once per run; the topic does not change mid-session.
   let memories = row.context.memories;

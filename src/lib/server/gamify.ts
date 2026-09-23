@@ -4,6 +4,7 @@ import { readState } from './state';
 import { scheduled } from '@/lib/schedule';
 import { dateInZone } from '@/lib/plan';
 import { progress, type Activity } from '@/lib/gamify';
+import { isRolling, weekOf } from '@/lib/rolling';
 import type { Confidence } from '@/lib/learning/run';
 
 // Gathers everything XP is derived from: graded answers, finished runs and
@@ -45,9 +46,18 @@ export async function progressFor(userId: string, now = new Date()) {
         ),
       ]
     : [];
+  const done = new Set(state.attempts.map((a) => a.session_id));
+  const rolling = isRolling(plan);
+  // A closed week's unfinished sessions go back to their tracks, but the week
+  // still had them planned: it counts as a week that could break a streak.
+  if (rolling)
+    for (const w of plan.horizon.weeks) if ((w.planned || 0) > 0 && w.start <= today && !requiredDays.includes(w.start)) requiredDays.push(w.start);
+  // In a rolling week, a session still open from earlier in the week makes
+  // today a learning day too.
   const learningDay = !!plan?.sessions.some((s) => {
     const x = scheduled(s, state);
-    return x.date === today && !x.optional && x.status !== 'skipped' && x.status !== 'travel';
+    if (x.optional || x.status === 'skipped' || x.status === 'travel') return false;
+    return x.date === today || (rolling && !done.has(x.id) && x.date < today && weekOf(x.date) === weekOf(today));
   });
   return progress({
     today,
@@ -57,5 +67,6 @@ export async function progressFor(userId: string, now = new Date()) {
     requiredDays,
     learningDay,
     venture: !!venture?.state,
+    weekly: rolling,
   });
 }

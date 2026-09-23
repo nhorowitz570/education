@@ -146,10 +146,26 @@ export function Today() {
   const tiles = t.secondary.filter((s) => s.kind === 'review' || s.kind === 'rehearsal' || s.kind === 'practice');
   const recapped = t.phase === 'done-today' && d.recap;
 
-  const more = (d.insight || resume || d.exploring || tiles.length > 0) && (
+  const shape = t.next;
+  const more = (d.insight || resume || d.exploring || shape || tiles.length > 0) && (
     <section className="more" aria-label="More">
-      {(d.insight || resume || d.exploring) && (
+      {(d.insight || resume || d.exploring || shape) && (
         <div className="rows">
+          {shape && (
+            <Link href="/learn#next" className="row">
+              <span className="row-glyph">
+                <Icon name="calendar" size={18} />
+              </span>
+              <div className="grow">
+                <p>{shape.ready ? 'Next week is ready to shape' : 'Shape next week'}</p>
+                <p className="sub">
+                  {shape.ready ? shape.note || `${shape.sessions} sessions drafted. Change anything until Monday.` : 'Drafted Sunday at noon, or now if you like.'}
+                </p>
+              </div>
+              {shape.ready && <span className="new-dot" aria-label="New" />}
+              <Icon name="chevron" size={18} />
+            </Link>
+          )}
           {d.insight && (
             <Link href="/insights" className="row insight-row">
               <span className="row-glyph insight-glyph">
@@ -215,7 +231,7 @@ export function Today() {
       <header className="today-top">
         <p className="label">
           {dateLabel}
-          {t.week && t.phase !== 'before-start' ? ` · Week ${t.week.index} of ${t.week.total}` : ''}
+          {t.week && t.phase !== 'before-start' ? ` · Week ${t.week.index}${t.week.total ? ` of ${t.week.total}` : ''}` : ''}
         </p>
         <Link href="/you" className="page-you" aria-label="You and settings">
           {(name || 'You').slice(0, 1).toUpperCase()}
@@ -350,14 +366,18 @@ function Week({ t }: { t: TodayView }) {
   // What comes after today. The end-of-day card already says it, so the
   // week stays quiet then.
   const after = week.days.find((x) => x.status === 'planned' || x.status === 'reduced');
+  // Other sessions still open this week, besides the one on the card.
+  const alsoOpen = week.days.filter((x) => x.status === 'open' && x.title !== t.focus?.title);
   const note =
     t.phase === 'done-today'
       ? null
-      : after
-        ? `Next: ${after.weekday} · ${after.title}`
-        : t.phase === 'learning-day'
-          ? 'The last session this week.'
-          : 'Rest days count too.';
+      : alsoOpen.length
+        ? `Also open: ${alsoOpen.map((x) => x.weekday).join(', ')} · ${alsoOpen[0].title}`
+        : after
+          ? `Next: ${after.weekday} · ${after.title}`
+          : t.phase === 'learning-day'
+            ? 'The last session this week.'
+            : 'Rest days count too.';
   return (
     <div className="week">
       <div className="week-head">

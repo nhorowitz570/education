@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { answerXp, levelOf, progress, questsFor, streak, type Activity } from '@/lib/gamify';
+import { answerXp, levelOf, progress, questsFor, streak, weeklyStreak, type Activity } from '@/lib/gamify';
 
 const base: Activity = { today: '2026-10-08', answers: [], runs: [], ventureMonths: [], requiredDays: [], learningDay: true, venture: false };
 
@@ -62,5 +62,34 @@ describe('gamification', () => {
     expect(p.quests.find((q) => q.id === 'session')?.done).toBe(true);
     expect(p.badges.find((b) => b.id === 'first-session')?.earned).toBe(true);
     expect(p.todayXp).toBeGreaterThan(0);
+  });
+});
+
+describe('weekly streak', () => {
+  const a = (dates: string[], requiredDays: string[], today: string) => ({
+    today,
+    answers: dates.map((date) => ({ date, score: 1, kind: 'check' })),
+    runs: [],
+    ventureMonths: [],
+    requiredDays,
+    learningDay: false,
+    venture: false,
+    weekly: true,
+  });
+  it('counts weeks with two learning days, and a week away never breaks it', () => {
+    const s = weeklyStreak(a(['2026-09-28', '2026-09-30', '2026-10-13', '2026-10-15'], ['2026-09-28', '2026-10-12'], '2026-10-16'));
+    expect(s.current).toBe(2);
+  });
+  it('breaks on a planned week with less than two days, but not while the week is still going', () => {
+    const broken = weeklyStreak(a(['2026-09-28', '2026-09-30', '2026-10-06'], ['2026-09-28', '2026-10-05'], '2026-10-13'));
+    expect(broken.current).toBe(0);
+    const going = weeklyStreak(a(['2026-09-28', '2026-09-30', '2026-10-06'], ['2026-09-28', '2026-10-05'], '2026-10-07'));
+    expect(going.current).toBe(1);
+  });
+  it('keeps a streak badge earned the old, daily way', () => {
+    const days = Array.from({ length: 5 }, (_, i) => `2026-09-${28 + i > 30 ? '0' : ''}${28 + i > 30 ? 28 + i - 30 : 28 + i}`.replace('-09-0', '-10-0'));
+    const p = progress(a(days, [], '2026-10-02'));
+    expect(p.badges.find((b) => b.id === 'streak-5')?.earned).toBe(true);
+    expect(p.streak.unit).toBe('week');
   });
 });

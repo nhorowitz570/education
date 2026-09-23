@@ -58,7 +58,64 @@ export const sessionSchema = z.object({
   source_ids: z.array(id).max(30),
   prerequisite_ids: z.array(id).max(30),
   generation_instructions: bounded,
+  // Rolling plans: a topic the AI proposed that wasn't in the plan, and why
+  // this session was chosen for the week.
+  added: z.boolean().optional(),
+  why: z.string().max(400).optional(),
 });
+
+// ---------- Rolling plans ----------
+// Only the coming week is concrete. Beyond it are tracks: a direction, goals,
+// and an ordered list of topics that weeks are drawn from.
+export const trackIdSchema = z.string().regex(/^[a-z0-9][a-z0-9-]{0,39}$/);
+export const topicSchema = z.object({
+  id,
+  title: z.string().min(1).max(300),
+  objective: bounded,
+  evidence: bounded,
+  source_ids: z.array(id).max(30),
+  generation_instructions: bounded,
+  minutes: z.number().int().min(5).max(240).optional(),
+  added: z.boolean().optional(),
+});
+export const trackSchema = z.object({
+  id: trackIdSchema,
+  title: z.string().min(1).max(60),
+  why: z.string().max(600),
+  goals: z.array(z.string().max(300)).max(10),
+  status: z.enum(['active', 'paused']),
+  backlog: z.array(topicSchema).max(500),
+});
+export const weekMetaSchema = z.object({
+  start: dateSchema,
+  status: z.enum(['draft', 'active', 'done']),
+  origin: z.enum(['import', 'planner', 'ai']),
+  generated_at: z.string().max(40),
+  note: z.string().max(400).optional(),
+  steer: z.string().max(600).optional(),
+  suggestion: z
+    .object({ extra: z.number().int().min(1).max(2), track: trackIdSchema.nullable(), why: z.string().max(300) })
+    .nullable()
+    .optional(),
+  planned: z.number().int().min(0).max(50).optional(),
+  done: z.number().int().min(0).max(50).optional(),
+});
+export const horizonSchema = z.object({
+  version: z.literal(1),
+  rhythm: z.object({
+    // Weekday (0 = Monday) to track: the same day always means the same thing.
+    days: z.record(z.string().regex(/^[0-6]$/), trackIdSchema),
+    minutes: z.number().int().min(10).max(240),
+    start_local: timeSchema,
+  }),
+  tracks: z.array(trackSchema).min(1).max(12),
+  weeks: z.array(weekMetaSchema).max(260),
+});
+export type Horizon = z.infer<typeof horizonSchema>;
+export type Track = z.infer<typeof trackSchema>;
+export type Topic = z.infer<typeof topicSchema>;
+export type WeekMeta = z.infer<typeof weekMetaSchema>;
+
 export const planSchema = z
   .object({
     schema_version: z.literal('1.0'),
@@ -109,16 +166,19 @@ export const planSchema = z
       )
       .min(1)
       .max(104),
-    sessions: z.array(sessionSchema).min(1).max(1000),
+    sessions: z.array(sessionSchema).max(1000),
     growth: extensions,
     adaptation: extensions,
     milestones: z
       .array(z.object({ date: dateSchema, title: z.string().min(1).max(300) }))
       .max(30),
+    horizon: horizonSchema.optional(),
   })
   .superRefine((p, ctx) => {
     const err = (message: string, path: (string | number)[] = []) =>
       ctx.addIssue({ code: 'custom', message, path });
+    // A rolling plan can be between weeks (say, away) with nothing scheduled.
+    if (!p.sessions.length && !p.horizon) err('A plan needs at least one session.', ['sessions']);
     if (p.end_date < p.start_date)
       err('The end date must follow the start date.', ['end_date']);
     if (p.schedule.end_local <= p.schedule.start_local)
@@ -162,6 +222,21 @@ export const planSchema = z
     };
     if (p.sessions.some((s) => visit(s.id)))
       err('Prerequisites contain a cycle.', ['sessions']);
+    if (p.horizon) {
+      const h = p.horizon,
+        tracks = new Set(h.tracks.map((t) => t.id));
+      if (tracks.size !== h.tracks.length) err('Track IDs must be unique.', ['horizon', 'tracks']);
+      if (!Object.keys(h.rhythm.days).length) err('Choose at least one learning day.', ['horizon', 'rhythm']);
+      if (Object.values(h.rhythm.days).some((t) => !tracks.has(t)))
+        err('A learning day points at an unknown track.', ['horizon', 'rhythm']);
+      const topics = h.tracks.flatMap((t) => t.backlog.map((x) => x.id));
+      if (new Set(topics).size !== topics.length) err('Topic IDs must be unique.', ['horizon', 'tracks']);
+      if (topics.some((t) => sessions.has(t))) err('A topic is both scheduled and waiting.', ['horizon', 'tracks']);
+      if (new Set(h.weeks.map((w) => w.start)).size !== h.weeks.length) err('Weeks must be unique.', ['horizon', 'weeks']);
+      h.weeks.forEach((w, i) => {
+        if (Temporal.PlainDate.from(w.start).dayOfWeek !== 1) err('A week starts on Monday.', ['horizon', 'weeks', i]);
+      });
+    }
   });
 export type Plan = z.infer<typeof planSchema>;
 export type Session = z.infer<typeof sessionSchema>;

@@ -14,7 +14,8 @@ export async function POST(request: Request) {
           'The activity time is in the future. Check your device clock.',
         );
     }
-    if (['shorten', 'recover', 'undo'].includes(command.type)) {
+    // The server's own date decides what can still change.
+    if (['shorten', 'recover', 'undo', 'plan-edit'].includes(command.type)) {
       const s = await readState(user.id);
       if ('today' in command)
         command.today = dateInZone(

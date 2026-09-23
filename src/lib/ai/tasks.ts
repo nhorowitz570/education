@@ -32,6 +32,7 @@ export const TASKS = {
   'practice.partner': { tier: 'primary', effort: 'none', verbosity: 'low', maxOutput: 700 },
   'practice.brief': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 1800 },
   'practice.feedback': { tier: 'primary', effort: 'medium', verbosity: 'low', maxOutput: 2200, escalate: 'reasoning' },
+  'plan.week': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 2500 },
   'sources.find': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 1500 },
   'import.markdown': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 32000 },
   // Astra: rare, genuinely hard reasoning.

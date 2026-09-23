@@ -10,6 +10,7 @@ import { MODES, type Mode } from '@/lib/practice/harness';
 import { Icon } from '@/components/icons';
 import { fresh, projected, type Calibration, type ConceptState } from '@/lib/learning/model';
 import type { RunView } from '@/lib/learning/run';
+import { curriculumSessions } from '@/lib/rolling';
 
 type Concept = {
   key: string;
@@ -357,7 +358,7 @@ function KnowledgeMap({ concepts, onPick, ahead = false }: { concepts: Concept[]
   // Time runs left to right: each concept sits at its first session.
   const order = useMemo(() => {
     const m = new Map<string, number>();
-    (w.state.plan?.sessions || []).forEach((s, i) => m.set(s.id, i));
+    (w.state.plan ? curriculumSessions(w.state.plan) : []).forEach((s, i) => m.set(s.id, i));
     return m;
   }, [w.state.plan]);
   const when = (c: Concept) => Math.min(...c.sessions.map((s) => order.get(s) ?? c.position), Number.MAX_SAFE_INTEGER);

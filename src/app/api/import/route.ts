@@ -13,6 +13,8 @@ import { readState, mutate } from '@/lib/server/state';
 import { generate } from '@/lib/ai/engine';
 import { skeletonSchema, expand } from '@/lib/import/skeleton';
 import { markdownHints } from '@/lib/markdown';
+import { dateInZone } from '@/lib/plan';
+import { toRolling } from '@/lib/rolling';
 // Long Markdown plans take a while to read.
 export const maxDuration = 300;
 export async function POST(r: Request) {
@@ -61,8 +63,15 @@ export async function POST(r: Request) {
       }
     }
     if (!plan) throw new HttpError('Review a plan before activation.');
-    const state = await readState(user.id),
-      diff = planDiff(state.plan, plan);
+    const state = await readState(user.id);
+    // Every plan runs a week at a time: only its first week is scheduled, the
+    // rest becomes each track's list. Work already done on this plan stays.
+    const same = state.plan?.plan_id === plan.plan_id;
+    plan = toRolling(plan, {
+      today: dateInZone(plan.schedule.timezone),
+      keep: new Set(same ? state.attempts.map((a) => a.session_id) : []),
+    });
+    const diff = planDiff(state.plan, plan);
     if (v.action === 'preview')
       return NextResponse.json({ plan, diff, uncertain });
     const hash = createHash('sha256').update(canonical(plan)).digest('hex'),

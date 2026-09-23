@@ -13,6 +13,8 @@ import { scheduled } from '@/lib/schedule';
 import type { Plan, Session } from '@/lib/plan';
 import { chapters, type ChapterName } from '@/lib/chapters';
 import type { RunView } from '@/lib/learning/run';
+import { isRolling } from '@/lib/rolling';
+import { RollingLearn } from './rolling';
 
 type Concept = { key: string; title: string; track: string; strength: number; level: string; sessions: string[]; misconceptions: string[] };
 type Status = 'done' | 'today' | 'planned' | 'missed' | 'skipped' | 'travel' | 'reduced';
@@ -26,7 +28,7 @@ export function Learn() {
   const props = useViewProps(setModal);
   const [open, setOpen] = useState<Session | null>(null);
   const { data } = useCached<{ concepts: Concept[] }>(plan ? '/api/mastery' : null, user.id);
-  const { data: named } = useCached<{ names: ChapterName[] }>(plan ? '/api/chapters' : null, user.id);
+  const { data: named } = useCached<{ names: ChapterName[] }>(plan && !isRolling(plan) ? '/api/chapters' : null, user.id);
   const done = useMemo(() => new Set(w.state.attempts.map((a) => a.session_id)), [w.state.attempts]);
   const weeks = useMemo<Week[]>(() => {
     if (!plan) return [];
@@ -77,6 +79,9 @@ export function Learn() {
     const cs = (data?.concepts || []).filter((c) => c.sessions.includes(s.id));
     return cs.length ? cs.reduce((a, c) => a + c.strength, 0) / cs.length : null;
   };
+
+  // A plan that runs a week at a time has its own page: weeks, not chapters.
+  if (isRolling(plan)) return <RollingLearn plan={plan} concepts={data?.concepts || []} />;
 
   if (!plan)
     return (

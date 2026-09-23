@@ -8,6 +8,7 @@ import {
   MAX_IMPORT_BYTES,
 } from '@/lib/plan';
 import { EMPTY_TEMPLATE } from '@/lib/seed';
+import { DAY_NAMES, dayIndex, isRolling, slots, toRolling, weekSessions } from '@/lib/rolling';
 import { api } from '@/lib/client/api';
 import type { AppState } from '@/lib/types';
 import type { ViewProps } from './app/legacy';
@@ -38,7 +39,7 @@ export function ImportView(p: ViewProps) {
       let parsed: Plan,
         issues: string[] = [];
       if (p.config.demo) {
-        parsed = parsePlan(text);
+        parsed = toRolling(parsePlan(text), { today: p.today });
       } else {
         const result = await api<{ plan: Plan; uncertain: string[] }>(
           '/api/import',
@@ -116,7 +117,7 @@ export function ImportView(p: ViewProps) {
               <Icon name="check" />
             </span>
             <h2>{plan?.title}</h2>
-            <p>{plan?.sessions.length} sessions · private to your account</p>
+            <p>Your first week is ready · private to your account</p>
             <Button onClick={() => p.go('today')}>
               Go to Today
               <Icon name="arrow" />
@@ -165,15 +166,17 @@ export function ImportView(p: ViewProps) {
               <h2>{plan.title}</h2>
               <div className="import-facts">
                 <div>
-                  <small>Dates</small>
-                  <strong>
-                    {dateLabel(plan.start_date)} – {dateLabel(plan.end_date)}
-                  </strong>
+                  <small>Starts</small>
+                  <strong>{dateLabel(plan.start_date)}</strong>
                 </div>
                 <div>
                   <small>Learning rhythm</small>
                   <strong>
-                    {plan.weeks.length} weeks · {plan.sessions.length} sessions
+                    {isRolling(plan)
+                      ? slots(plan.horizon)
+                          .map((x) => `${DAY_NAMES[x.day].slice(0, 3)} ${plan.horizon.tracks.find((t) => t.id === x.track)?.title}`)
+                          .join(' · ')
+                      : `${plan.weeks.length} weeks · ${plan.sessions.length} sessions`}
                   </strong>
                 </div>
                 <div>
@@ -188,22 +191,44 @@ export function ImportView(p: ViewProps) {
                 </div>
               </div>
             </section>
-            <div className="row wrap">
-              {[...new Set(plan.sessions.map((s) => s.subject))].map((s) => (
-                <Pill key={s}>{s}</Pill>
-              ))}
-            </div>
-            <div className="callout white-box">
-              <h3>{p.w.state.plan ? 'What changes' : 'What comes with it'}</h3>
-              <p>
-                {diff?.added} new sessions · {diff?.changed} changed ·{' '}
-                {diff?.removed} removed from the schedule.
-              </p>
-              <p>
-                Completed work stays in your history. Growth habits and
-                milestones travel with the plan.
-              </p>
-            </div>
+            {isRolling(plan) ? (
+              <>
+                <div className="callout white-box">
+                  <h3>Your first week</h3>
+                  <ol className="import-week">
+                    {weekSessions(plan, plan.horizon.weeks.find((w) => w.status !== 'done')?.start || plan.start_date).map((s) => (
+                      <li key={s.id}>
+                        <small>{DAY_NAMES[dayIndex(s.date)]}</small>
+                        <strong>{s.title}</strong>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="callout white-box">
+                  <h3>Beyond that, a direction</h3>
+                  <p>
+                    Only the first week is scheduled. Everything else waits in{' '}
+                    {plan.horizon.tracks.length} tracks, in the order you wrote it, and each week is drafted
+                    on Sunday from what you’ve learned so far. You can change any week until its Monday.
+                  </p>
+                  <div className="row wrap">
+                    {plan.horizon.tracks.map((t) => (
+                      <Pill key={t.id}>
+                        {t.title} · {t.backlog.length} topics
+                      </Pill>
+                    ))}
+                  </div>
+                  <p>Completed work stays in your history. Milestones travel with the plan.</p>
+                </div>
+              </>
+            ) : (
+              <div className="callout white-box">
+                <h3>{p.w.state.plan ? 'What changes' : 'What comes with it'}</h3>
+                <p>
+                  {diff?.added} new sessions · {diff?.changed} changed · {diff?.removed} removed from the schedule.
+                </p>
+              </div>
+            )}
             {(uncertain.length > 0 ||
               plan.schedule.travel_window?.dates_confirmed === false) && (
               <div className="callout peach">

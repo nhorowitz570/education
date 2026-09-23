@@ -39,7 +39,7 @@ export function ProgressStrip({ progress }: { progress: Progress }) {
             {done}/{p.quests.length}
           </span>
         </span>
-        <Streak n={p.streak.current} lit={p.streak.todayDone} />
+        <Streak n={p.streak.current} lit={p.streak.todayDone} unit={p.streak.unit} />
       </button>
       {open && <ProgressSheet progress={p} onClose={() => setOpen(false)} />}
     </>
@@ -67,11 +67,16 @@ export function LevelRing({ level, fill, size = 52 }: { level: number; fill: num
   );
 }
 
-export function Streak({ n, lit }: { n: number; lit: boolean }) {
+export function Streak({ n, lit, unit = 'day' }: { n: number; lit: boolean; unit?: 'day' | 'week' }) {
   return (
-    <span className={'streak' + (lit ? ' lit' : '')} aria-label={`${n}-day streak${lit ? '' : ', not yet extended today'}`}>
+    <span
+      className={'streak' + (lit ? ' lit' : '')}
+      aria-label={`${n}-${unit} streak${lit ? '' : ', not yet extended today'}`}
+      title={unit === 'week' ? `${n} week${n === 1 ? '' : 's'} in a row` : `${n} day${n === 1 ? '' : 's'} in a row`}
+    >
       <Icon name="flame" size={20} />
       <b className="num">{n}</b>
+      {unit === 'week' && <small className="streak-unit">wk</small>}
     </span>
   );
 }
@@ -120,7 +125,15 @@ function ProgressSheet({ progress, onClose }: { progress: Progress; onClose: () 
         ))}
       </div>
       <p className="label">
-        Best streak: <span className="num">{p.streak.best}</span> learning days. Days without a planned session never break a streak.
+        {p.streak.unit === 'week' ? (
+          <>
+            Best streak: <span className="num">{p.streak.best}</span> weeks. A week counts once you’ve learned on two days of it; a week away never breaks it.
+          </>
+        ) : (
+          <>
+            Best streak: <span className="num">{p.streak.best}</span> learning days. Days without a planned session never break a streak.
+          </>
+        )}
       </p>
     </Sheet>
   );
@@ -146,7 +159,7 @@ export function SessionReward({ earned, progress }: { earned: number; progress: 
           {levelled ? `Level up! You’re now level ${progress.level}, ${progress.rank}.` : `Level ${progress.level} · ${progress.next - progress.xp} XP to the next`}
         </p>
       </div>
-      <Streak n={progress.streak.current} lit={progress.streak.todayDone} />
+      <Streak n={progress.streak.current} lit={progress.streak.todayDone} unit={progress.streak.unit} />
     </section>
   );
 }

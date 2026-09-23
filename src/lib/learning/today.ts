@@ -2,6 +2,7 @@ import { Temporal } from '@js-temporal/polyfill';
 import type { Plan } from '@/lib/plan';
 import type { AppState } from '@/lib/types';
 import { scheduled } from '@/lib/schedule';
+import { addDays, dayIndex, isRolling, nextWeek, weekMeta, weekOf, weekSessions } from '@/lib/rolling';
 
 export type Action = {
   kind: 'resume' | 'session' | 'review' | 'return' | 'explore' | 'practice' | 'rehearsal';
@@ -16,7 +17,8 @@ export type Action = {
 export type DayMark = {
   date: string;
   weekday: string;
-  status: 'done' | 'planned' | 'today' | 'missed' | 'skipped' | 'travel' | 'reduced' | 'rest';
+  // open: a rolling week's earlier session, still there to do this week.
+  status: 'done' | 'planned' | 'today' | 'missed' | 'open' | 'skipped' | 'travel' | 'reduced' | 'rest';
   track?: string;
   title?: string;
 };
@@ -32,6 +34,8 @@ export type TodayView = {
   due: { count: number; minutes: number };
   milestone: { title: string; date: string; days: number } | null;
   startsIn: number | null;
+  // Rolling plans: next week, once there's something to shape.
+  next: { start: string; ready: boolean; sessions: number; note?: string } | null;
 };
 
 const dayName = (d: string) => Temporal.PlainDate.from(d).toLocaleString('en-US', { weekday: 'short' });
@@ -85,20 +89,34 @@ export function today(input: {
       due,
       milestone: null,
       startsIn: null,
+      next: null,
     };
 
+  const rolling = isRolling(plan);
   const done = new Set(state.attempts.map((a) => a.session_id));
   const sessions = plan.sessions
     .map((s) => scheduled(s, state))
     .sort((a, b) => a.date.localeCompare(b.date) || a.start_local.localeCompare(b.start_local));
   const upcoming = sessions.filter((s) => !done.has(s.id) && s.status !== 'skipped');
-  const todays = upcoming.find((s) => s.date === date && s.status !== 'travel');
+  // In a rolling week, a session not done on its day stays open all week:
+  // today's own session leads, then the earliest one still open.
+  const thisWeek = weekOf(date);
+  const open = rolling ? upcoming.filter((s) => !s.optional && s.date < date && weekOf(s.date) === thisWeek) : [];
+  const todays = upcoming.find((s) => s.date === date && s.status !== 'travel') || open[0];
+  const catchUp = !!todays && todays.date < date;
   const doneToday = sessions.some((s) => s.date === date && done.has(s.id));
   const next = upcoming.find((s) => s.date >= date && !s.optional);
-  const missed = sessions.filter(
-    (s) => s.date < date && s.date >= plan.start_date && !s.optional && !done.has(s.id) && !['skipped', 'travel'].includes(s.status),
-  );
-  const returning = missed.length >= 2;
+  const missed = rolling
+    ? []
+    : sessions.filter(
+        (s) => s.date < date && s.date >= plan.start_date && !s.optional && !done.has(s.id) && !['skipped', 'travel'].includes(s.status),
+      );
+  // A rolling plan has no backlog of misses; ten quiet days is what makes a
+  // gentle return worthwhile.
+  const last = state.attempts.reduce((m, a) => (a.date > m ? a.date : m), '');
+  const returning = rolling
+    ? date >= addDays(plan.start_date, 10) && (last || plan.start_date) <= addDays(date, -10)
+    : missed.length >= 2;
 
   // The current week strip (Mon–Sun containing today, or the first week).
   const anchor = date < plan.start_date ? plan.start_date : date;
@@ -122,13 +140,25 @@ export function today(input: {
             : d === date
               ? 'today'
               : d < date
-                ? 'missed'
+                ? rolling && d >= thisWeek
+                  ? 'open'
+                  : 'missed'
                 : s.status === 'reduced'
                   ? 'reduced'
                   : 'planned',
     });
   }
-  const weekIndex = Math.max(0, Math.floor(between(plan.start_date, monday.toString()) / 7));
+  const weekIndex = rolling
+    ? Math.max(0, plan.horizon.weeks.filter((w) => w.start <= monday.toString() && weekSessions(plan, w.start).length).length - 1)
+    : Math.max(0, Math.floor(between(plan.start_date, monday.toString()) / 7));
+  const coming = rolling ? weekMeta(plan, nextWeek(date)) : undefined;
+  const nextShape: TodayView['next'] = rolling
+    ? coming?.status === 'draft'
+      ? { start: coming.start, ready: true, sessions: weekSessions(plan, coming.start).length, note: coming.note }
+      : !coming && dayIndex(date) >= 4
+        ? { start: nextWeek(date), ready: false, sessions: 0 }
+        : null
+    : null;
   const weekPlanned = days.filter((d) => d.track && !['skipped', 'travel', 'rest'].includes(d.status));
   const milestone = plan.milestones
     .filter((m) => m.date >= date)
@@ -148,9 +178,11 @@ export function today(input: {
   const focusSession = todays || next;
   const base = {
     greeting: greetingFor(hour, plan.profile.name),
+    next: nextShape,
     week: {
       index: weekIndex + 1,
-      total: plan.weeks.length,
+      // A rolling plan has no fixed number of weeks.
+      total: rolling ? 0 : plan.weeks.length,
       days,
       done: weekPlanned.filter((d) => d.status === 'done').length,
       planned: weekPlanned.length,
@@ -204,7 +236,9 @@ export function today(input: {
       headline: returning ? 'Ease back in.' : todays.title,
       why: returning
         ? 'A couple of mornings slipped. Twenty minutes restarts the thread; nothing piles up.'
-        : todays.status === 'reduced'
+        : catchUp
+          ? `Still open from ${Temporal.PlainDate.from(todays.date).toLocaleString('en-US', { weekday: 'long' })} · ${cap(todays.subject)} · ${minutes} min`
+          : todays.status === 'reduced'
           ? `A shorter session today · ${minutes} min`
           : `${cap(todays.subject)} · ${minutes} min${input.dueCount ? ` · starts with ${Math.min(2, input.dueCount)} quick recall${input.dueCount > 1 ? 's' : ''}` : ''}`,
       primary: {
