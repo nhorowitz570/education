@@ -4,7 +4,7 @@ import { readState } from '@/lib/server/state';
 import { activeRuns } from '@/lib/server/runs';
 import { carryOver, concepts, dueConcepts, mapCurriculum, states } from '@/lib/server/learner';
 import { today } from '@/lib/learning/today';
-import { outline } from '@/lib/learning/outline';
+import { preview as planPreview, type Familiarity } from '@/lib/learning/planner';
 import { strength } from '@/lib/learning/model';
 import { conceptsFor } from '@/lib/server/learner';
 import { dateInZone } from '@/lib/plan';
@@ -12,6 +12,14 @@ import { voiceReady } from '@/lib/ai/env';
 import { adminClient } from '@/lib/supabase/server';
 
 const mapping = new Set<string>();
+
+// How far through a session is: by time for adaptive sessions, whose steps
+// are planned as they go, and by steps otherwise.
+function progressOf(run: { cursor: number; beats: unknown[]; minutes_planned: number | null; context: { adaptive?: boolean; clock?: { active_ms: number } } }) {
+  if (run.context?.adaptive && run.context.clock)
+    return Math.min(0.95, run.context.clock.active_ms / 60000 / (run.minutes_planned || 60));
+  return run.beats.length ? run.cursor / run.beats.length : 0;
+}
 
 export async function GET(r: Request) {
   try {
@@ -67,29 +75,39 @@ export async function GET(r: Request) {
             title: run.title,
             session_id: run.session_id,
             updated_at: run.updated_at,
-            progress: run.beats.length ? run.cursor / run.beats.length : 0,
+            progress: progressOf(run),
           }
         : null,
     });
-    // The shape of the next session, so Today can show what the morning holds.
+    // The likely shape of the next session, so Today can show what the
+    // morning holds. The real session adapts as it goes.
     let preview: { type: string; minutes: number; optional?: boolean }[] = [];
     const p = view.primary;
     if (plan && p?.sessionId && (p.kind === 'session' || p.kind === 'return')) {
       const session = plan.sessions.find((s) => s.id === p.sessionId);
       if (session) {
         const keys = conceptsFor(session, graph.list).map((c) => c.key);
-        const known = keys.length
-          ? keys.reduce((s, k) => s + (learned.get(k) ? strength(learned.get(k)!, now.toISOString()) : 0), 0) / keys.length
-          : 0;
-        preview = outline({
+        const familiarity: Record<string, Familiarity> = {};
+        for (const k of keys) {
+          const s = learned.get(k);
+          if (s?.exposures) familiarity[k] = strength(s, now.toISOString()) >= 0.75 ? 'fluent' : 'familiar';
+        }
+        preview = planPreview({
           kind: p.kind === 'return' ? 'return' : 'session',
           minutes: p.minutes || session.duration_minutes,
           track: session.subject,
           concepts: keys,
-          known,
-          dueReviews: due.filter((k) => !keys.includes(k)),
+          familiarity,
+          dueReviews: due.filter((k) => !keys.includes(k)).slice(0, 3),
+          ahead: [],
           voice: voiceReady(),
-        }).map(({ type, minutes, optional }) => ({ type, minutes, optional }));
+        })
+          .filter((s) => s.type !== 'gauge')
+          .map(({ type, minutes }) => ({ type, minutes }));
+        // The session fills its time, so show the shape at the planned length.
+        const budget = p.minutes || session.duration_minutes,
+          sum = preview.reduce((n, s) => n + s.minutes, 0);
+        if (sum > 0) preview = preview.map((s) => ({ ...s, minutes: (s.minutes * budget) / sum }));
       }
     }
     const headline = (insight?.report as { headline?: string } | null)?.headline;

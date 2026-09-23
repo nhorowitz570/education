@@ -1,0 +1,968 @@
+/* Venture: a game inside the app. Pixel art and pixel type for the game's
+   frame (scene, HUD, buttons, labels); the app's own type for anything worth
+   reading closely (stories, debriefs, the books). Colours come from the app's
+   tokens, so light and dark both work. */
+.venture-root {
+  --px: 3px;
+  --px-edge: var(--line-3);
+  --px-ink: color-mix(in srgb, var(--text) 85%, transparent);
+  --gold: var(--caution);
+  --pixel: var(--font-pixel), var(--sans);
+  --pixel-body: var(--font-pixel-body), var(--sans);
+}
+.px-font {
+  font-family: var(--pixel);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+
+/* Notched pixel border: four offset shadows, no rounded corners. */
+.px-box {
+  position: relative;
+  margin: var(--px);
+  padding: 18px;
+  background: var(--raised);
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--px-edge),
+    0 var(--px) 0 0 var(--px-edge),
+    calc(-1 * var(--px)) 0 0 0 var(--px-edge),
+    var(--px) 0 0 0 var(--px-edge),
+    inset 0 var(--px) 0 0 color-mix(in srgb, var(--text) 5%, transparent);
+}
+.px-frame {
+  position: relative;
+  margin: var(--px);
+  background: #0b1030;
+  box-shadow:
+    0 calc(-1 * var(--px)) 0 0 var(--px-ink),
+    0 var(--px) 0 0 var(--px-ink),
+    calc(-1 * var(--px)) 0 0 0 var(--px-ink),
+    var(--px) 0 0 0 var(--px-ink),
+    0 calc(var(--px) * 4) 0 0 color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+.px-scene {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+.px-portrait {
+  flex: none;
+  image-rendering: pixelated;
+  background: color-mix(in srgb, var(--gold) 22%, var(--surface));
+  box-shadow: 0 0 0 2px var(--px-ink);
+}
+
+/* Chunky buttons with a pressable lip. */
+.px-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  font-family: var(--pixel);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text);
+  background: var(--surface-2);
+  box-shadow:
+    inset 0 -4px 0 0 color-mix(in srgb, #000 22%, transparent),
+    0 0 0 2px var(--px-ink);
+  transition: transform 80ms steps(2), filter var(--t-fast);
+  cursor: pointer;
+}
+.px-btn:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+.px-btn:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow:
+    inset 0 -2px 0 0 color-mix(in srgb, #000 22%, transparent),
+    0 0 0 2px var(--px-ink);
+}
+.px-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.px-btn.primary {
+  background: var(--gold);
+  color: #1b1408;
+}
+.px-btn.big {
+  min-height: 56px;
+  padding: 0 26px;
+  font-size: 14px;
+}
+.px-btn.small {
+  min-height: 32px;
+  min-width: 32px;
+  padding: 0 8px;
+  font-size: 14px;
+}
+.px-btn.blink {
+  animation: px-blink 1.2s steps(2) infinite;
+}
+@keyframes px-blink {
+  50% {
+    filter: brightness(1.2);
+  }
+}
+.px-btn[data-busy='true'] {
+  animation: px-blink 0.6s steps(2) infinite;
+}
+
+/* ---------- Loading screen ---------- */
+.vl {
+  display: grid;
+  place-items: center;
+  min-height: calc(100dvh - 120px);
+  padding: 24px var(--gutter);
+  text-align: center;
+}
+.vl-inner {
+  display: grid;
+  justify-items: center;
+  gap: 18px;
+  width: min(100%, 460px);
+}
+.vl-logo,
+.vo-logo {
+  font-family: var(--pixel);
+  font-size: clamp(40px, 9vw, 72px);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--gold);
+  text-shadow:
+    4px 4px 0 color-mix(in srgb, var(--gold) 35%, #000),
+    8px 8px 0 color-mix(in srgb, var(--text) 10%, transparent);
+}
+.vl-walker {
+  position: relative;
+  width: 100%;
+  height: 30px;
+  overflow: hidden;
+}
+/* A pixel person, drawn with box-shadows, walking across. */
+.vl-walker i {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 3px;
+  height: 3px;
+  color: var(--text);
+  box-shadow:
+    3px 0 #4a3222, 6px 0 #4a3222,
+    3px 3px #e2b08c, 6px 3px #e2b08c,
+    0 6px var(--gold), 3px 6px var(--gold), 6px 6px var(--gold), 9px 6px var(--gold),
+    0 9px var(--gold), 3px 9px var(--gold), 6px 9px var(--gold), 9px 9px var(--gold),
+    3px 12px #2d3350, 6px 12px #2d3350,
+    3px 15px #2d3350, 6px 15px #2d3350,
+    0 18px #2d3350, 9px 18px #2d3350;
+  animation:
+    vl-walk 3.2s linear infinite,
+    vl-bob 0.32s steps(2) infinite;
+}
+@keyframes vl-walk {
+  from {
+    transform: translateX(-20px);
+  }
+  to {
+    transform: translateX(480px);
+  }
+}
+@keyframes vl-bob {
+  50% {
+    top: 3px;
+  }
+}
+.vl-bar {
+  display: grid;
+  grid-template-columns: repeat(20, 1fr);
+  gap: 3px;
+  width: 100%;
+  padding: 5px;
+  box-shadow: 0 0 0 3px var(--px-ink);
+}
+.vl-bar i {
+  height: 14px;
+  background: var(--surface-2);
+  transition: background 120ms steps(1);
+}
+.vl-bar i.on {
+  background: var(--gold);
+}
+.vl-state {
+  color: var(--text-2);
+}
+.vl-tip {
+  font-family: var(--pixel-body);
+  font-size: 17px;
+  color: var(--text-2);
+  max-width: 34ch;
+}
+
+/* ---------- Onboarding ---------- */
+.vo {
+  display: grid;
+  gap: 24px;
+  max-width: 980px;
+  margin: 0 auto;
+  padding-bottom: 48px;
+}
+.vo-title {
+  justify-items: center;
+  text-align: center;
+  gap: 22px;
+  padding-top: 12px;
+}
+.vo-hero {
+  width: min(100%, 720px);
+}
+.vo-tag {
+  font-family: var(--pixel-body);
+  font-size: 19px;
+  color: var(--text-2);
+  max-width: 40ch;
+}
+.vo-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  list-style: none;
+  color: var(--text-3);
+  font-size: 14px;
+}
+.vo-steps li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.vo-steps li .px-font {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  background: var(--surface-2);
+}
+.vo-steps li.now {
+  color: var(--text);
+}
+.vo-steps li.now .px-font {
+  background: var(--gold);
+  color: #1b1408;
+}
+.vo-steps li.done .px-font {
+  background: var(--positive);
+  color: var(--on-accent);
+}
+.vo-panel {
+  display: grid;
+  gap: 18px;
+  animation: rise var(--t) var(--ease) both;
+}
+.vo-h {
+  font-size: clamp(18px, 3vw, 24px);
+  font-weight: 700;
+}
+.vo-kinds {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.vo-kinds.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.vo-kind {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+  text-align: left;
+  color: var(--text);
+  cursor: pointer;
+  transition: transform 120ms steps(2);
+}
+.vo-kind:hover {
+  transform: translateY(-2px);
+}
+.vo-kind.picked {
+  --px-edge: var(--gold);
+  background: color-mix(in srgb, var(--gold) 8%, var(--raised));
+}
+.vo-kind b.px-font {
+  font-size: 13px;
+  font-weight: 700;
+}
+.vo-kind .muted {
+  font-size: 14px;
+  line-height: 1.45;
+}
+.px-frame.small {
+  margin-bottom: 6px;
+}
+.vo-money {
+  font-family: var(--pixel);
+  font-size: 28px;
+  color: var(--gold);
+}
+.vo-field {
+  display: grid;
+  gap: 6px;
+  max-width: 460px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.px-input {
+  border-radius: 0;
+  font-family: var(--pixel-body);
+  font-size: 20px;
+  box-shadow: 0 0 0 2px var(--px-ink);
+}
+.vo-suggest {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.vo-preview {
+  max-width: 560px;
+}
+.vo-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.vo-rules {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.vo-rules .px-box {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+}
+.vo-rules p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.vo-num {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  background: var(--gold);
+  color: #1b1408;
+  font-size: 13px;
+}
+.vo-marta {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--pixel-body);
+  font-size: 18px;
+}
+.vo-marta .muted {
+  font-family: var(--sans);
+  font-size: 14px;
+}
+
+/* ---------- The game ---------- */
+.vg {
+  display: grid;
+  gap: 18px;
+  padding-bottom: 64px;
+}
+.vg-hud {
+  display: flex;
+  align-items: center;
+  gap: 14px 24px;
+  flex-wrap: wrap;
+}
+.vg-title {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.vg-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text);
+}
+.vg-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+}
+.vg-stat {
+  display: grid;
+  gap: 2px;
+  padding: 6px 10px;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--line-2);
+}
+.vg-stat .px-font {
+  font-size: 9px;
+  color: var(--text-3);
+}
+.vg-stat b {
+  font-size: 16px;
+  font-weight: 600;
+}
+.vg-stat.good b,
+.good {
+  color: var(--positive);
+}
+.vg-stat.bad b,
+.bad {
+  color: var(--negative);
+}
+.vg-save {
+  margin-left: auto;
+  font-family: var(--pixel);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+.vg-save::before {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  background: var(--positive);
+}
+.vg-save.s-saving::before {
+  background: var(--gold);
+  animation: px-blink 0.5s steps(2) infinite;
+}
+.vg-save.s-error::before {
+  background: var(--negative);
+}
+.px-pips {
+  display: inline-flex;
+  gap: 3px;
+  vertical-align: middle;
+}
+.px-pips i {
+  width: 9px;
+  height: 9px;
+  background: var(--surface-3);
+  clip-path: polygon(50% 0, 62% 35%, 100% 38%, 70% 60%, 80% 100%, 50% 78%, 20% 100%, 30% 60%, 0 38%, 38% 35%);
+}
+.px-pips.heart i {
+  clip-path: polygon(0 20%, 20% 0, 50% 20%, 80% 0, 100% 20%, 100% 50%, 50% 100%, 0 50%);
+}
+.px-pips i.on {
+  background: var(--gold);
+}
+.px-pips.heart i.on {
+  background: #ff6b8a;
+}
+.vg-stage {
+  position: relative;
+  width: min(100%, 880px);
+  margin: 0 auto;
+}
+.px-running {
+  position: absolute;
+  inset: auto 0 10px 0;
+  display: flex;
+  justify-content: center;
+  pointer-events: none;
+}
+.px-running span {
+  padding: 6px 12px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  animation: px-blink 0.8s steps(2) infinite;
+}
+.vg-error {
+  color: var(--negative);
+  font-size: 14px;
+}
+.vg-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+.vg-col {
+  display: grid;
+  gap: 14px;
+}
+.vg-kicker {
+  color: var(--text-3);
+  font-size: 10px;
+}
+.vg-event-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+.vg-headline {
+  margin-top: 2px;
+  font-family: var(--pixel-body);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+.vg-story {
+  margin: 14px 0 10px;
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 4.8em;
+  cursor: default;
+}
+.vg-concept {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gold);
+  background: color-mix(in srgb, var(--gold) 12%, transparent);
+}
+.vg-choices {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.px-choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 14px;
+  text-align: left;
+  color: var(--text);
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--line-2);
+  transition: background var(--t-fast), transform 80ms steps(2);
+  cursor: pointer;
+}
+.px-choice:hover:not(:disabled) {
+  background: var(--surface-2);
+  transform: translateX(3px);
+}
+.px-choice > span:last-child {
+  display: grid;
+  gap: 2px;
+}
+.px-choice .muted {
+  font-size: 14px;
+}
+.px-key {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  background: var(--surface-3);
+  color: var(--text);
+}
+.px-choice.chosen {
+  box-shadow: 0 0 0 2px var(--gold);
+  background: color-mix(in srgb, var(--gold) 10%, var(--surface));
+}
+.px-choice.chosen .px-key {
+  background: var(--gold);
+  color: #1b1408;
+}
+.px-choice.faded {
+  opacity: 0.4;
+}
+.vg-debrief {
+  background: color-mix(in srgb, var(--review) 6%, var(--raised));
+}
+.vg-debrief-text {
+  margin-top: 4px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+/* The plan */
+.vg-plan {
+  display: grid;
+  gap: 16px;
+}
+.vg-field {
+  display: grid;
+  gap: 6px;
+}
+.vg-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.vg-field-head b {
+  font-size: 16px;
+}
+.px-range {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 12px;
+  background: linear-gradient(90deg, var(--gold) calc(var(--p) * 100%), var(--surface-3) calc(var(--p) * 100%));
+  box-shadow: 0 0 0 2px var(--px-ink);
+  cursor: pointer;
+}
+.px-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 22px;
+  background: var(--text);
+  box-shadow: inset 0 -4px 0 color-mix(in srgb, #000 30%, transparent);
+}
+.px-range::-moz-range-thumb {
+  width: 16px;
+  height: 22px;
+  border: 0;
+  border-radius: 0;
+  background: var(--text);
+}
+.px-range:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 4px;
+}
+.px-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.px-stepper b {
+  min-width: 5ch;
+  text-align: center;
+}
+.vg-finance {
+  display: grid;
+  gap: 14px;
+  padding-top: 14px;
+  border-top: 2px dashed var(--line-2);
+}
+.vg-upgrade {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  box-shadow: 0 0 0 2px var(--line-2);
+  cursor: pointer;
+}
+.vg-upgrade.on {
+  box-shadow: 0 0 0 2px var(--gold);
+}
+.vg-upgrade input {
+  margin-top: 3px;
+  accent-color: var(--gold);
+}
+.vg-upgrade > span {
+  display: grid;
+  gap: 2px;
+  font-size: 14px;
+}
+.vg-insights,
+.vg-forecast {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--positive) 7%, var(--surface));
+  font-size: 14px;
+}
+.vg-insights .px-font,
+.vg-forecast > .px-font {
+  margin-right: 6px;
+  color: var(--positive);
+  font-size: 10px;
+}
+.vg-meter {
+  display: grid;
+  gap: 6px;
+}
+.vg-bars {
+  display: grid;
+  gap: 3px;
+}
+.vg-bars i {
+  height: 8px;
+}
+.vg-bars .d {
+  background: var(--gold);
+}
+.vg-bars .c {
+  background: var(--positive);
+}
+.vg-run {
+  display: grid;
+  justify-items: stretch;
+  gap: 8px;
+  text-align: center;
+}
+.vg-earn {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 18px;
+  box-shadow: 0 0 0 2px var(--line-2);
+}
+
+/* The books */
+.vg-books {
+  display: grid;
+  gap: 14px;
+  margin-top: 12px;
+}
+.vg-statements {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+.vg-statements .px-box,
+.vg-owed {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+}
+.vg-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.vg-line b {
+  color: var(--text);
+  font-weight: 500;
+}
+.vg-line.total {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 2px solid var(--line-2);
+  color: var(--text);
+  font-weight: 600;
+}
+.vg-line.total b {
+  font-weight: 700;
+}
+.vg-gap {
+  padding: 12px 14px;
+  font-size: 15px;
+  line-height: 1.5;
+  background: color-mix(in srgb, var(--gold) 9%, transparent);
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.vg-notes {
+  display: grid;
+  gap: 4px;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.vg-history {
+  display: grid;
+  gap: 8px;
+}
+.vg-history svg {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+  overflow: visible;
+}
+.vg-history .zero {
+  stroke: var(--line-3);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+.vg-history .bar.good {
+  fill: color-mix(in srgb, var(--positive) 70%, transparent);
+}
+.vg-history .bar.bad {
+  fill: color-mix(in srgb, var(--negative) 70%, transparent);
+}
+.vg-history .cash {
+  fill: none;
+  stroke: var(--gold);
+  stroke-width: 2;
+}
+.vg-history .cash-pt {
+  fill: var(--gold);
+}
+.vg-history .key {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin: 0 4px -1px;
+}
+.vg-history .key.cash {
+  background: var(--gold);
+}
+.vg-history .key.profit {
+  background: var(--positive);
+}
+.vg-tools {
+  display: grid;
+  gap: 8px;
+}
+.vg-tool-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 8px;
+}
+.vg-tool {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  font-size: 14px;
+  box-shadow: 0 0 0 2px var(--line-2);
+  background: repeating-linear-gradient(-45deg, var(--hatch) 0 1px, transparent 1px 7px);
+  color: var(--text-2);
+}
+.vg-tool.on {
+  background: color-mix(in srgb, var(--positive) 8%, var(--surface));
+  color: var(--text);
+}
+.vg-tool svg {
+  color: var(--text-3);
+}
+.vg-tool.on svg {
+  color: var(--positive);
+}
+.vg-trophies {
+  display: grid;
+  gap: 8px;
+}
+.vg-trophy-row,
+.vg-unlocked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.px-trophy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 13px;
+  color: var(--text-3);
+  box-shadow: 0 0 0 2px var(--line-2);
+}
+.px-trophy.on {
+  color: #1b1408;
+  background: var(--gold);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--gold) 60%, #000);
+}
+
+/* A month's result */
+.vg-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  background: color-mix(in srgb, #000 55%, transparent);
+  animation: fade var(--t) var(--ease) both;
+}
+.vg-result {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 520px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  animation: px-pop 360ms steps(4) both;
+}
+@keyframes px-pop {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+}
+.vg-result-title {
+  font-size: clamp(18px, 4vw, 24px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.vg-result-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+.vg-result-stats > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px;
+  background: var(--surface);
+}
+.vg-result-stats .px-font {
+  font-size: 9px;
+  color: var(--text-3);
+}
+.vg-result-stats b {
+  font-family: var(--pixel);
+  font-size: 18px;
+}
+.vg-xp {
+  font-family: var(--pixel);
+  font-size: 18px;
+  color: var(--gold);
+  animation: xp-pop 700ms var(--ease) both 500ms;
+}
+.vg-closed {
+  max-width: 640px;
+  margin: 0 auto;
+}
+.vg-closed .px-box {
+  display: grid;
+  gap: 14px;
+}
+
+@media (max-width: 980px) {
+  .vg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+@media (max-width: 720px) {
+  .vo-kinds,
+  .vo-kinds.two,
+  .vo-rules {
+    grid-template-columns: 1fr;
+  }
+  .vg-statements {
+    grid-template-columns: 1fr;
+  }
+  .vg-save {
+    margin-left: 0;
+  }
+  .vg-stat {
+    flex: 1 1 calc(33% - 8px);
+  }
+  .vg-result-stats b {
+    font-size: 15px;
+  }
+  .px-box {
+    padding: 14px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vl-walker i,
+  .px-btn.blink,
+  .px-btn[data-busy='true'],
+  .px-running span,
+  .vg-save.s-saving::before {
+    animation: none;
+  }
+}

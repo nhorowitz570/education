@@ -873,3 +873,227 @@
   gap: 10px;
   margin-top: 16px;
 }
+
+/* Adaptive sessions: a clock, not a route. The bar fills with minutes spent;
+   finished answers sit on it as small verdict marks. */
+.session-top:has(.session-right) {
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+}
+.session-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.clock-bar {
+  position: relative;
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.clock-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: calc(var(--p, 0) * 100%);
+  min-width: 6px;
+  border-radius: 3px;
+  background: var(--c);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--c) 50%, transparent);
+  transition: width 1.2s var(--ease);
+}
+.clock-marks {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding-left: 3px;
+}
+.clock-marks i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--bg);
+  opacity: 0.55;
+}
+.clock-marks i.v-missed {
+  opacity: 0.25;
+}
+.xp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 9px;
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--caution) 14%, transparent);
+  color: var(--caution);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* "How familiar is this?" */
+.gauge {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+.gauge-options {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.gauge-option {
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  padding: 14px;
+  border-radius: var(--r);
+  background: var(--raised);
+  box-shadow: var(--inner), 0 0 0 1px var(--line);
+  color: var(--text);
+  text-align: left;
+  transition:
+    background var(--t-fast) var(--ease),
+    transform var(--t-fast) var(--ease);
+}
+.gauge-option span:last-child {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.gauge-option:hover:not(:disabled) {
+  background: var(--surface-2);
+  transform: translateY(-1px);
+}
+.gauge-option.picked {
+  box-shadow: 0 0 0 1.5px var(--c);
+}
+.gauge-option:disabled:not(.picked) {
+  opacity: 0.45;
+}
+.gauge-meter {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  margin-bottom: 4px;
+  color: var(--c);
+}
+.gauge-meter i {
+  width: 3px;
+  border-radius: 1px;
+  background: currentColor;
+  opacity: 0.2;
+}
+.gauge-meter i:nth-child(1) {
+  height: 5px;
+}
+.gauge-meter i:nth-child(2) {
+  height: 8px;
+}
+.gauge-meter i:nth-child(3) {
+  height: 12px;
+}
+.gauge-meter i.on {
+  opacity: 1;
+}
+@media (max-width: 560px) {
+  .gauge-options {
+    grid-template-columns: 1fr;
+  }
+  .gauge-option {
+    grid-template-columns: auto auto 1fr;
+    align-items: center;
+    column-gap: 10px;
+  }
+  .gauge-option .gauge-meter {
+    margin: 0;
+  }
+  .gauge-option span:last-child {
+    justify-self: end;
+    text-align: right;
+  }
+}
+
+/* Not knowing yet is an answer too. */
+.dont-know {
+  justify-self: start;
+  margin-top: 12px;
+  font-size: 14px;
+  color: var(--text-3);
+}
+.choices .dont-know {
+  display: block;
+  margin-left: auto;
+}
+.feedback.v-learn {
+  --c: var(--review);
+}
+
+/* XP and combos, shown once as feedback lands. */
+.xp-pop,
+.combo-pop {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 11px;
+  font-size: 12px;
+  font-weight: 700;
+  animation: xp-pop 700ms var(--ease) both 250ms;
+}
+.xp-pop {
+  margin-left: auto;
+  background: color-mix(in srgb, var(--caution) 16%, transparent);
+  color: var(--caution);
+}
+.combo-pop {
+  background: color-mix(in srgb, var(--life) 16%, transparent);
+  color: var(--life);
+  animation-delay: 420ms;
+}
+@keyframes xp-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.8);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-2px) scale(1.08);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* Wrap up: a quiet exit, confirmed in place. */
+.wrap-btn {
+  min-height: 50px;
+  border-radius: 16px;
+}
+.dock-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: var(--raised);
+  box-shadow: var(--shadow-pop);
+  font-size: 14px;
+}
+.dock-wrap p {
+  color: var(--text-2);
+}
+.dock-wrap b {
+  color: var(--text);
+}
+@media (prefers-reduced-motion: reduce) {
+  .xp-pop,
+  .combo-pop {
+    animation: none;
+  }
+}

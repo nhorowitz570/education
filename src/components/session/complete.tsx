@@ -5,6 +5,8 @@ import { api } from '@/lib/client/api';
 import { Icon } from '@/components/icons';
 import { BEAT_LABEL } from './beat';
 import type { RunView } from '@/lib/learning/run';
+import { XP, sessionXp, type Progress } from '@/lib/gamify';
+import { SessionReward } from '@/components/progress/progress';
 
 type Mastery = {
   concepts: { key: string; title: string; track: string; strength: number; level: string; before?: number }[];
@@ -13,6 +15,13 @@ type Mastery = {
 // The end of a session: what moved, what was shown, what happens next.
 export function Complete({ run }: { run: RunView }) {
   const [mastery, setMastery] = useState<Mastery | null>(null);
+  const [progress, setProgress] = useState<Progress | null>(null);
+  useEffect(() => {
+    void api<Progress>('/api/progress')
+      .then(setProgress)
+      .catch(() => {});
+  }, [run.id]);
+  const earned = sessionXp(run.beats) + (XP.finish[run.kind] || 0);
   const keys = [...new Set(run.beats.map((b) => b.concept).filter(Boolean))] as string[];
   useEffect(() => {
     if (!keys.length) return;
@@ -41,6 +50,7 @@ export function Complete({ run }: { run: RunView }) {
                 : 'Session complete'}
         </p>
         <h1 className="display">{run.title}</h1>
+        <SessionReward earned={earned} progress={progress} />
         <div className="complete-stats">
           <div>
             <b className="num">{minutes}</b>

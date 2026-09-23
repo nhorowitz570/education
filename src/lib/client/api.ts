@@ -59,9 +59,11 @@ export async function api<T = Record<string, unknown>>(
 export type StreamHandlers = {
   onSnap?: (data: unknown) => void;
   onMeta?: (meta: { tier: string; cached?: boolean }) => void;
+  // The session's next steps, decided once an answer is graded.
+  onPlan?: (data: unknown) => void;
 };
 
-// Reads an NDJSON stream of {t:'snap'|'meta'|'done'|'error'} events and
+// Reads an NDJSON stream of {t:'snap'|'meta'|'plan'|'done'|'error'} events and
 // resolves with the final 'done' payload.
 export async function stream<T>(
   path: string,
@@ -99,6 +101,7 @@ export async function stream<T>(
       const e = JSON.parse(line) as { t: string; data?: unknown; message?: string; status?: number; tier?: string; cached?: boolean };
       if (e.t === 'snap') handlers.onSnap?.(e.data);
       else if (e.t === 'meta') handlers.onMeta?.({ tier: e.tier!, cached: e.cached });
+      else if (e.t === 'plan') handlers.onPlan?.(e.data);
       else if (e.t === 'done') done = e.data as T;
       else if (e.t === 'error') throw new ApiError(e.message || 'Something went wrong.', e.status || 500);
     }

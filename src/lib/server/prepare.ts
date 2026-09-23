@@ -52,7 +52,10 @@ export async function prepareFor(userId: string, now: Date) {
     .limit(1);
   if (existing?.length) return false;
   const run = await startRun(userId, { kind: action.kind, sessionId: session.id, minutes: action.minutes, prepare: true });
-  const first = run.beats.find((b) => b.type !== 'break');
-  if (first && !first.blocks) await streamBeat(userId, run.id, first.id, () => {});
+  // The familiarity question needs no model; write the first step with content.
+  for (const b of run.beats.filter((b) => b.type !== 'break').slice(0, 2)) {
+    if (!b.blocks) await streamBeat(userId, run.id, b.id, () => {});
+    if (b.type !== 'gauge') break;
+  }
   return true;
 }

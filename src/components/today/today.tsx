@@ -8,6 +8,7 @@ import { Icon } from '@/components/icons';
 import { useApp } from '@/components/app/provider';
 import type { Action, TodayView } from '@/lib/learning/today';
 import type { RunView } from '@/lib/learning/run';
+import { ProgressCard, useProgress } from '@/components/progress/progress';
 
 type Payload = {
   today: TodayView;
@@ -19,6 +20,8 @@ type Payload = {
 const STEP: Record<string, string> = {
   recall: 'Warm-up',
   situation: 'Situation',
+  orient: 'Big picture',
+  worked: 'Worked example',
   explain: 'Idea',
   check: 'Decide',
   attempt: 'Explain it',
@@ -32,6 +35,7 @@ const STEP: Record<string, string> = {
 export function Today() {
   const { user, w } = useApp();
   const { data, error, refresh } = useCached<Payload>('/api/today', user.id);
+  const { data: progress } = useProgress();
   const router = useRouter();
   const [busy, setBusy] = useState<string | null>(null),
     [exploring, setExploring] = useState(false),
@@ -145,6 +149,7 @@ export function Today() {
           </section>
 
           <aside className="today-side stagger">
+            {progress && (t.phase !== 'before-start' || progress.xp > 0) && <ProgressCard progress={progress} />}
             {t.startsIn !== null && (
               <div className="stat big">
                 <b className="num">{t.startsIn}</b>
@@ -274,8 +279,8 @@ export function Today() {
 
 // The morning at a glance: each step sized by its time, like a route.
 function SessionShape({ steps }: { steps: Payload['preview'] }) {
-  const total = steps.reduce((s, x) => s + x.minutes, 0);
-  const required = steps.filter((s) => !s.optional).reduce((s, x) => s + x.minutes, 0);
+  const total = Math.round(steps.reduce((s, x) => s + x.minutes, 0));
+  const required = Math.round(steps.filter((s) => !s.optional).reduce((s, x) => s + x.minutes, 0));
   return (
     <div className="shape" aria-label={`About ${required} minutes in ${steps.length} steps`}>
       <div className="shape-bar">
@@ -297,7 +302,7 @@ function SessionShape({ steps }: { steps: Payload['preview'] }) {
           ))}
       </ol>
       <p className="label">
-        About {required} min{total > required ? `, plus ${total - required} optional` : ''}
+        About {required} min{total > required ? `, plus ${total - required} optional` : ''} · adapts to how you’re doing
       </p>
     </div>
   );

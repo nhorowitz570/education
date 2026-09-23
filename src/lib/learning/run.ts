@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { vizSchema } from '@/lib/viz/schema';
 import type { OutlineBeat } from './outline';
+import type { Gauge } from './planner';
+export type { Gauge };
 
 // Shared between server and client: what a session run looks like on screen.
 export const blockSchema = z.discriminatedUnion('type', [
@@ -21,7 +23,8 @@ export type Feedback = { verdict: Verdict; score: number; blocks: Block[] };
 // How sure the learner was before seeing feedback.
 export type Confidence = 'low' | 'medium' | 'high';
 export const CONFIDENCE_LABEL: Record<Confidence, string> = { low: 'Guessing', medium: 'Fairly sure', high: 'Certain' };
-export type Response = { choice?: number; text?: string; confidence?: Confidence; at: string };
+// unknown: "I don't know yet", a request to be taught rather than an attempt.
+export type Response = { choice?: number; text?: string; confidence?: Confidence; unknown?: boolean; gauge?: Gauge; at: string };
 export type Ask = {
   id: string;
   prompt: string;
@@ -62,17 +65,23 @@ export type RunView = {
   minutes_planned: number | null;
   // Set while a break is running, so a reminder can reach the learner.
   break_until?: string | null;
+  // Planned step by step (plan sessions), rather than a fixed outline.
+  adaptive?: boolean;
+  // Active minutes so far: idle gaps are not counted.
+  elapsed?: number;
+  wrapping?: boolean;
 };
 
 // A text answer that missed can be retried once, with the feedback in view.
 export const canRetry = (b: Beat) =>
-  !!b.feedback && b.feedback.verdict !== 'solid' && b.question?.kind === 'text' && !(b.attempts?.length);
+  !!b.feedback && b.feedback.verdict !== 'solid' && b.question?.kind === 'text' && !b.attempts?.length && !b.response?.unknown;
 
 // Streaming protocol (NDJSON lines) for beat generation, grading and asks.
 export type StreamEvent =
   | { t: 'snap'; data: unknown }
   | { t: 'done'; data: unknown }
   | { t: 'meta'; tier: string; cached?: boolean }
+  | { t: 'plan'; data: Beat[] }
   | { t: 'error'; message: string; status: number };
 
 export const QUESTION_BEATS = ['recall', 'check', 'attempt', 'transfer', 'produce'] as const;

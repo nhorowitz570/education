@@ -6,18 +6,25 @@ Fieldwork answers one question when it opens: *what should I learn right now?* E
 
 ```
 Today ──Begin──▶ startRun()            instant; no model call
-                   │  outline()        deterministic beats from plan + learner model
+                   │  extend()         the planner decides the first steps (planner.ts)
                    ▼
             /session/[id]
                    │  beat reached ──▶ streamBeat()   Sol writes this beat, streamed as NDJSON
                    │  next beat    ──▶ prefetched while the learner reads
                    │  answer       ──▶ answerBeat()   grade (Luna → Sol when hard) → record evidence
+                   │                                  → plan the next steps from the verdict
                    │  question     ──▶ askBeat()      tutor reply in the context of this beat
+                   │  wrap up      ──▶ wrapUp()       drop untouched steps, recap now
                    ▼
               finishRun() ──after()──▶ summary + memory consolidation
 ```
 
-**The outline is code; the content is AI.** `src/lib/learning/outline.ts` builds the beats (`recall`, `situation`, `explain`, `check`, `attempt`, `transfer`, `roleplay`, `produce`, `break`, `recap`) from the time available, the learner's strength on the session's concepts, and what's due for review. A fluent learner skips the long explanation. A learner coming back from missed days gets a 20-minute return session. Beats after the commitment point are optional. Tapping Begin never waits for a model, and pacing is predictable.
+**The plan is code; the content is AI.** Plan sessions are planned one step at a time by `src/lib/learning/planner.ts`, a pure function of what has happened so far: each step's verdict, how familiar each idea is, what's due for review, and the *active* time used against the session's budget. Questions are the decision points: after one is graded, the planner picks what follows and the run is extended atomically (`extend_run_beats`). Teaching steps are planned ahead to the next question, so the next step can be written while the learner reads.
+
+- **Familiarity first.** An idea the learner model has never seen opens with a one-tap *gauge* (new to me / heard of it / I've used it). New ideas get a short situation, an *orient* step (what it is, why it exists, the terms) and a *worked* example before an easy, faded first check. Familiar ideas get an explanation then a check; fluent ones skip straight to a harder check.
+- **Adapting.** A miss or "I don't know yet" brings a worked example or re-explanation from another angle, then a fresh check (at most twice). Solid answers move on to explaining, transfer and, for communication, role-play.
+- **Filling the time.** The clock counts active minutes only (gaps over 12 minutes are ignored) and the learner's measured pace corrects the step estimates. When the day's ideas are done early, the planner produces the week's evidence, interleaves fading reviews, then pulls the next planned ideas forward. When time runs out, or the learner taps *Wrap up*, it closes with a recap.
+- **Fixed shapes** remain for reviews, rehearsals and explorations (`outline.ts`).
 
 **Beats stream in and build themselves.** `generate()` streams structured output. The client parses partial JSON (`src/lib/partial-json.ts`) and renders paragraphs and visuals as they arrive. A visual appears only once its spec validates, with a skeleton until then.
 
@@ -76,6 +83,21 @@ All model calls go through `generate()` in `src/lib/ai/engine.ts`. Tasks are dec
 | `learner_profiles` | Style profile | RLS: owner read |
 | `ai_calls` | Every model call: task, tier, model, tokens, cost, latency | RLS: owner read |
 | `private.voice_sessions` | Live call lifecycle | Server only via RPC |
+| `ventures` | One Venture company per learner, with a revision | RLS: owner read; server writes |
+| `plan_chapters` | Outcome names for a plan's chapters, written once by Luna | RLS: owner read; server writes |
+
+## Venture
+
+A business simulation the learner plays alongside lessons (`/venture`). The learner runs a coffee roastery, design studio or food truck one month at a time.
+
+- **The numbers are code.** `src/lib/venture/engine.ts` simulates each month deterministically: demand from price elasticity, marketing (diminishing returns), reputation, season and word of mouth; capacity from people, equipment and morale; stock bought before it sells and spoiling after; revenue booked when earned but collected on the customer's terms; depreciation, loans and emergency overdrafts. Profit and cash diverge the way they do in real businesses.
+- **The story is Luna.** One `venture.month` call per month writes the accountant's review of last month and next month's event, preferring one that exercises an idea the learner has just studied. Each option's effects are structured and clamped to the business's size, so the model can't decide outcomes. Built-in events cover model outages.
+- **Tied to learning.** Months are earned by finishing sessions (2), reviews and practice (1), from 3 to start. Studying ideas unlocks tools in the game (unit margin, cash forecast, receivables, break-even, capacity). The company's summary is a context layer for the tutor, which can use it as a scenario.
+- **Saving.** One document per learner in `ventures`, written after every change with a revision check. The page loads the game as its own bundle behind a loading screen each time it opens, and the canvas pauses when hidden.
+
+## Gamification
+
+XP, levels, streaks, daily quests and badges are derived, never stored (`src/lib/gamify.ts`, `/api/progress`): answers from `learning_events` (effort counts; honest confidence earns a bonus), finished runs and Venture months. A streak counts planned learning days, so days without a planned session never break it. Quests are three a day, chosen deterministically by date.
 
 ## Scheduled work
 

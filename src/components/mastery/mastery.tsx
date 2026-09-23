@@ -102,6 +102,22 @@ export function Mastery() {
   const touched = concepts.filter((c) => c.level !== 'new');
   const fading = touched.filter((c) => c.due_at && Date.parse(c.due_at) <= now + ahead * 86400000);
   const solid = touched.filter((c) => c.level === 'solid' || c.level === 'mastered');
+  // The page grows with the learner: richer views appear once there is
+  // enough history for them to say something true.
+  const rated = data?.calibration ? data.calibration.low.n + data.calibration.medium.n + data.calibration.high.n : 0;
+  const activeWeeks = (data?.weeks || []).filter((w) => w.count > 0).length;
+  const sessions = data?.history?.length || 0;
+  const unlocks: Unlock[] = [
+    { id: 'map', label: 'Knowledge map and forgetting forecast', need: 'ideas practised', have: today.filter((c) => c.level !== 'new').length, target: 5 },
+    { id: 'momentum', label: 'Momentum over eight weeks', need: 'weeks with learning', have: activeWeeks, target: 2 },
+    { id: 'calibration', label: 'How well your confidence matches your accuracy', need: 'rated answers', have: rated, target: 12 },
+    { id: 'portfolio', label: 'Portfolio and milestone rehearsals', need: 'sessions finished', have: sessions, target: 3 },
+  ];
+  const open = (id: Unlock['id']) => {
+    const u = unlocks.find((x) => x.id === id)!;
+    return u.have >= u.target;
+  };
+  const locked = unlocks.filter((u) => u.have < u.target);
   return (
     <div className="page mastery">
       <header className="page-head">
@@ -109,82 +125,117 @@ export function Mastery() {
           <p className="eyebrow">Mastery</p>
           <h1 className="title">What you can do.</h1>
         </div>
-        <Link href="/insights" className="btn quiet insights-link">
-          <Icon name="insights" size={17} /> Weekly insights
-        </Link>
+        {sessions > 0 && (
+          <Link href="/insights" className="btn quiet insights-link">
+            <Icon name="insights" size={17} /> Weekly insights
+          </Link>
+        )}
       </header>
-      <div className="mastery-stats">
-        <div className="stat">
-          <b className="num">{touched.length}</b>
-          <span>ideas practised</span>
-        </div>
-        <div className="stat">
-          <b className="num" style={{ color: solid.length ? 'var(--positive)' : undefined }}>
-            {solid.length}
-          </b>
-          <span>solid or better</span>
-        </div>
-        <div className="stat">
-          <b className="num" style={{ color: fading.length ? 'var(--review)' : undefined }}>
-            {fading.length}
-          </b>
-          <span>ready to review</span>
-        </div>
-        <div className="stat">
-          <b className="num">{concepts.length}</b>
-          <span>in the plan{data && !data.mapped ? ' (mapping)' : ''}</span>
-        </div>
-      </div>
 
-      {data && today.some((c) => c.model) && (
-        <Forecast today={today} concepts={concepts} ahead={ahead} onAhead={setAhead} />
-      )}
-      {data ? (
-        <KnowledgeMap concepts={concepts} onPick={setFocus} ahead={ahead > 0} />
-      ) : error ? (
-        <div className="today-error">
-          <p className="heading">Mastery couldn’t load.</p>
-          <p className="muted">{error}</p>
-          <button className="btn" onClick={() => void refresh()}>
-            Try again
-          </button>
-        </div>
+      {!data ? (
+        error ? (
+          <div className="today-error">
+            <p className="heading">Mastery couldn’t load.</p>
+            <p className="muted">{error}</p>
+            <button className="btn" onClick={() => void refresh()}>
+              Try again
+            </button>
+          </div>
+        ) : (
+          <div className="skeleton" style={{ height: 260, borderRadius: 20 }} />
+        )
       ) : (
-        <div className="skeleton" style={{ height: 260, borderRadius: 20 }} />
+        <div className="mastery-first">
+          <Shown concepts={today} onPick={setFocus} />
+          <NextChallenge concepts={today} />
+        </div>
       )}
 
-      <div className="mastery-grid">
-        {data?.weeks && (
-          <section>
-            <p className="eyebrow">Momentum · 8 weeks</p>
-            <Momentum weeks={data.weeks} />
-          </section>
-        )}
-        {data?.calibration && <CalibrationChart c={data.calibration} />}
-        {data && (data.practice?.length || 0) > 0 && (
-          <section>
-            <p className="eyebrow">Speaking practice</p>
-            <div className="rows">
-              {data.practice.slice(0, 6).map((p) => (
-                <Link key={p.id} href={'/practice/' + p.id} className="row">
-                  <i className={'dot ' + (p.score === null ? 'hollow' : p.score >= 0.75 ? 'v-solid' : p.score >= 0.4 ? 'v-partial' : 'v-missed')} />
-                  <div className="grow">
-                    <p>{p.title}</p>
-                    <p className="sub">
-                      {MODES[p.mode]?.label} · {dateLabel(p.date.slice(0, 10), false)}
-                    </p>
-                  </div>
-                  {p.score !== null && <span className="num label">{Math.round(p.score * 100)}</span>}
-                </Link>
-              ))}
+      {data && open('map') && (
+        <>
+          <div className="mastery-stats">
+            <div className="stat">
+              <b className="num">{touched.length}</b>
+              <span>ideas practised</span>
             </div>
-          </section>
-        )}
-      </div>
+            <div className="stat">
+              <b className="num" style={{ color: solid.length ? 'var(--positive)' : undefined }}>
+                {solid.length}
+              </b>
+              <span>solid or better</span>
+            </div>
+            <div className="stat">
+              <b className="num" style={{ color: fading.length ? 'var(--review)' : undefined }}>
+                {fading.length}
+              </b>
+              <span>ready to review</span>
+            </div>
+            <div className="stat">
+              <b className="num">{concepts.length}</b>
+              <span>in the plan{!data.mapped ? ' (mapping)' : ''}</span>
+            </div>
+          </div>
+          {today.some((c) => c.model) && <Forecast today={today} concepts={concepts} ahead={ahead} onAhead={setAhead} />}
+          <KnowledgeMap concepts={concepts} onPick={setFocus} ahead={ahead > 0} />
+        </>
+      )}
 
-      {data?.weeks && <PortfolioSection milestones={data.milestones || []} />}
+      {data && (open('momentum') || open('calibration') || (data.practice?.length || 0) > 0) && (
+        <div className="mastery-grid">
+          {open('momentum') && data.weeks && (
+            <section>
+              <p className="eyebrow">Momentum · 8 weeks</p>
+              <Momentum weeks={data.weeks} />
+            </section>
+          )}
+          {open('calibration') && data.calibration && <CalibrationChart c={data.calibration} />}
+          {(data.practice?.length || 0) > 0 && (
+            <section>
+              <p className="eyebrow">Speaking practice</p>
+              <div className="rows">
+                {data.practice.slice(0, 6).map((p) => (
+                  <Link key={p.id} href={'/practice/' + p.id} className="row">
+                    <i className={'dot ' + (p.score === null ? 'hollow' : p.score >= 0.75 ? 'v-solid' : p.score >= 0.4 ? 'v-partial' : 'v-missed')} />
+                    <div className="grow">
+                      <p>{p.title}</p>
+                      <p className="sub">
+                        {MODES[p.mode]?.label} · {dateLabel(p.date.slice(0, 10), false)}
+                      </p>
+                    </div>
+                    {p.score !== null && <span className="num label">{Math.round(p.score * 100)}</span>}
+                  </Link>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      )}
 
-      {data && (data.history?.length || 0) > 0 && (
+      {data?.weeks && (open('portfolio') || data.evidence.length > 0) && <PortfolioSection milestones={data.milestones || []} />}
+
+      {data && locked.length > 0 && (
+        <section className="mastery-section unlocks" aria-label="Views that unlock as you learn">
+          <p className="eyebrow">Unlocks as you learn</p>
+          <div className="unlock-grid">
+            {locked.map((u) => (
+              <div key={u.id} className="unlock">
+                <span className="unlock-mark" aria-hidden="true">
+                  <Icon name="key" size={16} />
+                </span>
+                <p>{u.label}</p>
+                <div className="meter" aria-label={`${u.have} of ${u.target} ${u.need}`}>
+                  <i style={{ '--v': Math.min(1, u.have / u.target) } as React.CSSProperties} />
+                </div>
+                <p className="label num">
+                  {u.have}/{u.target} {u.need}
+                </p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {data && sessions > 0 && (
         <section className="mastery-section">
           <p className="eyebrow">Sessions</p>
           <div className="rows">
@@ -202,6 +253,88 @@ export function Mastery() {
       )}
       {focus && <ConceptSheet concept={focus} all={concepts} onClose={() => setFocus(null)} />}
     </div>
+  );
+}
+
+type Unlock = { id: 'map' | 'momentum' | 'calibration' | 'portfolio'; label: string; need: string; have: number; target: number };
+
+// What the learner has actually demonstrated, strongest first.
+function Shown({ concepts, onPick }: { concepts: Concept[]; onPick: (c: Concept) => void }) {
+  const shown = concepts
+    .filter((c) => RANK[c.level] >= 2)
+    .sort((a, b) => RANK[b.level] - RANK[a.level] || b.strength - a.strength);
+  const learning = concepts.filter((c) => c.level === 'learning');
+  return (
+    <section className="shown">
+      <p className="eyebrow">What you’ve shown</p>
+      {shown.length ? (
+        <div className="rows">
+          {shown.slice(0, 8).map((c) => (
+            <button key={c.key} className={'row t-' + c.track} onClick={() => onPick(c)}>
+              <i className="dot lit" />
+              <div className="grow">
+                <p>{c.title}</p>
+                <div className="meter" aria-label={`${Math.round(c.strength * 100)}% strength`}>
+                  <i style={{ '--v': c.strength } as React.CSSProperties} />
+                </div>
+              </div>
+              <span className="label">{LEVEL_LABEL[c.level]}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <p className="shown-empty">
+          {learning.length
+            ? `You’re learning ${learning.length} idea${learning.length === 1 ? '' : 's'}. Get a couple of solid answers on one and it shows up here.`
+            : 'Nothing yet. Every idea you show you can use will be listed here, strongest first.'}
+        </p>
+      )}
+      {shown.length > 8 && <p className="label">and {shown.length - 8} more on the map below.</p>}
+    </section>
+  );
+}
+
+// One thing to do next: the idea most worth your time right now.
+function NextChallenge({ concepts }: { concepts: Concept[] }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false),
+    [error, setError] = useState('');
+  const [now] = useState(() => Date.now());
+  const tricky = concepts.find((c) => c.misconceptions.length && c.level !== 'new');
+  const due = concepts
+    .filter((c) => c.level !== 'new' && c.due_at && Date.parse(c.due_at) <= now)
+    .sort((a, b) => a.recall - b.recall)[0];
+  const pick = tricky || due;
+  const go = async () => {
+    if (!pick) return router.push('/');
+    setBusy(true);
+    setError('');
+    try {
+      const { run } = await api<{ run: RunView }>('/api/runs', { kind: 'review', concepts: [pick.key] });
+      router.push('/session/' + run.id);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  };
+  return (
+    <section className={'next-challenge' + (pick ? ' t-' + pick.track : '')}>
+      <p className="eyebrow">Your next challenge</p>
+      <p className="next-title">
+        {pick ? (tricky ? `Untangle “${pick.title}”` : `Bring back “${pick.title}”`) : 'Today’s session'}
+      </p>
+      <p className="muted">
+        {pick
+          ? tricky
+            ? `Still tricky: ${tricky.misconceptions[0]}. A short, targeted review is the fastest fix.`
+            : `Recall is down to ${Math.round(pick.recall * 100)}%. Reviewing it now makes it last far longer.`
+          : 'Nothing is fading and nothing is tangled. The best next step is simply the next session.'}
+      </p>
+      {error && <p className="conversation-error">{error}</p>}
+      <button className="btn primary" onClick={() => void go()} data-busy={busy || undefined} disabled={busy}>
+        {pick ? 'Start a 5-minute review' : 'Go to Today'} <Icon name="arrow" size={17} />
+      </button>
+    </section>
   );
 }
 

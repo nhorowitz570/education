@@ -12,9 +12,11 @@ export const NAV = [
   { href: '/learn', label: 'Learn', icon: 'learn' },
   { href: '/practice', label: 'Practice', icon: 'practice' },
   { href: '/mastery', label: 'Mastery', icon: 'mastery' },
+  { href: '/venture', label: 'Venture', icon: 'venture' },
   // Wide screens only; phones reach it from Mastery and Today.
   { href: '/insights', label: 'Insights', icon: 'insights', rail: true },
-  { href: '/life', label: 'Life', icon: 'life' },
+  // Phones reach Life from Today, keeping the tab bar to five.
+  { href: '/life', label: 'Life', icon: 'life', rail: true },
 ] as const;
 
 const active = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));

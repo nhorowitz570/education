@@ -2,13 +2,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { Blocks } from './blocks';
 import { Icon } from '@/components/icons';
-import { CONFIDENCE_LABEL, canRetry, type Beat, type Block, type Confidence, type Feedback } from '@/lib/learning/run';
+import { CONFIDENCE_LABEL, canRetry, type Beat, type Block, type Confidence, type Feedback, type Gauge } from '@/lib/learning/run';
+import { answerXp } from '@/lib/gamify';
 import type { RunState } from './use-run';
 
 export const BEAT_LABEL: Record<string, string> = {
+  gauge: 'Where you’re starting',
   recall: 'Warm-up',
   situation: 'Situation',
+  orient: 'The big picture',
   explain: 'The idea',
+  worked: 'Worked example',
   check: 'Your call',
   attempt: 'In your words',
   transfer: 'New situation',
@@ -18,9 +22,12 @@ export const BEAT_LABEL: Record<string, string> = {
   recap: 'Wrap-up',
 };
 const BUILDING: Record<string, string> = {
+  gauge: 'Looking ahead',
   recall: 'Picking something worth revisiting',
   situation: 'Setting the scene',
+  orient: 'Mapping the territory',
   explain: 'Finding the clearest way in',
+  worked: 'Working through an example',
   check: 'Framing your decision',
   attempt: 'Preparing your turn',
   transfer: 'Changing the situation',
@@ -33,13 +40,19 @@ export const VERDICT: Record<Feedback['verdict'], string> = {
   partial: 'Partly there',
   missed: 'Not yet',
 };
+const GAUGES: { value: Gauge; label: string; detail: string }[] = [
+  { value: 'new', label: 'New to me', detail: 'Start from the beginning' },
+  { value: 'heard', label: 'Heard of it', detail: 'A quick explanation, then practice' },
+  { value: 'used', label: 'I’ve used it', detail: 'Skip ahead to something harder' },
+];
 const CONFIDENCES: Confidence[] = ['low', 'medium', 'high'];
 
 // Plain first sentence of some blocks, for one-line summaries.
 export function firstSentence(blocks: Block[] | undefined, max = 110) {
   const text = (blocks || [])
     .filter((b) => b.type !== 'visual')
-    .map((b) => (b as { md: string }).md)
+    // List markers aren't sentences: "1. Look at…" should read "Look at…".
+    .map((b) => (b as { md: string }).md.replace(/^\s*(?:\d+[.)]|[-*])\s+/gm, ''))
     .join(' ')
     .replace(/[*_`>#]/g, '')
     .replace(/\s+/g, ' ')
@@ -51,6 +64,7 @@ export function firstSentence(blocks: Block[] | undefined, max = 110) {
 // What a finished step comes down to, for the trail.
 function summary(beat: Beat) {
   if (beat.status === 'skipped') return 'Skipped';
+  if (beat.type === 'gauge') return GAUGES.find((g) => g.value === beat.response?.gauge)?.label || 'Skipped';
   if (beat.type === 'break') return `${beat.minutes}-minute break`;
   if (beat.type === 'roleplay') return beat.practice?.status === 'done' ? firstSentence(beat.feedback?.blocks) || 'Practised out loud' : 'Practice conversation';
   if (beat.feedback) return firstSentence(beat.feedback.blocks);
@@ -97,6 +111,8 @@ export function BeatView({
   }, [beat.attempts?.length]);
   const verdict = beat.feedback?.verdict;
   const label = BEAT_LABEL[beat.type] || beat.type;
+  const unknown = !!beat.response?.unknown;
+  const xp = beat.feedback ? answerXp(beat.feedback.verdict, beat.response?.confidence, unknown, beat.feedback.score) : 0;
   return (
     <section
       className={
@@ -120,7 +136,7 @@ export function BeatView({
         >
           <i className={'dot' + (verdict ? ' v-' + verdict : ' lit')} aria-hidden="true" />
           <span className="trail-label">{label}</span>
-          <span className="trail-sum">{verdict ? `${VERDICT[verdict]} · ` : ''}{summary(beat)}</span>
+          <span className="trail-sum">{verdict ? `${unknown ? 'Learnt it' : VERDICT[verdict]} · ` : ''}{summary(beat)}</span>
           <Icon name="chevron" size={16} />
         </button>
       ) : (
@@ -157,6 +173,7 @@ export function BeatView({
           {retrying && beat.feedback && (
             <FeedbackView verdict={beat.feedback.verdict} blocks={beat.feedback.blocks} streaming={false} />
           )}
+          {beat.type === 'gauge' && beat.blocks && <GaugeChoice beat={beat} state={state} current={current} />}
           {beat.question && beat.blocks && (
             <Question beat={beat} state={state} current={current} retrying={retrying} onCancelRetry={() => setRetrying(false)} />
           )}
@@ -166,6 +183,9 @@ export function BeatView({
               blocks={grading ? grading.blocks : beat.feedback!.blocks}
               streaming={!!grading}
               retried={!!beat.attempts?.length && !grading}
+              unknown={unknown}
+              xp={!grading && fresh ? xp : 0}
+              combo={!grading && fresh ? combo(state, beat.id) : 0}
             >
               {current && !grading && canRetry(beat) && (
                 <button className="btn small quiet retry" onClick={() => setRetrying(true)}>
@@ -238,25 +258,78 @@ export function Building({ label, compact = false }: { label: string; compact?: 
   );
 }
 
+// Solid answers in a row, ending at this one.
+function combo(state: RunState, beatId: string) {
+  const graded = (state.run?.beats || []).filter((b) => b.feedback);
+  const at = graded.findIndex((b) => b.id === beatId);
+  let n = 0;
+  for (let j = at; j >= 0 && graded[j].feedback!.verdict === 'solid'; j--) n++;
+  return n;
+}
+
+// "How familiar is this?": one tap decides how the idea is taught.
+function GaugeChoice({ beat, state, current }: { beat: Beat; state: RunState; current: boolean }) {
+  const picked = beat.response?.gauge;
+  return (
+    <div className="gauge" role="group" aria-label="How familiar is this?">
+      <p className="label">How familiar is this?</p>
+      <div className="gauge-options">
+        {GAUGES.map((g) => (
+          <button
+            key={g.value}
+            className={'gauge-option' + (picked === g.value ? ' picked' : '')}
+            disabled={!current || !!picked}
+            onClick={() => void state.gauge(beat.id, g.value)}
+          >
+            <span className="gauge-meter" aria-hidden="true">
+              {GAUGES.map((x, i) => (
+                <i key={x.value} className={i <= GAUGES.indexOf(g) ? 'on' : ''} />
+              ))}
+            </span>
+            <b>{g.label}</b>
+            <span>{g.detail}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function FeedbackView({
   verdict,
   blocks,
   streaming,
   retried,
+  unknown,
+  xp = 0,
+  combo = 0,
   children,
 }: {
   verdict?: Feedback['verdict'];
   blocks: Block[];
   streaming: boolean;
   retried?: boolean;
+  unknown?: boolean;
+  xp?: number;
+  combo?: number;
   children?: React.ReactNode;
 }) {
   return (
-    <div className={'feedback' + (verdict ? ' v-' + verdict : '')} aria-live="polite">
+    <div className={'feedback' + (verdict ? ' v-' + (unknown ? 'learn' : verdict) : '')} aria-live="polite">
       <p className="feedback-verdict">
         <i className="dot" />
-        {verdict ? VERDICT[verdict] : 'Reading your answer'}
+        {unknown ? (streaming ? 'Teaching it' : 'Here’s how it works') : verdict ? VERDICT[verdict] : 'Reading your answer'}
         {retried && <span className="faint">· second try</span>}
+        {xp > 0 && (
+          <span className="xp-pop num" aria-label={`${xp} XP`}>
+            +{xp} XP
+          </span>
+        )}
+        {combo >= 3 && (
+          <span className="combo-pop" aria-label={`${combo} solid answers in a row`}>
+            <Icon name="flame" size={13} /> {combo} in a row
+          </span>
+        )}
       </p>
       {blocks.length ? <Blocks blocks={blocks} streaming={streaming} /> : streaming && <Building label="" compact />}
       {children}
@@ -353,12 +426,20 @@ function Question({
           );
         })}
         {answered ? (
-          confidence && <p className="label said">You said: {CONFIDENCE_LABEL[confidence].toLowerCase()}</p>
+          beat.response?.unknown ? (
+            <p className="label said">You said you don’t know yet.</p>
+          ) : (
+            confidence && <p className="label said">You said: {CONFIDENCE_LABEL[confidence].toLowerCase()}</p>
+          )
         ) : (
-          <ConfidenceSubmit disabled={choice === null} onSubmit={(c) => state.answer(beat.id, { choice: choice!, confidence: c })} />
+          <>
+            <ConfidenceSubmit disabled={choice === null} onSubmit={(c) => state.answer(beat.id, { choice: choice!, confidence: c })} />
+            <DontKnow onClick={() => state.answer(beat.id, { unknown: true })} />
+          </>
         )}
       </div>
     );
+  if (answered && beat.response?.unknown) return <p className="label said">You said you don’t know yet.</p>;
   if (answered)
     return (
       <blockquote className="your-answer">
@@ -406,6 +487,16 @@ function Question({
         </span>
         <ConfidenceSubmit disabled={!ok} onSubmit={submit} groupRef={group} />
       </div>
+      {!retrying && <DontKnow onClick={() => state.answer(beat.id, { unknown: true })} />}
     </div>
+  );
+}
+
+// Not knowing yet is a fine answer: the tutor teaches it instead of grading.
+function DontKnow({ onClick }: { onClick: () => void }) {
+  return (
+    <button className="link dont-know" onClick={onClick}>
+      I don’t know yet — teach me
+    </button>
   );
 }

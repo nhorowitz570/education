@@ -9,7 +9,9 @@ import {
   answerBeat,
   askBeat,
   finishRun,
+  gaugeBeat,
   loadRun,
+  wrapUp,
   streamBeat,
   view,
 } from '@/lib/server/runs';
@@ -36,8 +38,11 @@ const action = z.discriminatedUnion('action', [
     choice: z.number().int().min(0).max(9).optional(),
     text: z.string().trim().max(6000).optional(),
     confidence: z.enum(['low', 'medium', 'high']).optional(),
+    unknown: z.boolean().default(false),
     retry: z.boolean().default(false),
   }),
+  z.object({ action: z.literal('gauge'), beatId: z.string().max(80), value: z.enum(['new', 'heard', 'used']) }),
+  z.object({ action: z.literal('wrap'), beatId: z.string().max(80) }),
   z.object({
     action: z.literal('ask'),
     beatId: z.string().max(80),
@@ -58,11 +63,15 @@ export async function POST(r: Request, ctx: { params: Promise<{ id: string }> })
       case 'beat':
         return ndjson((send) => streamBeat(user.id, runId, v.beatId, send));
       case 'answer':
-        if (v.choice === undefined && !v.text)
+        if (v.choice === undefined && !v.text && !v.unknown)
           return NextResponse.json({ error: 'Write an answer or choose an option.' }, { status: 400 });
         return ndjson((send) =>
-          answerBeat(user.id, runId, v.beatId, { choice: v.choice, text: v.text, confidence: v.confidence }, send, v.retry),
+          answerBeat(user.id, runId, v.beatId, { choice: v.choice, text: v.text, confidence: v.confidence, unknown: v.unknown }, send, v.retry),
         );
+      case 'gauge':
+        return NextResponse.json(await gaugeBeat(user.id, runId, v.beatId, v.value));
+      case 'wrap':
+        return NextResponse.json(await wrapUp(user.id, runId, v.beatId));
       case 'ask':
         if (v.intent === 'free' && !v.prompt && !v.quote)
           return NextResponse.json({ error: 'Ask a question first.' }, { status: 400 });

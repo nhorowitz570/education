@@ -16,6 +16,24 @@ type Release = {
 // Newest first. Add a release by adding an entry here.
 const RELEASES: Release[] = [
   {
+    version: '0.6',
+    date: 'September 23, 2026',
+    title: 'Sessions that adapt as you go, and a company to run',
+    summary:
+      'Sessions now plan themselves one step at a time and fill the time you set aside. New ideas get taught before they get tested. And there’s Venture: a business you run alongside your lessons.',
+    feature: true,
+    changes: [
+      ['New', 'Venture: run a pixel-art coffee roastery, design studio or food truck with real books, where profit and cash disagree just as they do in real life. Months are earned by learning.'],
+      ['New', 'Before a new idea, one tap says how familiar it is. Brand-new ideas start with the big picture and a worked example, not a question.'],
+      ['New', '“I don’t know yet” is an answer: the tutor teaches it instead of grading it.'],
+      ['New', 'Wrap up any session early with a short recap of what you did.'],
+      ['New', 'XP, levels, a streak that ignores your days off, three daily quests and badges.'],
+      ['Improved', 'Sessions plan each next step from how your answers go and the real clock, so a fast morning goes deeper instead of ending early.'],
+      ['Improved', 'Learn shows this week and next; the rest of the plan folds into chapters named for what you’ll be able to do.'],
+      ['Improved', 'Mastery starts with what you’ve shown and one next challenge, and unlocks richer charts as your history grows.'],
+    ],
+  },
+  {
     version: '0.5',
     date: 'September 22, 2026',
     title: 'Confidence, rehearsals and a weekly read',

@@ -8,7 +8,8 @@ import { BeatView, INTENT_TEXT } from './beat';
 import { hasContent, useRun, type RunState } from './use-run';
 import { Complete } from './complete';
 import { Roleplay } from './roleplay';
-import type { AskIntent, Beat } from '@/lib/learning/run';
+import { sessionXp } from '@/lib/gamify';
+import type { AskIntent, Beat, RunView } from '@/lib/learning/run';
 
 const INTENTS: { intent: AskIntent; icon: string }[] = [
   { intent: 'why', icon: 'why' },
@@ -53,7 +54,8 @@ export function Runner({ id }: { id: string }) {
 
   // Enter continues when nothing is being typed.
   const canContinue = !!current && ready(current, state);
-  const last = index === beats.length - 1;
+  // Adaptive sessions end at their recap; more steps are planned as they go.
+  const last = current?.type === 'recap' || (!run?.adaptive && index === beats.length - 1);
   const advance = useCallback(() => {
     if (!canContinue) return;
     if (last) void state.finish();
@@ -93,19 +95,23 @@ export function Runner({ id }: { id: string }) {
   if (run.status === 'done') return <Complete run={run} />;
 
   const next = beats[index + 1];
-  const atCommitment = !!next?.optional && !current?.optional;
+  const atCommitment = !run.adaptive && !!next?.optional && !current?.optional;
   const remaining = beats.slice(index).filter((b) => !b.optional || current?.optional).reduce((s, b) => s + b.minutes, 0);
 
   return (
     <div className="session" data-track={track}>
-      <TopBar
-        title={run.title}
-        beats={beats}
-        index={index}
-        track={track}
-        remaining={remaining}
-        onClose={() => router.push('/')}
-      />
+      {run.adaptive ? (
+        <ClockBar run={run} state={state} track={track} onClose={() => router.push('/')} />
+      ) : (
+        <TopBar
+          title={run.title}
+          beats={beats}
+          index={index}
+          track={track}
+          remaining={remaining}
+          onClose={() => router.push('/')}
+        />
+      )}
       <div className="session-col">
         <div className="trail">
           {beats.slice(0, index + 1).map((b, i) => (
@@ -136,6 +142,7 @@ export function Runner({ id }: { id: string }) {
         canContinue={canContinue}
         last={last}
         atCommitment={atCommitment}
+        canWrap={!!run.adaptive && !run.wrapping && current?.type !== 'recap'}
         onContinue={advance}
         onFinishHere={() => void state.finish()}
       />
@@ -145,6 +152,7 @@ export function Runner({ id }: { id: string }) {
 
 function ready(b: Beat, s: RunState) {
   if (b.type === 'break') return true;
+  if (b.type === 'gauge') return !!b.response?.gauge;
   if (!hasContent(b) || s.grading[b.id] || s.asking[b.id]) return false;
   if (b.question) return !!b.feedback;
   if (b.type === 'roleplay') return true;
@@ -227,12 +235,63 @@ function TopBar({
   );
 }
 
+// Adaptive sessions measure time, not steps: the bar fills with the minutes
+// actually spent, and the session plans itself to fill the budget.
+function ClockBar({ run, state, track, onClose }: { run: RunView; state: RunState; track: string; onClose: () => void }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 20000);
+    return () => clearInterval(t);
+  }, []);
+  const budget = run.minutes_planned || 60;
+  const elapsed = state.clock.at ? state.clock.elapsed + Math.min(now - state.clock.at, 12 * 60000) / 60000 : run.elapsed || 0;
+  const left = Math.max(0, Math.round(budget - elapsed));
+  const xp = sessionXp(run.beats);
+  const graded = run.beats.filter((b) => b.feedback);
+  return (
+    <header className="session-top">
+      <button className="btn icon ghost" onClick={onClose} aria-label="Save and leave">
+        <Icon name="close" size={20} />
+      </button>
+      <div className="session-meta">
+        <p className="session-title">{run.title}</p>
+        <div
+          className={'clock-bar t-' + track}
+          role="progressbar"
+          aria-valuemin={0}
+          aria-valuemax={budget}
+          aria-valuenow={Math.round(elapsed)}
+          aria-label={`${Math.round(elapsed)} of ${budget} minutes`}
+          style={{ '--p': Math.min(1, elapsed / budget) } as React.CSSProperties}
+        >
+          <i className="clock-fill" />
+          <span className="clock-marks" aria-hidden="true">
+            {graded.map((b) => (
+              <i key={b.id} className={'v-' + b.feedback!.verdict} />
+            ))}
+          </span>
+        </div>
+      </div>
+      <div className="session-right">
+        <span className="xp-chip num" aria-label={`${xp} XP this session`}>
+          <Icon name="spark" size={13} />
+          {xp}
+        </span>
+        <p className="session-time num" aria-label={`About ${left} minutes left`}>
+          {left}m
+        </p>
+      </div>
+    </header>
+  );
+}
+
 function Dock({
   state,
   beat,
   canContinue,
   last,
   atCommitment,
+  canWrap,
   onContinue,
   onFinishHere,
   quote,
@@ -245,11 +304,14 @@ function Dock({
   canContinue: boolean;
   last: boolean;
   atCommitment: boolean;
+  canWrap: boolean;
   onContinue: () => void;
   onFinishHere: () => void;
 }) {
   const [text, setText] = useState('');
+  const [confirmWrap, setConfirmWrap] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  useEffect(() => setConfirmWrap(false), [beat?.id]);
   useEffect(() => {
     if (quote) input.current?.focus();
   }, [quote]);
@@ -258,6 +320,7 @@ function Dock({
   const busy = !!state.asking[target] && !state.asking[target].error;
   const openQuestion = !!beat.question && !beat.feedback;
   const generating = !beat.blocks && beat.type !== 'break';
+  const gauge = beat.type === 'gauge';
   const follow = (beat.asks?.at(-1)?.follow_ups || beat.follow_ups || []).slice(0, 2);
   const send = (intent: AskIntent, prompt = '') => {
     if (busy) return;
@@ -270,7 +333,30 @@ function Dock({
   return (
     <div className="dock">
       <div className="dock-inner">
-        {!generating && beat.type !== 'break' && beat.type !== 'roleplay' && (
+        {confirmWrap && (
+          <div className="dock-wrap rise" role="group" aria-label="Wrap up the session">
+            <p>
+              <b>Wrap up now?</b> You’ll skip what’s left and get a short recap of what you did.
+            </p>
+            <div className="row-inline">
+              <button className="btn small ghost" onClick={() => setConfirmWrap(false)}>
+                Keep going
+              </button>
+              <button
+                className="btn small primary"
+                data-busy={state.wrapping || undefined}
+                disabled={state.wrapping}
+                onClick={async () => {
+                  await state.wrap();
+                  setConfirmWrap(false);
+                }}
+              >
+                Wrap up
+              </button>
+            </div>
+          </div>
+        )}
+        {!generating && !gauge && beat.type !== 'break' && beat.type !== 'roleplay' && (
           <div className="dock-chips" role="toolbar" aria-label="Ask the tutor">
             {openQuestion ? (
               <button className="chip" disabled={busy} onClick={() => send('free', 'Give me a hint without giving the answer away.')}>
@@ -306,7 +392,7 @@ function Dock({
           </div>
         )}
         <div className="dock-row">
-          {(quote || (beat.type !== 'break' && beat.type !== 'roleplay')) && (
+          {(quote || (beat.type !== 'break' && beat.type !== 'roleplay' && !gauge)) && (
             <form
               className="dock-ask"
               onSubmit={(e) => {
@@ -330,12 +416,17 @@ function Dock({
               </button>
             </form>
           )}
+          {canWrap && !confirmWrap && (
+            <button className="btn quiet wrap-btn" onClick={() => setConfirmWrap(true)} aria-label="Wrap up the session">
+              Wrap up
+            </button>
+          )}
           {atCommitment && canContinue && (
             <button className="btn quiet" onClick={onFinishHere} disabled={state.finishing}>
               Finish here
             </button>
           )}
-          {!openQuestion && (
+          {!openQuestion && !(gauge && !beat.response?.gauge) && (
             <button
               className={'btn primary continue' + (beat.type === 'break' ? ' wide' : '')}
               onClick={onContinue}

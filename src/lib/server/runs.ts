@@ -8,6 +8,7 @@ import { generate } from '@/lib/ai/engine';
 import type { Layer } from '@/lib/ai/prompts';
 import type { Plan, Session } from '@/lib/plan';
 import { outline } from '@/lib/learning/outline';
+import { extend, GAUGE_FAMILIARITY, type Familiarity, type Gauge, type PlanInput } from '@/lib/learning/planner';
 import {
   blockSchema,
   isQuestionBeat,
@@ -20,10 +21,11 @@ import {
   type AskIntent,
   canRetry,
 } from '@/lib/learning/run';
-import { strength } from '@/lib/learning/model';
+import { strength, type ConceptState } from '@/lib/learning/model';
 import { NEUTRAL, observe, styleLayer, type Signal, type Style } from '@/lib/learning/style';
 import { concepts, conceptsFor, describeState, dueConcepts, record, states } from './learner';
 import { consolidate, memoryLayer, recall } from './memory';
+import { ventureLayer } from './venture';
 import type { Attempt } from '@/lib/types';
 
 type RunContext = {
@@ -39,6 +41,18 @@ type RunContext = {
   opened?: boolean;
   break_until?: string | null;
   milestone?: { title: string; date: string };
+  // Adaptive sessions: what the planner needs to decide each next step.
+  adaptive?: boolean;
+  familiarity?: Record<string, Familiarity>;
+  due?: string[];
+  ahead?: string[];
+  evidence?: string;
+  track?: string;
+  voice?: boolean;
+  wrap?: boolean;
+  // Active time: gaps longer than IDLE are not counted, so a session resumed
+  // the next day doesn't think it ran out of time.
+  clock?: { last: string; active_ms: number };
 };
 type Key = {
   answer_index: number | null;
@@ -74,6 +88,22 @@ export async function loadRun(userId: string, id: string) {
   return data as RunRow;
 }
 
+const IDLE = 12 * 60000;
+function activeMs(row: RunRow, at = Date.now()) {
+  const c = row.context.clock;
+  if (!c) return Math.min(at - Date.parse(row.started_at), (row.minutes_planned || 60) * 60000);
+  return c.active_ms + Math.max(0, Math.min(at - Date.parse(c.last), IDLE));
+}
+// Every interaction moves the session clock forward by the time since the
+// last one, capped so that stepping away doesn't count.
+async function tick(userId: string, row: RunRow) {
+  if (!row.context.adaptive) return;
+  const now = Date.now();
+  const clock = { last: new Date(now).toISOString(), active_ms: Math.round(activeMs(row, now)) };
+  row.context.clock = clock;
+  await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { clock } });
+}
+
 export function view(row: RunRow, plan?: Plan): RunView {
   const s = row.session_id ? plan?.sessions.find((x) => x.id === row.session_id) : undefined;
   return {
@@ -88,6 +118,9 @@ export function view(row: RunRow, plan?: Plan): RunView {
     minutes_planned: row.minutes_planned,
     session: s ? { id: s.id, title: s.title, subject: s.subject, date: s.date, objective: s.objective } : null,
     break_until: row.context.break_until || null,
+    ...(row.context.adaptive
+      ? { adaptive: true, elapsed: Math.round((activeMs(row) / 60000) * 10) / 10, wrapping: !!row.context.wrap }
+      : {}),
   };
 }
 
@@ -148,9 +181,10 @@ export async function startRun(
         } else {
           // Its clock starts when the learner does.
           const started_at = nowIso();
+          const clock = { last: started_at, active_ms: 0 };
           await db().from('runs').update({ started_at }).eq('id', row.id).eq('user_id', userId);
-          await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { opened: true } });
-          return view({ ...row, started_at, context: { ...row.context, opened: true } }, plan);
+          await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { opened: true, ...(row.context.adaptive ? { clock } : {}) } });
+          return view({ ...row, started_at, context: { ...row.context, opened: true, ...(row.context.adaptive ? { clock } : {}) } }, plan);
         }
       } else return view(row, plan);
     }
@@ -174,30 +208,49 @@ export async function startRun(
   const override = session ? state.overrides[session.id] : undefined;
   const minutes =
     input.minutes || override?.duration_minutes || session?.duration_minutes || (input.kind === 'review' ? 10 : input.kind === 'rehearsal' ? 30 : 20);
-  const weekIndex =
-    session && plan
-      ? Math.floor(Temporal.PlainDate.from(plan.start_date).until(Temporal.PlainDate.from(session.date)).days / 7)
-      : 0;
   const producesEvidence =
     !!session && Temporal.PlainDate.from(session.date).dayOfWeek === 3 && minutes >= 60 && !session.optional;
-  const known = upcoming.length
-    ? upcoming.reduce((s, k) => s + (learned.get(k) ? strength(learned.get(k)!, now) : 0), 0) / upcoming.length
-    : 0;
 
   const kind = input.kind === 'session' && !session ? 'explore' : input.kind;
   if (kind === 'review' && !due.length)
     throw new HttpError('Nothing is due for review right now. Everything you’ve practised is holding.', 409);
-  const beats: Beat[] = outline({
-    kind,
-    minutes,
-    track: session?.subject,
-    concepts: upcoming.length ? upcoming : [input.topic ? 'explore' : 'general'],
-    known,
-    dueReviews: due,
-    commitmentMinutes: weekIndex < 2 && minutes > 60 ? 60 : undefined,
-    evidence: producesEvidence ? session!.evidence : milestone?.title,
-    voice: !!process.env.OPENAI_API_KEY,
-  }).map((b) => ({ ...b, status: 'pending' as const }));
+  // Plan sessions are planned a step at a time; the rest have a fixed shape.
+  const adaptive = !!session && !!plan && (kind === 'session' || kind === 'return');
+  const planning: RunContext = adaptive
+    ? {
+        adaptive: true,
+        familiarity: familiarityOf(upcoming, learned, now),
+        due: due.slice(0, 3),
+        ahead: aheadOf(plan!, session!, graph.list, learned, upcoming),
+        evidence: producesEvidence ? session!.evidence : undefined,
+        track: session!.subject,
+        voice: !!process.env.OPENAI_API_KEY,
+        clock: { last: now, active_ms: 0 },
+      }
+    : {};
+  const beats: Beat[] = (
+    adaptive
+      ? extend({
+          kind: kind === 'return' ? 'return' : 'session',
+          minutes,
+          elapsed: 0,
+          track: planning.track,
+          concepts: upcoming,
+          familiarity: planning.familiarity!,
+          dueReviews: planning.due!,
+          ahead: planning.ahead!,
+          steps: [],
+          evidence: planning.evidence,
+          voice: planning.voice,
+        })
+      : outline({
+          kind: kind === 'review' || kind === 'rehearsal' ? kind : 'explore',
+          minutes,
+          concepts: upcoming.length ? upcoming : [input.topic ? 'explore' : 'general'],
+          dueReviews: due,
+          evidence: milestone?.title,
+        })
+  ).map((b) => ({ ...b, status: 'pending' as const }));
 
   const title =
     kind === 'review'
@@ -222,6 +275,7 @@ export async function startRun(
         topic: input.topic,
         ...(input.prepare ? { prepared: true } : {}),
         ...(milestone ? { milestone: { title: milestone.title, date: milestone.date } } : {}),
+        ...planning,
       } satisfies RunContext,
       minutes_planned: minutes,
     })
@@ -233,6 +287,81 @@ export async function startRun(
     throw new Error('The session could not start.');
   }
   return view(data as RunRow, plan);
+}
+
+// What the learner model already says about each idea. Ideas never seen are
+// left open: the session asks rather than assumes.
+function familiarityOf(keys: string[], learned: Map<string, ConceptState>, now: string) {
+  const out: Record<string, Familiarity> = {};
+  for (const k of keys) {
+    const s = learned.get(k);
+    if (s?.exposures) out[k] = strength(s, now) >= 0.75 ? 'fluent' : 'familiar';
+  }
+  return out;
+}
+
+// The next planned ideas not yet started, which a fast session can pull forward.
+function aheadOf(plan: Plan, session: Session, list: { key: string; session_ids: string[] }[], learned: Map<string, ConceptState>, today: string[]) {
+  const later = plan.sessions
+    .filter((s) => !s.optional && (s.date > session.date || (s.date === session.date && s.id > session.id)))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id))
+    .slice(0, 3);
+  const keys: string[] = [];
+  for (const s of later)
+    for (const c of conceptsFor(s, list as Parameters<typeof conceptsFor>[1]))
+      if (!today.includes(c.key) && !learned.get(c.key)?.exposures && !keys.includes(c.key)) keys.push(c.key);
+  return keys.slice(0, 3);
+}
+
+// The planner's view of a run: every step so far, and the time used.
+function planInput(row: RunRow): PlanInput {
+  const c = row.context;
+  return {
+    kind: row.kind === 'return' ? 'return' : 'session',
+    minutes: row.minutes_planned || 60,
+    elapsed: activeMs(row) / 60000,
+    track: c.track,
+    concepts: c.session_concepts || [],
+    familiarity: c.familiarity || {},
+    dueReviews: c.due || [],
+    ahead: c.ahead || [],
+    evidence: c.evidence,
+    voice: c.voice,
+    wrap: c.wrap,
+    steps: row.beats.map((b) => ({
+      type: b.type,
+      concept: b.concept,
+      status: b.status,
+      verdict: b.feedback?.verdict,
+      unknown: b.response?.unknown,
+      minutes: b.minutes,
+    })),
+  };
+}
+
+// Decide what comes next and add it to the run. Normally this only appends;
+// when wrapping up, untouched steps after the current one are replaced.
+async function grow(userId: string, row: RunRow, current: number): Promise<Beat[] | null> {
+  if (!row.context.adaptive || row.status !== 'active') return null;
+  const input = planInput(row);
+  const wrap = !!row.context.wrap;
+  const untouched = (b: Beat, j: number) => j > current && ['pending', 'generating', 'ready'].includes(b.status);
+  if (wrap) {
+    // The recap is already on its way; planning another would replace it.
+    if (row.beats.some((b, j) => b.type === 'recap' && j > current)) return null;
+    input.steps = input.steps.filter((_, j) => !untouched(row.beats[j], j));
+  }
+  const next = extend(input);
+  if (!next.length) return null;
+  const { data, error } = await db().rpc('extend_run_beats', {
+    p_run: row.id,
+    p_user: userId,
+    p_after: wrap ? current : row.beats.length - 1,
+    p_beats: next.map((b) => ({ ...b, status: 'pending' })),
+  });
+  if (error || !data) throw new Error('The session could not plan its next step.');
+  row.beats = data as Beat[];
+  return row.beats;
 }
 
 // A rehearsal draws on what the milestone depends on: ideas taught before it,
@@ -333,6 +462,8 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
       ].join('\n'),
     },
     { name: 'memories', content: memories || null },
+    // Lessons may use the learner's own Venture company as their scenario.
+    { name: 'venture', content: row.kind !== 'practice' ? await ventureLayer(userId) : null },
     { name: 'concept_states', content: conceptLines || null },
     {
       name: 'curriculum',
@@ -356,8 +487,16 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
     {
       name: 'session_state',
       content: [
-        `Outline: ${row.beats.map((b, i) => `${i === at ? '→' : ''}${b.type}${b.optional ? '(optional)' : ''}`).join(' ')}`,
+        row.context.adaptive
+          ? `Steps so far (planned one at a time from how the learner is doing; more may follow): ${row.beats
+              .slice(0, at + 1)
+              .map((b, i) => `${i === at ? '→' : ''}${b.type}`)
+              .join(' ')}. About ${Math.round(activeMs(row) / 60000)} of ${row.minutes_planned || 60} minutes used.`
+          : `Outline: ${row.beats.map((b, i) => `${i === at ? '→' : ''}${b.type}${b.optional ? '(optional)' : ''}`).join(' ')}`,
         focus ? `Focus concept for this step: ${focus.title} — ${focus.summary}` : '',
+        beat.concept && row.context.adaptive
+          ? `The learner's familiarity with this idea: ${FAMILIARITY_TEXT[row.context.familiarity?.[beat.concept] || 'unknown']}`
+          : '',
         row.context.scenario_facts?.length ? `Scenario facts established so far (stay consistent): ${row.context.scenario_facts.join('; ')}` : '',
         beat.concept && row.context.diagnosis?.[beat.concept] ? `Diagnosis of a recurring difficulty: ${row.context.diagnosis[beat.concept]}` : '',
         `This step's purpose: ${beat.intent}`,
@@ -369,6 +508,13 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
   ];
   return { layers: result, plan, session };
 }
+
+const FAMILIARITY_TEXT: Record<Familiarity | 'unknown', string> = {
+  new: 'brand new to it. Assume no vocabulary; define every term the first time it appears.',
+  familiar: 'has met it before but is not yet fluent.',
+  fluent: 'says they have used it, or has shown it before. Skip basics and go for nuance.',
+  unknown: 'not known yet. Do not assume any vocabulary.',
+};
 
 async function hard(userId: string, row: RunRow, conceptKey?: string) {
   if ((row.context.deeper || 0) >= 2) return true;
@@ -426,6 +572,16 @@ export async function streamBeat(userId: string, runId: string, beatId: string, 
   if (beat.type === 'break') {
     await patch(userId, runId, beatId, { status: 'ready', blocks: [] });
     return send({ t: 'done', data: { ...beat, status: 'ready', blocks: [] } });
+  }
+  if (beat.type === 'gauge') {
+    const state = await readState(userId);
+    const c = state.plan && beat.concept ? (await concepts(userId, state.plan)).list.find((x) => x.key === beat.concept) : undefined;
+    // Before the concept map exists, a summary is only the session objective,
+    // which repeats the title; leave it out then.
+    const summary = c?.summary && !c.summary.toLowerCase().includes(c.title.toLowerCase()) ? ` ${c.summary}` : '';
+    const blocks: Block[] = [{ type: 'text', md: c ? `Next up: **${c.title}**.${summary}` : 'Next up: a new idea.' }];
+    await patch(userId, runId, beatId, { status: 'ready', blocks });
+    return send({ t: 'done', data: { ...beat, status: 'ready', blocks } });
   }
   if (beat.type === 'roleplay') return roleplayBeat(userId, row, beat, send);
   // A concurrent request (e.g. a prefetch on another device) is already on it.
@@ -523,7 +679,7 @@ export async function answerBeat(
   userId: string,
   runId: string,
   beatId: string,
-  response: { choice?: number; text?: string; confidence?: Confidence },
+  response: { choice?: number; text?: string; confidence?: Confidence; unknown?: boolean },
   send: Send,
   retry = false,
 ) {
@@ -537,7 +693,8 @@ export async function answerBeat(
   if (beat.feedback && !retrying) return send({ t: 'done', data: beat });
   const first = retrying ? { response: beat.response!, feedback: beat.feedback! } : null;
   const attempts = first ? [...(beat.attempts || []), first] : beat.attempts;
-  const answered: Response = { ...response, at: nowIso() };
+  const unknown = !!response.unknown && !retrying;
+  const answered: Response = unknown ? { unknown: true, at: nowIso() } : { ...response, unknown: undefined, at: nowIso() };
   await patch(userId, runId, beatId, {
     response: answered,
     status: 'answered',
@@ -546,7 +703,7 @@ export async function answerBeat(
   row.beats[at] = { ...beat, response: answered, attempts, feedback: undefined };
 
   const choiceCorrect =
-    beat.question.kind === 'choice' && key.answer_index !== null ? response.choice === key.answer_index : null;
+    !unknown && beat.question.kind === 'choice' && key.answer_index !== null ? response.choice === key.answer_index : null;
   const { layers: ctx } = await layers(userId, row, beat, at + 1);
   const stakes = beat.type === 'produce' && /milestone|capstone|final/i.test(row.title + ' ' + beat.intent) ? 'high' : 'normal';
   const out = await generate({
@@ -569,7 +726,9 @@ export async function answerBeat(
           .join('\n'),
       },
     ],
-    input: [
+    input: unknown
+      ? `The learner said "I don't know yet" to this ${beat.type} step. That is a request to be taught, not a failed attempt: without any judgement, teach the answer. In 3–5 sentences, give the right answer and the reasoning that gets there, anchored in the scenario, so they could answer a similar question next time. Verdict: missed, score 0, no misconception.`
+      : [
       `Assess this response to the ${beat.type} step.`,
       first
         ? `This is a second attempt after feedback. First attempt: ${first.response.text || ''}\nFeedback it received: ${plainText(first.feedback.blocks, 500)}\nJudge the new answer on its own merits and say plainly whether it closed the gap.`
@@ -587,18 +746,32 @@ export async function answerBeat(
       .join('\n'),
     onPartial: (p) => {
       const v = p as Partial<z.infer<typeof gradeSchema>>;
-      send({ t: 'snap', data: { feedback: { verdict: v.verdict, blocks: v.blocks || [] } } });
+      send({ t: 'snap', data: { feedback: { verdict: unknown ? 'missed' : v.verdict, blocks: v.blocks || [] } } });
     },
   });
   // A multiple-choice score is anchored on the objective answer.
-  const score =
-    choiceCorrect === null ? Math.max(0, Math.min(1, out.data.score)) : choiceCorrect ? Math.max(0.75, out.data.score) : Math.min(0.3, out.data.score);
+  const score = unknown
+    ? 0
+    : choiceCorrect === null
+      ? Math.max(0, Math.min(1, out.data.score))
+      : choiceCorrect
+        ? Math.max(0.75, out.data.score)
+        : Math.min(0.3, out.data.score);
   const verdict = score >= 0.75 ? 'solid' : score >= 0.4 ? 'partial' : 'missed';
   const feedback: Feedback = { verdict, score, blocks: out.data.blocks };
   const reveal =
     beat.question.kind === 'choice' && key.answer_index !== null ? { correct_index: key.answer_index } : {};
   await patch(userId, runId, beatId, { feedback, status: 'done', ...reveal });
   send({ t: 'meta', tier: out.tier });
+  // The verdict decides what comes next; plan it now so it can be prepared
+  // while the learner reads the feedback.
+  row.beats[at] = { ...beat, response: answered, attempts, feedback, status: 'done' };
+  await tick(userId, row);
+  const planned = await grow(userId, row, at).catch((e) => {
+    console.error('plan after answer', e instanceof Error ? e.message : e);
+    return null;
+  });
+  if (planned) send({ t: 'plan', data: planned });
   send({ t: 'done', data: { ...beat, response: answered, attempts, feedback, status: 'done', ...reveal } });
 
   // Learner model and style updates do not hold up the response.
@@ -606,6 +779,11 @@ export async function answerBeat(
   // Asking for help, or retrying after feedback, halves the evidence.
   const assisted = (beat.asks?.length || 0) > 0 || !!first;
   const effects: Promise<unknown>[] = [];
+  // "I don't know yet" followed by being taught is exposure, not a failed recall.
+  if (unknown) {
+    if (concept && row.plan_id) effects.push(record(userId, row.plan_id, runId, concept, { kind: 'exposure', at: nowIso(), detail: { beat: beat.type, unknown: true } }));
+    return Promise.allSettled(effects);
+  }
   if (concept && row.plan_id)
     effects.push(
       record(userId, row.plan_id, runId, concept, {
@@ -705,6 +883,7 @@ export async function askBeat(
     at: nowIso(),
   };
   await db().rpc('append_beat_item', { p_run: runId, p_user: userId, p_beat: beatId, p_key: 'asks', p_item: ask });
+  await tick(userId, row);
   if (intent === 'deeper') await db().rpc('merge_run', { p_run: runId, p_user: userId, p_context: { deeper: row.context.deeper } });
   send({ t: 'meta', tier: out.tier });
   send({ t: 'done', data: ask });
@@ -723,7 +902,7 @@ export async function advance(userId: string, runId: string, beatId: string, ski
   if (skip && beat.question) await signal(userId, 'skipped_question').catch(() => {});
   // Being taught an idea is an exposure, recorded once per run.
   const exposed = new Set(row.context.exposed || []);
-  if (!skip && (beat.type === 'explain' || beat.type === 'situation') && beat.concept && row.plan_id && !exposed.has(beat.concept)) {
+  if (!skip && ['explain', 'situation', 'orient', 'worked'].includes(beat.type) && beat.concept && row.plan_id && !exposed.has(beat.concept)) {
     exposed.add(beat.concept);
     await record(userId, row.plan_id, runId, beat.concept, { kind: 'exposure', at: nowIso() });
   }
@@ -734,7 +913,44 @@ export async function advance(userId: string, runId: string, beatId: string, ski
     p_context: { exposed: [...exposed], ...(row.context.break_until ? { break_until: null } : {}) },
     p_fields: { cursor },
   });
-  return { cursor };
+  row.beats[at] = { ...beat, status: beat.status === 'done' ? 'done' : skip ? 'skipped' : 'done' };
+  await tick(userId, row);
+  const beats = await grow(userId, row, at).catch((e) => {
+    console.error('plan on advance', e instanceof Error ? e.message : e);
+    return null;
+  });
+  return { cursor, ...(beats ? { beats } : {}) };
+}
+
+// "How familiar is this?" sets how the idea is taught.
+export async function gaugeBeat(userId: string, runId: string, beatId: string, value: Gauge) {
+  const row = await loadRun(userId, runId);
+  const at = row.beats.findIndex((b) => b.id === beatId),
+    beat = row.beats[at];
+  if (!beat || beat.type !== 'gauge' || !beat.concept) throw new HttpError('That step isn’t a question about familiarity.', 409);
+  const familiarity = { ...(row.context.familiarity || {}), [beat.concept]: GAUGE_FAMILIARITY[value] };
+  const response: Response = { gauge: value, at: nowIso() };
+  await patch(userId, runId, beatId, { status: 'done', response });
+  const cursor = Math.max(row.cursor, at + 1);
+  await db().rpc('merge_run', { p_run: runId, p_user: userId, p_context: { familiarity }, p_fields: { cursor } });
+  row.context.familiarity = familiarity;
+  row.beats[at] = { ...beat, status: 'done', response };
+  await tick(userId, row);
+  const beats = (await grow(userId, row, at)) || row.beats;
+  return { cursor, beats };
+}
+
+// "Wrap up": skip what's left and close with a recap now.
+export async function wrapUp(userId: string, runId: string, beatId: string) {
+  const row = await loadRun(userId, runId);
+  if (!row.context.adaptive) throw new HttpError('This session can’t wrap up early.', 409);
+  const at = row.beats.findIndex((b) => b.id === beatId);
+  if (at < 0) throw new HttpError('Step not found.', 404);
+  await db().rpc('merge_run', { p_run: runId, p_user: userId, p_context: { wrap: true } });
+  row.context.wrap = true;
+  await tick(userId, row);
+  const beats = (await grow(userId, row, at)) || row.beats;
+  return { beats };
 }
 
 // ---------- Breaks ----------

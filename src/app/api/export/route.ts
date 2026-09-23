@@ -18,6 +18,8 @@ const LEARNING: [table: string, columns: string][] = [
   ['runs', 'id,kind,plan_id,session_id,title,status,outline,beats,context,summary,minutes_planned,started_at,ended_at'],
   ['memories', 'id,kind,content,concept_keys,confidence,evidence,status,pinned,source,created_at,updated_at'],
   ['learner_profiles', '*'],
+  ['ventures', 'state,revision,created_at,updated_at'],
+  ['plan_chapters', 'plan_id,chapters,created_at'],
 ];
 
 export async function GET(r: Request) {
