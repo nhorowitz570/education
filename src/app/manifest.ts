@@ -1,14 +1,15 @@
 import type { MetadataRoute } from 'next';
+import { APP_NAME } from '@/lib/brand';
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Fieldwork · Education & growth',
-    short_name: 'Fieldwork',
-    description: 'One useful next step.',
+    name: APP_NAME,
+    short_name: APP_NAME,
+    description: 'A private tutor that runs each session and remembers how you learn.',
     start_url: '/',
     scope: '/',
     display: 'standalone',
-    background_color: '#FBF8F4',
-    theme_color: '#FBF8F4',
+    background_color: '#09090a',
+    theme_color: '#09090a',
     orientation: 'any',
     icons: [
       {

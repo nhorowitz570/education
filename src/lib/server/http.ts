@@ -74,9 +74,13 @@ export function fail(error: unknown) {
       },
       { status: 400 },
     );
+  // Supabase errors are plain objects; log their code and message so a
+  // failure is diagnosable without logging request data.
+  const detail = error as { name?: string; code?: string; message?: string } | null;
   console.error(
     'Fieldwork request failed:',
     error instanceof Error ? error.name : 'UnknownError',
+    [detail?.code, detail?.message?.slice(0, 200)].filter(Boolean).join(' '),
   );
   return NextResponse.json(
     {

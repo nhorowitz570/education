@@ -21,7 +21,6 @@ import {
 } from '@/lib/schedule';
 import { publicIPv4 } from '@/lib/server/sources';
 import { reminderCandidate } from '@/lib/reminders';
-import { liveCost } from '@/lib/voice';
 const fixture = structuredClone(DEMO_PLAN),
   state = (): AppState => ({
     ...structuredClone(emptyState),
@@ -217,9 +216,5 @@ describe('network and reminders', () => {
     expect(reminderCandidate(s, new Date('2026-09-28T18:00:00Z'))).toBeNull();
     s.attempts.push(attempt());
     expect(reminderCandidate(s, new Date('2026-09-28T17:31:00Z'))).toBeNull();
-  });
-  it('uses cumulative seconds and the 15-second Live minimum', () => {
-    expect(liveCost(0)).toBe(0.0125);
-    expect(liveCost(60)).toBe(0.05);
   });
 });

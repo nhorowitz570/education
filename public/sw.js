@@ -1,4 +1,4 @@
-const CACHE = 'fieldwork-shell-v3';
+const CACHE = 'fieldwork-shell-v4';
 self.addEventListener('install', (event) =>
   event.waitUntil(
     caches
@@ -64,7 +64,7 @@ self.addEventListener('push', (event) => {
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       tag: data.tag || 'fieldwork-learning',
-      data: { url: '/' },
+      data: { url: data.url || '/' },
     }),
   );
 });
@@ -77,8 +77,9 @@ self.addEventListener('notificationclick', (event) => {
         const client = clients.find(
           (c) => new URL(c.url).origin === self.location.origin,
         );
-        if (client) return client.focus();
-        return self.clients.openWindow('/');
+        const url = event.notification.data?.url || '/';
+        if (client) return client.navigate(url).then((c) => (c || client).focus());
+        return self.clients.openWindow(url);
       }),
   );
 });

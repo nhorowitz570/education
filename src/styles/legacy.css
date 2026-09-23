@@ -1,0 +1,354 @@
+/* The Life, Import and settings screens keep their proven logic; these rules
+   map their markup onto the current design system. Scoped so the older class
+   names cannot leak into new screens. */
+:is(.legacy, .legacy-settings, .sheet) h2 {
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+:is(.legacy, .legacy-settings, .sheet) h3 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+:is(.legacy, .legacy-settings, .sheet) small {
+  font-size: 12px;
+  color: var(--text-3);
+}
+:is(.legacy, .legacy-settings, .sheet) label:not(.checkbox, .field) {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+:is(.legacy, .legacy-settings, .sheet) :is(input:not([type='checkbox'], [type='radio'], [type='file'], [type='range']), select, textarea):not(.input, .textarea) {
+  width: 100%;
+  min-height: 46px;
+  padding: 11px 13px;
+  border: 0;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  color: var(--text);
+  font-size: 16px;
+  transition: box-shadow var(--t-fast), background var(--t-fast);
+}
+:is(.legacy, .legacy-settings, .sheet) :is(input, select, textarea):not(.input, .textarea):focus {
+  outline: none;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line-3);
+}
+:is(.legacy, .legacy-settings, .sheet) textarea:not(.textarea) {
+  min-height: 96px;
+  resize: vertical;
+}
+:is(.legacy, .legacy-settings, .sheet) input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--text);
+}
+:is(.legacy, .legacy-settings, .sheet) .checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--text-2);
+  font-size: 14px;
+}
+:is(.legacy, .legacy-settings, .sheet) .row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  box-shadow: none;
+  border-radius: 0;
+}
+:is(.legacy, .legacy-settings, .sheet) .row:hover {
+  background: none;
+}
+:is(.legacy, .legacy-settings, .sheet) .between {
+  justify-content: space-between;
+}
+:is(.legacy, .legacy-settings, .sheet) .wrap {
+  flex-wrap: wrap;
+}
+:is(.legacy, .legacy-settings, .sheet) .circle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--c, var(--text)) 14%, var(--surface));
+  color: var(--c, var(--text));
+}
+:is(.legacy, .legacy-settings, .sheet) .text-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+:is(.legacy, .legacy-settings, .sheet) .text-button:hover {
+  color: var(--text);
+}
+:is(.legacy, .legacy-settings, .sheet) :is(.white-box, .callout, .import-card) {
+  display: grid;
+  gap: 10px;
+  padding: 16px 18px;
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+:is(.legacy, .legacy-settings, .sheet) .callout .eyebrow {
+  font-size: 11px;
+}
+/* Former pastels become quiet tints of the subject hue. */
+:is(.legacy, .legacy-settings, .sheet) .peach {
+  background: color-mix(in srgb, var(--life) 11%, var(--surface));
+}
+:is(.legacy, .legacy-settings, .sheet) .mint {
+  background: color-mix(in srgb, var(--finance) 9%, var(--surface));
+}
+:is(.legacy, .legacy-settings, .sheet) .lavender {
+  background: color-mix(in srgb, var(--judgment) 10%, var(--surface));
+}
+:is(.legacy, .legacy-settings, .sheet) .form-message {
+  font-size: 14px;
+  color: var(--text-2);
+}
+:is(.legacy, .legacy-settings, .sheet) details {
+  border-top: 1px solid var(--line);
+  padding-top: 14px;
+}
+:is(.legacy, .legacy-settings, .sheet) summary {
+  cursor: pointer;
+  list-style: none;
+  font-weight: 500;
+  color: var(--text-2);
+}
+:is(.legacy, .legacy-settings, .sheet) summary::-webkit-details-marker {
+  display: none;
+}
+:is(.legacy, .legacy-settings, .sheet) summary::after {
+  content: '+';
+  margin-left: 8px;
+  color: var(--text-3);
+}
+:is(.legacy, .legacy-settings, .sheet) details[open] > summary::after {
+  content: '−';
+}
+:is(.legacy, .legacy-settings, .sheet) details[open] > :not(summary) {
+  margin-top: 12px;
+}
+.btn.danger {
+  background: color-mix(in srgb, var(--negative) 14%, var(--surface-2));
+  color: var(--negative);
+}
+.btn.danger:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--negative) 22%, var(--surface-2));
+}
+.danger-link {
+  color: var(--negative);
+  font-size: 14px;
+  justify-self: start;
+}
+
+/* Two-lane layout used by Life */
+.legacy .screen-grid,
+.life .screen-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+}
+.life .main-lane,
+.legacy .main-lane {
+  display: grid;
+  gap: 22px;
+}
+.life .context,
+.legacy .context {
+  position: sticky;
+  top: 24px;
+  display: grid;
+  gap: 18px;
+}
+@media (max-width: 899px) {
+  .legacy .screen-grid,
+  .life .screen-grid {
+    grid-template-columns: 1fr;
+  }
+  .life .context,
+  .legacy .context {
+    position: static;
+  }
+}
+.life .hero {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border-radius: var(--r-xl);
+  background: color-mix(in srgb, var(--life) 10%, var(--raised));
+  box-shadow: var(--inner), 0 0 0 1px var(--line);
+}
+.life .hero h2 {
+  font-size: clamp(26px, 3vw, 34px);
+  margin-top: 4px;
+}
+.life .hero > p {
+  color: var(--text-2);
+}
+.life .hero .btn {
+  justify-self: start;
+  margin-top: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+.life .growth-week {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.life .growth-week button {
+  display: grid;
+  gap: 2px;
+  padding: 12px;
+  border-radius: var(--r);
+  background: var(--surface);
+  text-align: left;
+  transition: background var(--t-fast), box-shadow var(--t-fast);
+}
+.life .growth-week button[aria-pressed='true'] {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1.5px var(--life);
+}
+.life .growth-week span {
+  font-weight: 500;
+}
+.life .food-field {
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-2);
+}
+.life .segmented,
+.sheet .segmented,
+.legacy-settings .segmented {
+  justify-self: start;
+}
+.set-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.set-table th {
+  text-align: left;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-3);
+  padding-bottom: 6px;
+}
+.set-table td {
+  padding: 6px 6px 6px 0;
+  border-top: 1px solid var(--line);
+}
+.set-table input {
+  min-height: 40px !important;
+}
+.rest-timer {
+  font-variant-numeric: tabular-nums;
+  font-stretch: 78%;
+  font-size: 40px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+}
+
+/* Settings sections on the You page */
+.legacy-settings > div {
+  display: grid;
+  gap: 8px;
+}
+.settings-section {
+  display: grid;
+  gap: 14px;
+  padding: 28px 0 8px;
+  border-top: 1px solid var(--line);
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.setting-row p {
+  color: var(--text-3);
+  font-size: 14px;
+}
+.plan-history {
+  display: grid;
+  gap: 8px;
+}
+.history-item {
+  display: grid;
+  gap: 6px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.sheet-foot {
+  margin-top: 18px;
+}
+
+/* Import */
+.legacy .import-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px;
+}
+.legacy .import-facts > div {
+  display: grid;
+  gap: 2px;
+}
+.legacy .code-input {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  min-height: 320px;
+}
+.upload-zone {
+  display: grid;
+  place-items: center;
+  gap: 6px;
+  min-height: 180px;
+  padding: 24px;
+  border-radius: var(--r-xl);
+  border: 1.5px dashed var(--line-3);
+  background: var(--surface);
+  text-align: center;
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+.upload-zone:hover {
+  background: var(--surface-2);
+  border-color: var(--text-3);
+}
+.legacy .hero {
+  display: grid;
+  gap: 12px;
+  padding: 22px;
+  border-radius: var(--r-xl);
+  background: var(--raised);
+  box-shadow: var(--inner), 0 0 0 1px var(--line);
+}
+.legacy .preserve {
+  white-space: pre-wrap;
+}
+.legacy .lesson-stages {
+  display: grid;
+  gap: 8px;
+  padding-left: 18px;
+  color: var(--text-2);
+}

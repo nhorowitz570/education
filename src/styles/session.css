@@ -1,0 +1,550 @@
+/* A session is a focused reading space: one column, content building in
+   place, a single dock for what to do next. */
+.session {
+  --col: 680px;
+  min-height: 100dvh;
+  padding-bottom: 220px;
+}
+.session-top {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: 12px;
+  padding: calc(10px + var(--safe-top)) var(--gutter) 10px;
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+}
+.session-meta {
+  display: grid;
+  gap: 8px;
+  justify-items: center;
+  width: min(100%, var(--col));
+  margin: 0 auto;
+}
+.session-title {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-2);
+}
+.session-time {
+  text-align: right;
+  font-size: 15px;
+  color: var(--text-3);
+}
+/* Progress: each step sized by its minutes, like the route of the morning. */
+.track-bar {
+  display: flex;
+  gap: 3px;
+  width: 100%;
+  height: 4px;
+}
+.track-bar i {
+  flex-basis: 0;
+  min-width: 4px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  transition:
+    background var(--t-slow) var(--ease),
+    box-shadow var(--t-slow) var(--ease);
+}
+.track-bar i.done {
+  background: var(--c);
+  opacity: 0.85;
+}
+.track-bar i.done.recall {
+  background: var(--review);
+}
+.track-bar i.now {
+  background: var(--text);
+  box-shadow: 0 0 10px var(--glow);
+}
+.track-bar i.rest,
+.track-bar i.optional.todo {
+  background: repeating-linear-gradient(-45deg, var(--hatch) 0 2px, transparent 2px 5px), var(--surface);
+}
+
+.session-col {
+  width: min(100% - 2 * var(--gutter), var(--col));
+  margin: 0 auto;
+  padding-top: 28px;
+}
+.session-end {
+  height: 1px;
+}
+
+/* Steps */
+.beat {
+  scroll-margin-top: 88px;
+  padding: 32px 0 8px;
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.beat + .beat {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+}
+.beat.past {
+  opacity: 0.62;
+  transition: opacity var(--t) var(--ease);
+}
+.beat.past:hover,
+.beat.past:focus-within {
+  opacity: 1;
+}
+.beat.skipped {
+  opacity: 0.4;
+}
+.beat-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  color: var(--text-3);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.beat.current .beat-label .dot {
+  box-shadow: 0 0 10px var(--c);
+}
+.beat-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--r);
+  background: color-mix(in srgb, var(--negative) 10%, var(--surface));
+  color: var(--text-2);
+  font-size: 14px;
+}
+
+.blocks {
+  display: grid;
+  gap: 18px;
+}
+.block {
+  animation: rise 360ms var(--ease) both;
+}
+.prose .fresh {
+  animation: fresh 520ms var(--ease) both;
+}
+@keyframes fresh {
+  from {
+    opacity: 0;
+    filter: blur(2px);
+  }
+}
+.callout {
+  padding: 14px 18px;
+  border-radius: var(--r);
+  background: var(--surface);
+}
+.callout .prose {
+  font-family: var(--sans);
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+.visual-block {
+  margin: 6px 0;
+}
+
+/* The page building itself */
+.building {
+  display: grid;
+  gap: 16px;
+}
+.building p {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-3);
+  font-size: 14px;
+}
+.building.compact p {
+  font-size: 13px;
+}
+.pulse {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 12px var(--glow);
+  animation: breathe 1.6s var(--ease) infinite;
+}
+
+/* Questions */
+.choices {
+  display: grid;
+  gap: 8px;
+  margin-top: 22px;
+}
+.choice {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: var(--r);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--line);
+  text-align: left;
+  font-size: 16px;
+  line-height: 1.45;
+  transition:
+    background var(--t-fast),
+    box-shadow var(--t-fast),
+    transform var(--t-fast) var(--ease),
+    opacity var(--t);
+}
+.choice:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+.choice:active:not(:disabled) {
+  transform: scale(0.99);
+}
+.choice-key {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 13px;
+  font-weight: 600;
+  transition:
+    background var(--t-fast),
+    color var(--t-fast);
+}
+.choice-text {
+  flex: 1;
+  padding-top: 1px;
+}
+.choice.picked {
+  box-shadow: inset 0 0 0 1.5px var(--text);
+}
+.choice.picked .choice-key {
+  background: var(--text);
+  color: var(--on-accent);
+}
+.choice.right {
+  box-shadow: inset 0 0 0 1.5px var(--positive);
+  background: color-mix(in srgb, var(--positive) 8%, var(--surface));
+}
+.choice.right .choice-key {
+  background: var(--positive);
+  color: var(--on-accent);
+}
+.choice.right svg {
+  color: var(--positive);
+  flex: none;
+  margin-top: 2px;
+}
+.choice.wrong {
+  box-shadow: inset 0 0 0 1.5px var(--negative);
+}
+.choice.wrong .choice-key {
+  background: var(--negative);
+  color: var(--on-accent);
+}
+.choice.rest {
+  opacity: 0.5;
+}
+.choice:disabled {
+  cursor: default;
+}
+.answer {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+.answer .textarea.long {
+  min-height: 180px;
+}
+.answer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+.choices .answer-row {
+  justify-content: flex-end;
+}
+.your-answer {
+  margin: 22px 0 0;
+  padding: 14px 18px;
+  border-radius: var(--r);
+  background: var(--surface);
+  white-space: pre-wrap;
+}
+.your-answer .label {
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* Feedback */
+.feedback {
+  --c: var(--text-3);
+  margin-top: 22px;
+  padding: 18px 20px;
+  border-radius: var(--r-lg);
+  background: var(--raised);
+  box-shadow: var(--inner), 0 0 0 1px var(--line);
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.feedback.v-solid {
+  --c: var(--positive);
+}
+.feedback.v-partial {
+  --c: var(--caution);
+}
+.feedback.v-missed {
+  --c: var(--negative);
+}
+.feedback-verdict {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--c);
+}
+.feedback .prose {
+  font-size: 17px;
+}
+.dot.v-solid {
+  --c: var(--positive);
+}
+.dot.v-partial {
+  --c: var(--caution);
+}
+.dot.v-missed {
+  --c: var(--negative);
+}
+
+/* Asking the tutor inline */
+.ask {
+  margin-top: 26px;
+  padding-left: 18px;
+  border-left: 1px solid var(--line-2);
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.ask-q {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  color: var(--text-2);
+  font-size: 14px;
+  font-weight: 500;
+}
+.ask .prose {
+  font-size: 18px;
+}
+
+/* Dock */
+.dock {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 25;
+  padding: 18px var(--gutter) calc(14px + var(--safe-bottom));
+  background: linear-gradient(to top, var(--bg) 62%, color-mix(in srgb, var(--bg) 0%, transparent));
+  pointer-events: none;
+}
+.dock-inner {
+  display: grid;
+  gap: 10px;
+  width: min(100%, var(--col));
+  margin: 0 auto;
+  pointer-events: auto;
+}
+.dock-chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 2px var(--gutter);
+  mask-image: linear-gradient(to right, transparent, #000 var(--gutter), #000 calc(100% - var(--gutter)), transparent);
+  animation: fade var(--t) var(--ease) both;
+}
+.dock-chips::-webkit-scrollbar {
+  display: none;
+}
+.dock-chips .chip {
+  flex: none;
+  background: var(--raised);
+}
+.chip.suggested {
+  color: var(--text);
+}
+.dock-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.dock-ask {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+.dock-ask .input {
+  min-height: 50px;
+  padding-right: 52px;
+  border-radius: 16px;
+  background: var(--raised);
+  box-shadow: inset 0 0 0 1px var(--line-2), 0 10px 30px rgba(0, 0, 0, 0.18);
+}
+.dock-ask .btn {
+  position: absolute;
+  right: 8px;
+}
+.dock .continue {
+  min-height: 50px;
+  border-radius: 16px;
+  padding: 0 20px;
+}
+.dock .continue.wide {
+  flex: 1;
+}
+.dock-error {
+  color: var(--negative);
+  font-size: 13px;
+}
+@media (max-width: 560px) {
+  .dock-row {
+    flex-wrap: wrap;
+  }
+  .dock-ask {
+    flex-basis: 100%;
+  }
+  .dock .continue {
+    flex: 1;
+  }
+}
+
+/* Break */
+.break {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  padding: 24px 0 8px;
+  text-align: center;
+}
+.break-ring {
+  width: 132px;
+  height: 132px;
+  transform: rotate(-90deg);
+}
+.ring-bg,
+.ring-fg {
+  fill: none;
+  stroke-width: 4;
+}
+.ring-bg {
+  stroke: var(--surface-3);
+}
+.ring-fg {
+  stroke: var(--text);
+  stroke-linecap: round;
+  transition: stroke-dashoffset 500ms linear;
+}
+.break-time {
+  margin-top: -94px;
+  margin-bottom: 44px;
+  font-size: 30px;
+}
+
+.session-empty {
+  display: grid;
+  place-items: center;
+  gap: 12px;
+  min-height: 70dvh;
+  text-align: center;
+}
+
+/* Completion */
+.complete {
+  --c: var(--text);
+  min-height: 100dvh;
+  padding: calc(64px + var(--safe-top)) var(--gutter) 64px;
+}
+.complete-inner {
+  display: grid;
+  gap: 20px;
+  width: min(100%, 640px);
+  margin: 0 auto;
+}
+.complete-mark {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--c);
+  color: var(--on-accent);
+  box-shadow: 0 0 40px color-mix(in srgb, var(--c) 45%, transparent);
+  animation: pop 520ms var(--ease) both;
+}
+.complete-stats {
+  display: flex;
+  gap: 36px;
+  margin: 8px 0;
+}
+.complete-stats div,
+.stat {
+  display: grid;
+  gap: 2px;
+}
+.complete-stats b,
+.stat b {
+  font-size: 34px;
+  line-height: 1;
+}
+.complete-stats span,
+.stat span {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.complete-section {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+.complete-meter {
+  margin-top: 8px;
+  max-width: 320px;
+}
+.complete-meter i {
+  animation: grow-x 900ms var(--ease) both 300ms;
+}
+.complete-meter i.before {
+  background: var(--text-4);
+  animation: none;
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+}
+.complete-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}

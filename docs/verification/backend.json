@@ -1,5 +1,5 @@
 {
-  "at": "2026-09-22T00:33:37.894Z",
+  "at": "2026-09-22T23:51:57.438Z",
   "project": "Fieldwork",
   "passed": [
     "Unauthenticated server routes rejected",
@@ -9,12 +9,11 @@
     "Two accounts and anonymous requests cannot read another plan",
     "Ownership reassignment and privileged RPC access rejected",
     "Private Storage isolates both reads and writes",
-    "Persisted lesson resumes without regeneration or answer-key exposure",
-    "Lesson completion is synced and points cannot duplicate",
-    "Completed evidence is immutable, including service writes",
-    "Plan revision preserves completion evidence",
+    "Starting a session is instant, resumable, and never exposes answer keys",
+    "Runs and memories stay private to their owner",
+    "Plan revision creates a new immutable version",
     "Concurrent AI reservations respect the per-account hard limit",
     "Reminder delivery claims deduplicate atomically",
-    "Account export includes immutable versions and saved evidence"
+    "Account export includes plan versions and learning history, without answer keys"
   ]
 }

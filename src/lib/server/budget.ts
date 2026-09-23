@@ -11,8 +11,9 @@ export async function reserve(
     p_user_id: userId,
     p_key: key,
     p_amount: amount,
-    p_user_limit: Number(process.env.AI_MONTHLY_LIMIT_USD || 20),
-    p_project_limit: Number(process.env.AI_PROJECT_MONTHLY_LIMIT_USD || 40),
+    // Unmetered unless a limit is configured; reservations still record cost.
+    p_user_limit: Number(process.env.AI_MONTHLY_LIMIT_USD || 1e6),
+    p_project_limit: Number(process.env.AI_PROJECT_MONTHLY_LIMIT_USD || 1e6),
     p_model: model,
   });
   if (error) throw new Error(error.message);

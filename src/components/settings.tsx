@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { PasskeySettings } from './passkeys';
-import type { ViewProps } from './app';
-import { Button, Pill, Modal, SectionTitle, download, dateLabel } from './ui';
+import type { ViewProps } from './app/legacy';
+import { Button, Pill, Modal, download, dateLabel } from './ui';
 import { Icon } from './icons';
 import {
   selectNext,
@@ -10,7 +10,7 @@ import {
   shortRevision,
   moveRevision,
 } from '@/lib/schedule';
-import { api } from '@/lib/client/workspace';
+import { api } from '@/lib/client/api';
 import { clearLocal } from '@/lib/client/storage';
 import { requestPush } from './pwa';
 import type { Revision } from '@/lib/types';
@@ -38,7 +38,9 @@ export function Checkin(p: ViewProps & { close: () => void }) {
       minutes,
     });
     const next = selectNext(p.w.state, p.today);
-    if (next && (minutes === 20 || energy === 1))
+    // Only today's session is shortened; a rest-day check-in never pulls a
+    // future session forward.
+    if (next && next.session.date === p.today && (minutes === 20 || energy === 1))
       await p.w.send({
         type: 'shorten',
         eventId: crypto.randomUUID(),
@@ -330,12 +332,17 @@ export function Schedule(p: ViewProps & { mode: string; close: () => void }) {
                     kind="secondary"
                     disabled={!!r.undone_at}
                     onClick={async () => {
-                      await p.w.send({
-                        type: 'undo',
-                        eventId: crypto.randomUUID(),
-                        revisionId: r.id,
-                        today: p.today,
-                      });
+                      setError('');
+                      try {
+                        await p.w.send({
+                          type: 'undo',
+                          eventId: crypto.randomUUID(),
+                          revisionId: r.id,
+                          today: p.today,
+                        });
+                      } catch (e) {
+                        setError((e as Error).message);
+                      }
                     }}
                   >
                     {r.undone_at ? 'Undone' : 'Undo future changes'}
@@ -400,21 +407,9 @@ export function Reflection(p: ViewProps & { close: () => void }) {
     </Modal>
   );
 }
-export function Settings(
-  p: ViewProps & {
-    dark: boolean;
-    setDark: (v: boolean) => void;
-    logout: () => Promise<void>;
-  },
-) {
-  const [memory, setMemory] = useState(''),
-    [message, setMessage] = useState(''),
-    [usage, setUsage] = useState<{
-      used: number;
-      limit: number;
-      textModel: string;
-      voiceModel: string;
-    }>(),
+// Plan, calendar, reminders and data controls, shown on the You page.
+export function Settings(p: ViewProps) {
+  const [message, setMessage] = useState(''),
     [calendar, setCalendar] = useState<{
       connected: boolean;
       lastSync?: string;
@@ -435,16 +430,9 @@ export function Settings(
       String(preferences.quietStart || '21:00'),
     ),
     [quietEnd, setQuietEnd] = useState(String(preferences.quietEnd || '08:00')),
-    [travel, setTravel] = useState(!!preferences.travel),
-    [retain, setRetain] = useState(
-      !!p.w.state.records.find((r) => r.id === 'settings:voice')?.data
-        .retainTranscript,
-    );
+    [travel, setTravel] = useState(!!preferences.travel);
   useEffect(() => {
     if (p.config.demo) return;
-    void api<typeof usage>('/api/account')
-      .then(setUsage)
-      .catch((e) => setMessage(e.message));
     void api<typeof calendar>('/api/calendar')
       .then(setCalendar)
       .catch(() => {});
@@ -461,30 +449,11 @@ export function Settings(
   async function deleteAccount() {
     await api('/api/account', { confirm }, 'DELETE');
     await clearLocal();
-    location.href = '/';
+    location.href = '/welcome';
   }
   return (
-    <div className="screen-grid">
-      <div className="main-lane">
-        <SectionTitle eyebrow="YOUR SPACE" title="Make this yours." />
-        <div className="settings-section">
-          <h3>Appearance & account</h3>
-          <div className="setting-row">
-            <div>
-              <strong>Dark appearance</strong>
-              <p>A softer canvas after hours.</p>
-            </div>
-            <Button kind="secondary" onClick={() => p.setDark(!p.dark)}>
-              {p.dark ? 'Use light' : 'Use dark'}
-              <Icon name={p.dark ? 'sun' : 'moon'} />
-            </Button>
-          </div>
-          <PasskeySettings demo={p.config.demo} />
-          <Button kind="secondary" onClick={() => void p.logout()}>
-            Sign out
-            <Icon name="logout" />
-          </Button>
-        </div>
+    <div className="legacy-settings">
+      <div>
         <div className="settings-section">
           <h3>Your plan</h3>
           <div className="row wrap">
@@ -765,88 +734,6 @@ export function Settings(
           </p>
         </div>
         <div className="settings-section">
-          <h3>What your tutor remembers</h3>
-          <p className="muted">
-            Only the notes here and your learning evidence inform your tutor.
-            Edit or forget any note.
-          </p>
-          {p.w.state.records
-            .filter((r) => r.kind === 'memory')
-            .map((r) => (
-              <div className="memory-item" key={r.id}>
-                <textarea
-                  aria-label="Memory note"
-                  defaultValue={String(r.data.text || '')}
-                  rows={2}
-                  maxLength={2000}
-                  onBlur={(e) =>
-                    void p.w.record('memory', r.id, { text: e.target.value })
-                  }
-                />
-                <button
-                  className="text-button"
-                  onClick={() =>
-                    void p.w.send({
-                      type: 'delete-record',
-                      eventId: crypto.randomUUID(),
-                      id: r.id,
-                    })
-                  }
-                >
-                  Forget this note
-                </button>
-              </div>
-            ))}
-          <label>
-            Add context
-            <textarea
-              value={memory}
-              rows={2}
-              maxLength={2000}
-              placeholder="For example: use small creative-business examples."
-              onChange={(e) => setMemory(e.target.value)}
-            />
-          </label>
-          <Button
-            kind="secondary"
-            disabled={!memory.trim()}
-            onClick={async () => {
-              await p.w.record('memory', 'memory:' + crypto.randomUUID(), {
-                text: memory,
-              });
-              setMemory('');
-            }}
-          >
-            Remember this
-          </Button>
-        </div>
-        <div className="settings-section">
-          <h3>Voice & retention</h3>
-          <label className="checkbox">
-            <input
-              type="checkbox"
-              checked={retain}
-              onChange={(e) => {
-                setRetain(e.target.checked);
-                void p.w.record('settings', 'settings:voice', {
-                  ...p.w.state.records.find((r) => r.id === 'settings:voice')
-                    ?.data,
-                  retainTranscript: e.target.checked,
-                });
-              }}
-            />
-            Keep an editable transcript and feedback after voice practice
-          </label>
-          <p className="muted">
-            Raw audio is not stored. Live calls require the app in the
-            foreground.
-          </p>
-          <Button kind="secondary" onClick={() => p.go('voice')}>
-            Open practice
-            <Icon name="mic" />
-          </Button>
-        </div>
-        <div className="settings-section">
           <h3>Data & privacy</h3>
           <Button
             kind="secondary"
@@ -869,55 +756,6 @@ export function Settings(
           </p>
         )}
       </div>
-      <aside className="context">
-        <h3>Connections</h3>
-        {[
-          [
-            'Supabase',
-            p.config.backend ? 'Connected' : 'Awaiting configuration',
-          ],
-          [
-            'AI lessons & tutor',
-            p.config.ai
-              ? 'Key configured · verify access'
-              : 'Awaiting OpenRouter API key',
-          ],
-          [
-            'Google Calendar',
-            calendar?.connected
-              ? 'Connected'
-              : p.config.calendar
-                ? 'Ready to authorize'
-                : 'Awaiting OAuth setup',
-          ],
-        ].map(([a, b]) => (
-          <div key={a}>
-            <strong>{a}</strong>
-            <p className="muted">{b}</p>
-          </div>
-        ))}
-        <div className="white-box">
-          <span className="eyebrow">MONTHLY AI ALLOWANCE</span>
-          <h3>
-            ${usage?.used.toFixed(2) || '0.00'}{' '}
-            <span className="muted">/ ${usage?.limit || 20}</span>
-          </h3>
-          <p>
-            Includes active reservations.
-            <br />
-            Shared project cap: $40 by default.
-          </p>
-        </div>
-        <p>
-          {usage?.textModel || 'openai/gpt-5.6-luna'} via OpenRouter.
-          <br />
-          {usage?.voiceModel || 'gpt-live-1'} via OpenAI for live speech.
-        </p>
-        <p>
-          Models and hard budget caps are server configuration. No automatic
-          upgrades.
-        </p>
-      </aside>
       {deleteOpen && (
         <Modal
           title="Delete your private account?"

@@ -1,0 +1,1185 @@
+/* Native visuals for tutor specs. Everything inherits the design tokens, so
+   both themes work without per-chart colours. No boxes: figures sit on the
+   page; hairlines and luminance carry the structure. */
+
+.viz {
+  container: viz / inline-size;
+  --viz-bg: var(--bg);
+  --tc: color-mix(in srgb, var(--text) 55%, transparent);
+  position: relative;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  color: var(--text);
+  font-family: var(--sans);
+}
+.viz .tone-default { --tc: color-mix(in srgb, var(--text) 55%, transparent); }
+.viz .tone-accent { --tc: var(--accent); }
+.viz .tone-positive { --tc: var(--positive); }
+.viz .tone-negative { --tc: var(--negative); }
+.viz .tone-muted { --tc: var(--text-4); }
+
+.viz-title {
+  margin-bottom: 14px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text-2);
+  letter-spacing: 0.002em;
+}
+.viz-takeaway {
+  margin-top: 16px;
+  max-width: 62ch;
+  font-family: var(--serif);
+  font-size: 16px;
+  line-height: 1.5;
+  font-variation-settings: 'opsz' 16;
+  color: var(--text-2);
+  text-wrap: pretty;
+}
+.viz-empty {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.viz .num {
+  font-variant-numeric: tabular-nums;
+  font-stretch: 78%;
+  letter-spacing: -0.02em;
+  font-weight: 500;
+}
+.viz-plot {
+  position: relative;
+  width: 100%;
+  min-width: 0;
+}
+.viz svg {
+  display: block;
+  max-width: none;
+  overflow: visible;
+}
+.viz svg text {
+  font-family: var(--sans);
+}
+.viz-dot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tc);
+}
+.viz .tone-default > .viz-dot,
+.viz .tone-default .viz-step-tile .viz-dot {
+  background: var(--text-3);
+}
+
+/* ---------- Bar ---------- */
+.viz-bars {
+  display: grid;
+  grid-template-columns: fit-content(36%) minmax(0, 1fr) auto;
+  column-gap: 14px;
+  row-gap: 6px;
+  align-items: center;
+}
+.viz-bar {
+  display: contents;
+}
+.viz-bar-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 28px;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-2);
+}
+.viz-bar-label > span,
+.viz-bar-label > small {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.viz-bar-label small,
+.viz-bar-value small {
+  font-size: 11px;
+  color: var(--text-3);
+}
+.viz-bar.tone-accent .viz-bar-label {
+  color: var(--text);
+  font-weight: 500;
+}
+.viz-bar-track {
+  position: relative;
+  height: 12px;
+}
+.viz-bar-zero {
+  position: absolute;
+  top: -6px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--line-3);
+}
+.viz-bar-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  transform-origin: left;
+}
+.viz-bar-fill.neg {
+  flex-direction: row-reverse;
+  transform-origin: right;
+}
+.viz-bar-fill > i {
+  flex-basis: 0;
+  min-width: 0;
+}
+.viz-bar-fill > .solid {
+  background: var(--tc);
+}
+.viz-bar-fill > .hatch {
+  background:
+    repeating-linear-gradient(-45deg, var(--tc) 0 1.5px, transparent 1.5px 5px),
+    color-mix(in srgb, var(--tc) 14%, transparent);
+  opacity: 0.8;
+}
+.viz-bar-fill > .solid + .hatch {
+  box-shadow: inset 1.5px 0 0 var(--viz-bg);
+}
+.viz-bar-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--text-2);
+  text-align: right;
+  white-space: nowrap;
+}
+.viz-bar.tone-accent .viz-bar-value {
+  color: var(--text);
+}
+
+/* ---------- Shared chart text ---------- */
+.viz-grid line {
+  stroke: var(--line);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+.viz-grid line.base,
+.viz-baseline {
+  stroke: var(--line-2);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+.viz-tick {
+  font-size: 11px;
+  fill: var(--text-3);
+  font-variant-numeric: tabular-nums;
+}
+/* Text drawn over marks gets a background halo so lines never cut through it. */
+.viz-tick,
+.viz-endlabel,
+.viz-ann text,
+.viz-wf-value,
+.viz-mx-item text,
+.viz-spec-m text {
+  paint-order: stroke;
+  stroke: var(--viz-bg);
+  stroke-width: 4px;
+  stroke-linejoin: round;
+}
+.viz-axis-note {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-3);
+  text-align: right;
+}
+
+/* ---------- Line ---------- */
+.viz-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  margin: -4px 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-2);
+}
+.viz-legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.viz-legend li > i {
+  width: 16px;
+  border-top: 2px solid var(--tc);
+}
+.viz-legend li > i.dashed {
+  border-top-style: dashed;
+}
+.viz-stroke {
+  fill: none;
+  stroke: var(--tc);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.viz-stroke.dashed {
+  stroke-dasharray: 4 4;
+  stroke-linecap: butt;
+}
+.viz-mask {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 8;
+}
+.viz-draw {
+  stroke-dasharray: 1 1;
+}
+.viz-area-top {
+  stop-color: var(--text);
+  stop-opacity: 0.1;
+}
+.viz-area-bottom {
+  stop-color: var(--text);
+  stop-opacity: 0;
+}
+.viz-end {
+  fill: var(--tc);
+  stroke: var(--viz-bg);
+  stroke-width: 2;
+}
+.viz-endlabel {
+  font-size: 12px;
+  fill: var(--tc);
+}
+.viz-endlabel.tone-default {
+  fill: var(--text-2);
+}
+.viz-ann line {
+  stroke: var(--line-3);
+  stroke-dasharray: 2 3;
+  shape-rendering: crispEdges;
+}
+.viz-ann text {
+  font-size: 11px;
+  fill: var(--text-2);
+}
+
+/* ---------- Waterfall ---------- */
+.viz-wf-bar {
+  fill: color-mix(in srgb, var(--text) 30%, transparent);
+  transform-box: fill-box;
+}
+.viz-wf-col.is-up .viz-wf-bar { fill: var(--positive); }
+.viz-wf-col.is-down .viz-wf-bar { fill: var(--negative); }
+.viz-wf-col.is-end .viz-wf-bar { fill: var(--accent); }
+.viz-wf-bar.grow-bottom { transform-origin: 50% 100%; }
+.viz-wf-bar.grow-top { transform-origin: 50% 0%; }
+.viz-connector {
+  stroke: var(--line-3);
+  stroke-dasharray: 2 2;
+  shape-rendering: crispEdges;
+}
+.viz-wf-value {
+  font-size: 12px;
+  fill: var(--text-2);
+}
+.viz-wf-col.is-end .viz-wf-value {
+  fill: var(--text);
+  font-weight: 600;
+}
+.viz-wf-labels {
+  position: relative;
+  height: 32px;
+  margin-top: 8px;
+  font-size: 11px;
+  line-height: 15px;
+  color: var(--text-3);
+  text-align: center;
+}
+.viz-wf-labels > span {
+  position: absolute;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.viz-wf-labels.stagger > span {
+  display: block;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.viz-wf-labels > .is-end {
+  color: var(--text-2);
+  font-weight: 500;
+}
+
+/* ---------- Flow ---------- */
+.viz-flow-wrap {
+  position: relative;
+}
+.viz-flow {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.viz-step {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+}
+.viz-step-tile {
+  min-width: 0;
+  padding: 12px 14px 13px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  box-shadow: var(--inner);
+}
+.viz-step-tile b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--text);
+}
+.viz-step-tile p {
+  margin: 4px 0 0 15px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-3);
+}
+.viz-step.tone-accent .viz-step-tile {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--line-2);
+}
+.viz-step.tone-muted .viz-step-tile b {
+  color: var(--text-2);
+}
+.viz-chev {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin: 5px auto;
+  transform: rotate(90deg);
+}
+.viz-chev path {
+  fill: none;
+  stroke: var(--text-4);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.viz-flow-loop {
+  position: absolute;
+  top: 22px;
+  bottom: 22px;
+  right: -2px;
+  width: 16px;
+  border: 1px solid var(--line-3);
+  border-left: 0;
+  border-radius: 0 10px 10px 0;
+}
+.viz-flow-wrap[data-loops] .viz-flow {
+  padding-right: 26px;
+}
+.viz-flow-loop::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -2px;
+  border: 4px solid transparent;
+  border-right-color: var(--text-3);
+  border-left: 0;
+}
+.viz-flow-loop span {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  padding: 4px 0;
+  font-size: 11px;
+  color: var(--text-3);
+  background: var(--viz-bg);
+  writing-mode: vertical-rl;
+  transform: translate(50%, -50%);
+}
+@container viz (min-width: 480px) {
+  .viz-flow:not([data-many]) {
+    flex-direction: row;
+  }
+  .viz-flow:not([data-many]) > .viz-step {
+    flex: 1 1 0;
+    flex-direction: row;
+    align-items: center;
+  }
+  .viz-flow:not([data-many]) > .viz-step:last-child {
+    flex-grow: 0.94;
+  }
+  .viz-flow:not([data-many]) .viz-step-tile {
+    flex: 1;
+    align-self: stretch;
+  }
+  .viz-flow:not([data-many]) .viz-chev {
+    margin: 0 4px;
+    transform: none;
+  }
+  .viz-flow-wrap[data-loops]:has(.viz-flow:not([data-many])) {
+    padding-bottom: 30px;
+  }
+  .viz-flow-wrap[data-loops] .viz-flow:not([data-many]) {
+    padding-right: 0;
+  }
+  .viz-flow:not([data-many]) + .viz-flow-loop {
+    top: auto;
+    bottom: 8px;
+    left: 44px;
+    right: 44px;
+    width: auto;
+    height: 16px;
+    border: 1px solid var(--line-3);
+    border-top: 0;
+    border-radius: 0 0 10px 10px;
+  }
+  .viz-flow:not([data-many]) + .viz-flow-loop::before {
+    top: -2px;
+    left: -4px;
+    border: 4px solid transparent;
+    border-bottom-color: var(--text-3);
+    border-top: 0;
+  }
+  .viz-flow:not([data-many]) + .viz-flow-loop span {
+    top: auto;
+    bottom: 0;
+    right: auto;
+    left: 50%;
+    padding: 0 8px;
+    writing-mode: horizontal-tb;
+    transform: translate(-50%, 50%);
+  }
+}
+@container viz (min-width: 760px) {
+  .viz-flow[data-many] {
+    flex-direction: row;
+  }
+  .viz-flow[data-many] > .viz-step {
+    flex: 1 1 0;
+    flex-direction: row;
+    align-items: center;
+  }
+  .viz-flow[data-many] .viz-step-tile {
+    flex: 1;
+    align-self: stretch;
+  }
+  .viz-flow[data-many] .viz-chev {
+    margin: 0 4px;
+    transform: none;
+  }
+  .viz-flow-wrap[data-loops]:has(.viz-flow[data-many]) {
+    padding-bottom: 30px;
+  }
+  .viz-flow-wrap[data-loops] .viz-flow[data-many] {
+    padding-right: 0;
+  }
+  .viz-flow[data-many] + .viz-flow-loop {
+    top: auto;
+    bottom: 8px;
+    left: 44px;
+    right: 44px;
+    width: auto;
+    height: 16px;
+    border: 1px solid var(--line-3);
+    border-top: 0;
+    border-radius: 0 0 10px 10px;
+  }
+  .viz-flow[data-many] + .viz-flow-loop::before {
+    top: -2px;
+    left: -4px;
+    border: 4px solid transparent;
+    border-bottom-color: var(--text-3);
+    border-top: 0;
+  }
+  .viz-flow[data-many] + .viz-flow-loop span {
+    top: auto;
+    bottom: 0;
+    right: auto;
+    left: 50%;
+    padding: 0 8px;
+    writing-mode: horizontal-tb;
+    transform: translate(-50%, 50%);
+  }
+}
+
+/* ---------- Timeline ---------- */
+.viz-tl {
+  position: relative;
+  display: grid;
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.viz-tl::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  left: 4px;
+  width: 1px;
+  background: var(--line-2);
+}
+.viz-tl > li {
+  position: relative;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  padding-left: 26px;
+}
+.viz-tl-dot {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--tc);
+  box-shadow: 0 0 0 3px var(--viz-bg);
+}
+.viz-tl > li.tone-default .viz-tl-dot {
+  background: var(--text-3);
+}
+.viz-tl time {
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.5;
+  color: var(--text-3);
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+.viz-tl b {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.35;
+  color: var(--text);
+}
+.viz-tl > li.tone-muted b {
+  color: var(--text-2);
+}
+.viz-tl p {
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+@container viz (min-width: 620px) {
+  .viz-tl:not([data-dense]) {
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 20px;
+  }
+  .viz-tl:not([data-dense])::before {
+    top: 4px;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 1px;
+  }
+  .viz-tl:not([data-dense]) > li {
+    align-content: start;
+    padding: 22px 0 0;
+  }
+  .viz-tl:not([data-dense]) .viz-tl-dot {
+    top: 0;
+  }
+}
+@container viz (min-width: 900px) {
+  .viz-tl[data-dense] {
+    grid-template-columns: repeat(var(--n), minmax(0, 1fr));
+    gap: 16px;
+  }
+  .viz-tl[data-dense]::before {
+    top: 4px;
+    bottom: auto;
+    left: 0;
+    right: 0;
+    width: auto;
+    height: 1px;
+  }
+  .viz-tl[data-dense] > li {
+    align-content: start;
+    padding: 22px 0 0;
+  }
+  .viz-tl[data-dense] .viz-tl-dot {
+    top: 0;
+  }
+}
+
+/* ---------- Compare ---------- */
+.viz-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+.viz-cmp {
+  width: 100%;
+  min-width: 420px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.viz-cmp th,
+.viz-cmp td {
+  padding: 11px 12px;
+  text-align: left;
+  vertical-align: top;
+  font-weight: 400;
+}
+.viz-cmp tr > :first-child {
+  padding-left: 0;
+}
+.viz-cmp thead th {
+  padding-top: 10px;
+  vertical-align: bottom;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+}
+.viz-cmp thead th .viz-dot {
+  margin: 0 8px 1px 0;
+  vertical-align: middle;
+}
+.viz-cmp thead th.tone-default .viz-dot {
+  background: var(--text-3);
+}
+.viz-cmp thead th.tone-muted {
+  color: var(--text-2);
+}
+.viz-cmp tbody tr {
+  border-top: 1px solid var(--line);
+}
+.viz-cmp tbody th {
+  width: 26%;
+  min-width: 110px;
+  font-size: 13px;
+  color: var(--text-2);
+}
+.viz-cmp td {
+  color: var(--text);
+}
+.viz-cmp td.is-accent {
+  background: color-mix(in srgb, var(--text) 3.5%, transparent);
+}
+.viz-cmp thead th.tone-accent {
+  background: color-mix(in srgb, var(--text) 3.5%, transparent);
+  border-radius: 10px 10px 0 0;
+}
+.viz-cmp tbody tr:last-child td.is-accent {
+  border-radius: 0 0 10px 10px;
+}
+.viz-nil {
+  color: var(--text-4);
+}
+
+/* ---------- Matrix ---------- */
+.viz-mx {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px 10px;
+  max-width: 540px;
+}
+.viz-mx-y {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+.viz-mx-y,
+.viz-mx-x {
+  font-size: 11px;
+  line-height: 18px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.viz-mx-x {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+.viz-mx-y b,
+.viz-mx-x b {
+  font-weight: 500;
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.viz-mx-bg {
+  fill: color-mix(in srgb, var(--text) 2.5%, transparent);
+}
+.viz-mx-q {
+  fill: color-mix(in srgb, var(--text) 3%, transparent);
+}
+.viz-mx-axis {
+  stroke: var(--line-2);
+  shape-rendering: crispEdges;
+}
+.viz-mx-item circle {
+  fill: var(--tc);
+  stroke: var(--viz-bg);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.viz-mx-item.tone-accent circle {
+  stroke: color-mix(in srgb, var(--text) 22%, var(--viz-bg));
+  stroke-width: 4;
+  paint-order: stroke;
+}
+.viz-mx-item text {
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--text-2);
+}
+.viz-mx-item.tone-accent text {
+  fill: var(--text);
+}
+
+/* ---------- Concepts ---------- */
+.viz-cm-edge {
+  fill: none;
+  stroke: var(--line-3);
+  stroke-width: 1.25;
+}
+.viz-cm-head {
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 1.3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.viz-cm-elabel {
+  font-size: 11px;
+  fill: var(--text-3);
+  paint-order: stroke;
+  stroke: var(--viz-bg);
+  stroke-width: 5px;
+  stroke-linejoin: round;
+}
+.viz-cm-node rect {
+  fill: var(--surface-2);
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+.viz-cm-node text {
+  font-size: 13px;
+  font-weight: 500;
+  fill: var(--text);
+}
+.viz-cm-node.tone-muted text {
+  fill: var(--text-3);
+}
+.viz-cm-node.tone-muted rect {
+  fill: var(--surface);
+}
+.viz-cm-node.is-em rect {
+  fill: var(--accent);
+  stroke: none;
+}
+.viz-cm-node.is-em text {
+  fill: var(--on-accent);
+}
+.viz-cm-dot {
+  fill: var(--tc);
+}
+
+/* ---------- Stat ---------- */
+.viz-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  gap: 22px 24px;
+  margin: 0;
+}
+.viz-stat {
+  min-width: 0;
+}
+.viz-stat dt {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.viz-stat dd {
+  margin: 0;
+}
+.viz-stat-value {
+  margin-top: 4px !important;
+  font-size: clamp(34px, 7cqi, 44px);
+  line-height: 1;
+  letter-spacing: -0.035em !important;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.viz-stat.tone-positive .viz-stat-value { color: var(--positive); }
+.viz-stat.tone-negative .viz-stat-value { color: var(--negative); }
+.viz-stat.tone-muted .viz-stat-value { color: var(--text-3); }
+.viz-stat-delta {
+  margin-top: 6px !important;
+  font-size: 13px;
+  color: var(--tc);
+}
+.viz-stat-delta.tone-muted {
+  color: var(--text-3);
+}
+@container viz (min-width: 560px) {
+  .viz-stats[data-n='4'] {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Statement ---------- */
+.viz-stmt {
+  width: 100%;
+  max-width: 560px;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 1.4;
+}
+.viz-stmt th,
+.viz-stmt td {
+  padding: 7px 0;
+  font-weight: 400;
+  text-align: left;
+}
+.viz-stmt tbody th {
+  max-width: 0;
+  width: 100%;
+  padding-right: 16px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  color: var(--text-2);
+}
+.viz-stmt td {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--text);
+}
+.viz-stmt tbody + tbody .viz-stmt-head th {
+  padding-top: 20px;
+}
+.viz-stmt .viz-stmt-head th {
+  padding-bottom: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+.viz-stmt tr.is-subtotal > * {
+  border-top: 1px solid var(--line-3);
+  font-weight: 500;
+  color: var(--text);
+}
+.viz-stmt tr.is-total > * {
+  padding-top: 9px;
+  padding-bottom: 9px;
+  border-top: 1px solid var(--line-3);
+  border-bottom: 3px double var(--line-3);
+  font-weight: 600;
+  color: var(--text);
+}
+.viz-stmt tr.is-subtotal.neg td,
+.viz-stmt tr.is-total.neg td {
+  color: var(--negative);
+}
+
+/* ---------- Sim ---------- */
+.viz-sim {
+  display: grid;
+  gap: 22px;
+}
+@container viz (min-width: 620px) {
+  .viz-sim {
+    grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+    gap: 40px;
+    align-items: center;
+  }
+}
+.viz-sim-inputs {
+  display: grid;
+  gap: 6px;
+}
+.viz .viz-sim-label {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text-2);
+}
+.viz-sim-label span {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.viz-sim-label output {
+  font-size: 14px;
+  color: var(--text);
+}
+.viz input[type='range'] {
+  --p: 50%;
+  display: block;
+  width: 100%;
+  height: 44px;
+  min-height: 0;
+  margin: -6px 0 -4px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  touch-action: pan-y;
+}
+.viz input[type='range']::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 4px;
+  background: linear-gradient(to right, var(--text) var(--p), var(--surface-3) var(--p));
+}
+.viz input[type='range']::-moz-range-track {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--surface-3);
+}
+.viz input[type='range']::-moz-range-progress {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--text);
+}
+.viz input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: -8px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 4px var(--viz-bg), 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform var(--t-fast) var(--ease);
+}
+.viz input[type='range']::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--text);
+  box-shadow: 0 0 0 4px var(--viz-bg);
+}
+.viz input[type='range']:active::-webkit-slider-thumb {
+  transform: scale(1.12);
+}
+.viz input[type='range']:focus-visible {
+  outline: none;
+}
+.viz input[type='range']:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px var(--viz-bg), 0 0 0 6px var(--text-3);
+}
+.viz input[type='range']:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 4px var(--viz-bg), 0 0 0 6px var(--text-3);
+}
+.viz-sim-outs {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 18px 20px;
+  margin: 0;
+}
+@container viz (min-width: 620px) {
+  .viz-sim-outs {
+    grid-template-columns: minmax(0, 1fr);
+    padding-left: 32px;
+    border-left: 1px solid var(--line);
+  }
+}
+.viz-sim-out dt {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.viz-sim-out dd {
+  margin: 2px 0 0;
+  font-size: 28px;
+  line-height: 1.1;
+  color: var(--text);
+  white-space: nowrap;
+}
+.viz-sim-out.tone-positive dd { color: var(--positive); }
+.viz-sim-out.tone-negative dd { color: var(--negative); }
+.viz-sim-out.tone-muted dd { color: var(--text-3); }
+.viz-sim-out.tone-default dd { color: var(--text-2); }
+
+/* ---------- Spectrum ---------- */
+.viz-spec-end {
+  stop-color: var(--text-4);
+}
+.viz-spec-mid {
+  stop-color: color-mix(in srgb, var(--text) 28%, transparent);
+}
+.viz-spec-centre {
+  stroke: var(--line-3);
+}
+.viz-spec-lead {
+  stroke: var(--line-2);
+}
+.viz-spec-m circle {
+  fill: var(--tc);
+  stroke: var(--viz-bg);
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.viz-spec-m.tone-default circle {
+  fill: var(--text-2);
+}
+.viz-spec-m text {
+  font-size: 12px;
+  font-weight: 500;
+  fill: var(--text-2);
+}
+.viz-spec-m.tone-accent text {
+  fill: var(--text);
+}
+.viz-spec-poles {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.viz-spec-poles span:first-child::before {
+  content: '← ';
+}
+.viz-spec-poles span:last-child {
+  text-align: right;
+}
+.viz-spec-poles span:last-child::after {
+  content: ' →';
+}
+
+/* ---------- Skeleton ---------- */
+.viz-skeleton .viz-title {
+  color: var(--text-3);
+}
+.viz-sk i {
+  display: block;
+  border-radius: 8px;
+  background: linear-gradient(90deg, var(--surface) 0%, var(--surface-2) 40%, var(--surface) 80%) 0 0 / 200% 100%;
+  animation: viz-shimmer 1.6s linear infinite;
+}
+.viz-sk-plot i { height: 200px; border-radius: 14px; }
+.viz-sk-square i { max-width: 520px; aspect-ratio: 1.2; border-radius: 14px; }
+.viz-sk-rows { display: grid; gap: 14px; }
+.viz-sk-rows i { height: 14px; }
+.viz-sk-rows i:nth-child(1) { width: 88%; }
+.viz-sk-rows i:nth-child(2) { width: 64%; }
+.viz-sk-rows i:nth-child(3) { width: 76%; }
+.viz-sk-rows i:nth-child(4) { width: 42%; }
+.viz-sk-tiles,
+.viz-sk-figures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.viz-sk-tiles i { height: 72px; border-radius: var(--r-sm); }
+.viz-sk-figures i { height: 58px; }
+.viz-sk-track { display: grid; gap: 22px; }
+.viz-sk-track i { height: 6px; border-radius: 3px; }
+.viz-sk-track i:nth-child(2) { width: 72%; }
+.viz-sk-track i:nth-child(3) { width: 48%; }
+
+/* ---------- Motion ----------
+   Keyframes only define the start, so the resting state is the natural one
+   and anything that disables animation still shows the finished graphic. */
+@keyframes viz-rise { from { opacity: 0; transform: translateY(6px); } }
+@keyframes viz-fade { from { opacity: 0; } }
+@keyframes viz-grow-x { from { transform: scaleX(0); } }
+@keyframes viz-grow-y { from { transform: scaleY(0); } }
+@keyframes viz-pop { from { opacity: 0; transform: scale(0.4); } }
+@keyframes viz-draw { from { stroke-dashoffset: 1; } }
+@keyframes viz-shimmer { to { background-position: -200% 0; } }
+
+.viz[data-anim] {
+  animation: viz-rise 420ms var(--ease) both;
+}
+.viz[data-anim] .viz-bar-fill {
+  animation: viz-grow-x 700ms var(--ease) both;
+  animation-delay: calc(80ms + var(--i, 0) * 60ms);
+}
+.viz[data-anim] .viz-bar-value,
+.viz[data-anim] .viz-wf-value,
+.viz[data-anim] .viz-endlabel,
+.viz[data-anim] .viz-end {
+  animation: viz-fade 400ms var(--ease) both;
+  animation-delay: calc(420ms + var(--i, 0) * 60ms);
+}
+.viz[data-anim] .viz-draw {
+  animation: viz-draw 1100ms var(--ease-in-out) both;
+  animation-delay: calc(80ms + var(--i, 0) * 120ms);
+}
+.viz[data-anim] .viz-area {
+  animation: viz-fade 700ms var(--ease) 500ms both;
+}
+.viz[data-anim] .viz-wf-bar {
+  animation: viz-grow-y 700ms var(--ease) both;
+  animation-delay: calc(60ms + var(--i, 0) * 60ms);
+}
+.viz[data-anim] .viz-connector,
+.viz[data-anim] .viz-cm-elabel,
+.viz[data-anim] .viz-ann {
+  animation: viz-fade 400ms var(--ease) 500ms both;
+}
+.viz[data-anim] :is(.viz-step, .viz-tl > li, .viz-stat, .viz-cmp tbody tr, .viz-stmt tr) {
+  animation: viz-rise 420ms var(--ease) both;
+  animation-delay: calc(60ms + var(--i, 0) * 60ms);
+}
+.viz[data-anim] .viz-mx-item circle,
+.viz[data-anim] .viz-spec-m circle {
+  animation: viz-pop 500ms var(--ease) both;
+  animation-delay: calc(120ms + var(--i, 0) * 60ms);
+}
+.viz[data-anim] .viz-mx-item text,
+.viz[data-anim] .viz-spec-m text,
+.viz[data-anim] .viz-cm-node {
+  animation: viz-fade 400ms var(--ease) both;
+  animation-delay: calc(200ms + var(--i, 0) * 60ms);
+}
+.viz[data-anim] .viz-cm-edge {
+  animation: viz-fade 500ms var(--ease) both;
+  animation-delay: calc(260ms + var(--i, 0) * 40ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viz,
+  .viz * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

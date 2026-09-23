@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "jobs": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/run-jobs.ts",
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {

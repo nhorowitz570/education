@@ -198,7 +198,7 @@ export function Landing() {
   return (
     <div className="entry landing">
       <header className="landing-bar">
-        <a className="wordmark" href="/">
+        <a className="wordmark" href="/welcome">
           <Mark size={26} />
           Fieldwork
         </a>

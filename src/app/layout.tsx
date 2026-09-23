@@ -1,7 +1,14 @@
 import type { Metadata, Viewport } from 'next';
+import Script from 'next/script';
 import { Instrument_Sans, Newsreader } from 'next/font/google';
-import '@fontsource-variable/dm-sans';
-import './globals.css';
+import '@/styles/tokens.css';
+import '@/styles/base.css';
+import '@/styles/components.css';
+import '@/styles/shell.css';
+import '@/styles/screens.css';
+import '@/styles/session.css';
+import '@/styles/viz.css';
+import '@/styles/legacy.css';
 const sans = Instrument_Sans({
   subsets: ['latin'],
   axes: ['wdth'],
@@ -30,7 +37,10 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#09090a',
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#09090a' },
+    { media: '(prefers-color-scheme: light)', color: '#f5f4f0' },
+  ],
 };
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -39,7 +49,13 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       className={`${sans.variable} ${serif.variable}`}
       suppressHydrationWarning
     >
-      <body>{children}</body>
+      <body>
+        {/* Apply a saved theme before hydration so there is no flash. */}
+        <Script id="theme" strategy="beforeInteractive">
+          {"try{var t=localStorage.getItem('fieldwork-theme');if(t==='dark'||t==='light'){document.documentElement.dataset.theme=t}}catch(e){}"}
+        </Script>
+        {children}
+      </body>
     </html>
   );
 }

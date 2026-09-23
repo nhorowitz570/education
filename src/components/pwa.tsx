@@ -1,24 +1,30 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { api } from '@/lib/client/workspace';
+import { api } from '@/lib/client/api';
 import { Button } from './ui';
 type InstallEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: string }>;
 };
+const DISMISSED = 'fieldwork-install-dismissed';
 export function InstallControl({ pending }: { pending: number }) {
   const [install, setInstall] = useState<InstallEvent>(),
     [waiting, setWaiting] = useState<ServiceWorker>();
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return;
+    // Development chunks are not content-hashed; a cache-first worker would
+    // serve stale code, so it only runs in production builds.
+    if (process.env.NODE_ENV !== 'production') {
+      void navigator.serviceWorker.getRegistrations().then((rs) => rs.forEach((r) => void r.unregister()));
+      return;
+    }
     void navigator.serviceWorker
       .register('/sw.js', { scope: '/', updateViaCache: 'none' })
       .then((reg) => {
-        if (reg.waiting) setWaiting(reg.waiting);
+        if (reg.waiting && navigator.serviceWorker.controller) setWaiting(reg.waiting);
         const watch = (sw: ServiceWorker | null) => {
           sw?.addEventListener('statechange', () => {
-            if (sw.state === 'installed' && navigator.serviceWorker.controller)
-              setWaiting(sw);
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) setWaiting(sw);
           });
         };
         watch(reg.installing);
@@ -27,44 +33,56 @@ export function InstallControl({ pending }: { pending: number }) {
       .catch(() => {});
     const onInstall = (e: Event) => {
       e.preventDefault();
-      setInstall(e as InstallEvent);
+      let dismissed = false;
+      try {
+        dismissed = localStorage.getItem(DISMISSED) === '1';
+      } catch {}
+      if (!dismissed) setInstall(e as InstallEvent);
     };
     window.addEventListener('beforeinstallprompt', onInstall);
     return () => window.removeEventListener('beforeinstallprompt', onInstall);
   }, []);
-  return (
-    <div className="install-prompt">
-      {install && (
+  if (waiting)
+    return (
+      <div className="install" role="status">
+        <span>{pending ? 'Update ready after your changes sync.' : 'An update is ready.'}</span>
         <Button
-          kind="secondary"
-          onClick={async () => {
-            await install.prompt();
-            await install.userChoice;
-            setInstall(undefined);
+          kind="primary small"
+          disabled={pending > 0}
+          onClick={() => {
+            navigator.serviceWorker.addEventListener('controllerchange', () => location.reload(), { once: true });
+            waiting.postMessage({ type: 'ACTIVATE_UPDATE' });
           }}
         >
-          Install Fieldwork
+          Reload
         </Button>
-      )}
-      {waiting && (
-        <>
-          <span>An update is ready. Save your current work first.</span>
-          <Button
-            kind="secondary"
-            disabled={pending > 0}
-            onClick={() => {
-              waiting.postMessage({ type: 'ACTIVATE_UPDATE' });
-              navigator.serviceWorker.addEventListener(
-                'controllerchange',
-                () => location.reload(),
-                { once: true },
-              );
-            }}
-          >
-            Reload when ready
-          </Button>
-        </>
-      )}
+      </div>
+    );
+  if (!install) return null;
+  return (
+    <div className="install" role="status">
+      <span>Install for a full-screen app.</span>
+      <Button
+        kind="primary small"
+        onClick={async () => {
+          await install.prompt();
+          await install.userChoice;
+          setInstall(undefined);
+        }}
+      >
+        Install
+      </Button>
+      <Button
+        kind="ghost small"
+        onClick={() => {
+          try {
+            localStorage.setItem(DISMISSED, '1');
+          } catch {}
+          setInstall(undefined);
+        }}
+      >
+        Not now
+      </Button>
     </div>
   );
 }

@@ -17,25 +17,45 @@ export async function api<T = Record<string, unknown>>(
   method?: string,
   expectedOwner?: string,
 ): Promise<T> {
-  const owner = expectedOwner || (await localOwner());
-  const res = await fetch(path, {
-    method: method || (data ? 'POST' : 'GET'),
-    headers: {
-      ...(data ? { 'Content-Type': 'application/json' } : {}),
-      ...(owner && owner !== 'preview' ? { 'X-Fieldwork-Owner': owner } : {}),
-    },
-    body: data ? JSON.stringify(data) : undefined,
-    cache: 'no-store',
-  });
-  const json = await res.json();
+  const owner = expectedOwner || (await localOwner().catch(() => null));
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      method: method || (data ? 'POST' : 'GET'),
+      headers: {
+        ...(data ? { 'Content-Type': 'application/json' } : {}),
+        ...(owner && owner !== 'preview' ? { 'X-Fieldwork-Owner': owner } : {}),
+      },
+      body: data ? JSON.stringify(data) : undefined,
+      cache: 'no-store',
+    });
+  } catch {
+    throw Object.assign(new Error('You’re offline. Changes are saved on this device.'), { status: 0 });
+  }
+  // Platform errors (413/502/504) are not JSON; never surface a parser error.
+  const json = await res.json().catch(() => ({}) as { error?: string });
   if (!res.ok || res.status === 202) {
     const error = new Error(
-      json.error || 'This did not save. Try again.',
+      (json as { error?: string }).error ||
+        (res.status >= 500 ? 'The server had a problem. Your change is kept on this device.' : 'This did not save. Try again.'),
     ) as Error & { status: number };
     error.status = res.status;
     throw error;
   }
   return json as T;
+}
+// A change the server permanently rejects must not block every later change.
+const retryable = (e: unknown) => {
+  const status = (e as { status?: number }).status ?? 0;
+  return status === 0 || status === 409 || status === 429 || status >= 500;
+};
+// Replaying a queued change that no longer applies must not break the view.
+function safeApply(state: AppState, c: Command) {
+  try {
+    return applyCommand(state, c);
+  } catch {
+    return state;
+  }
 }
 export function useWorkspace(owner: string, demo: boolean) {
   const initial = demo ? { ...emptyState, plan: DEMO_PLAN } : emptyState;
@@ -52,7 +72,7 @@ export function useWorkspace(owner: string, demo: boolean) {
     async (next: AppState) => {
       current.current = next;
       setState(next);
-      await localSet(owner, 'state', next);
+      await localSet(owner, 'state', next).catch(() => {});
     },
     [owner],
   );
@@ -60,21 +80,27 @@ export function useWorkspace(owner: string, demo: boolean) {
     if (demo || syncing.current || !navigator.onLine) return;
     syncing.current = true;
     try {
-      queue.current = (await savedQueue(owner)) || [];
+      queue.current = (await savedQueue(owner).catch(() => queue.current)) || [];
+      let setAside = false;
       while (queue.current.length) {
         const c = queue.current[0];
-        const result = await api<{ state: AppState; ownerId: string }>(
-          '/api/actions',
-          c,
-          'POST',
-          owner,
-        );
+        let result: { state: AppState; ownerId: string };
+        try {
+          result = await api<{ state: AppState; ownerId: string }>('/api/actions', c, 'POST', owner);
+        } catch (e) {
+          if (retryable(e)) throw e;
+          queue.current = await updateQueue(owner, c.eventId);
+          setPending(queue.current.length);
+          setError(`One change couldn’t be saved and was set aside: ${(e as Error).message}`);
+          setAside = true;
+          continue;
+        }
         if (result.ownerId !== owner)
           throw new Error('Your account changed. Reload before syncing.');
         queue.current = await updateQueue(owner, c.eventId);
         setPending(queue.current.length);
         await publish(
-          queue.current.reduce((s, x) => applyCommand(s, x), result.state),
+          queue.current.reduce((s, x) => safeApply(s, x), result.state),
         );
         channel.current?.postMessage('changed');
       }
@@ -84,9 +110,9 @@ export function useWorkspace(owner: string, demo: boolean) {
       if (fresh.ownerId !== owner)
         throw new Error('Your account changed. Reload before syncing.');
       await publish(
-        queue.current.reduce((s, c) => applyCommand(s, c), fresh.state),
+        queue.current.reduce((s, c) => safeApply(s, c), fresh.state),
       );
-      setError('');
+      if (!setAside) setError('');
     } catch (e) {
       setError(
         e instanceof Error
@@ -100,15 +126,22 @@ export function useWorkspace(owner: string, demo: boolean) {
   useEffect(() => {
     let active = true;
     (async () => {
-      await claimLocal(owner);
-      const cached = await savedState(owner);
-      queue.current = (await savedQueue(owner)) || [];
-      if (!active) return;
-      setPending(queue.current.length);
-      if (cached) {
-        current.current = cached;
-        setState(cached);
+      // Local storage can be unavailable (private mode, blocked site data).
+      // The app still opens from the server in that case.
+      try {
+        await claimLocal(owner);
+        const cached = await savedState(owner);
+        queue.current = (await savedQueue(owner)) || [];
+        if (!active) return;
+        setPending(queue.current.length);
+        if (cached) {
+          current.current = cached;
+          setState(cached);
+        }
+      } catch {
+        queue.current = [];
       }
+      if (!active) return;
       setOnline(navigator.onLine);
       setReady(true);
       await sync();
@@ -138,9 +171,10 @@ export function useWorkspace(owner: string, demo: boolean) {
         return current.current;
       }
       commandSchema.parse(c);
+      const next = applyCommand(current.current, c); // throws before queueing an invalid change
       queue.current = await updateQueue(owner, c);
       setPending(queue.current.length);
-      await publish(applyCommand(current.current, c));
+      await publish(next);
       await sync();
       return current.current;
     },

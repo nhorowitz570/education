@@ -1,0 +1,54 @@
+.viz-dev {
+  padding: 40px var(--gutter) 120px;
+}
+.viz-dev-head {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 56px;
+}
+.viz-dev-head h1 {
+  font-size: 28px;
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.viz-dev-head p {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.viz-dev-toggle {
+  flex: none;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+.viz-dev-grid {
+  display: grid;
+  gap: 72px;
+}
+.viz-dev-item > .viz-dev-tag {
+  display: block;
+  margin-bottom: 18px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-4);
+}
+@media (min-width: 1000px) {
+  .viz-dev-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 72px;
+  }
+  .viz-dev-item.wide {
+    grid-column: 1 / -1;
+  }
+}

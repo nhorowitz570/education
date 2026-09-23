@@ -1,1 +1,16 @@
-<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><rect width="512" height="512" rx="112" fill="#C5EBDD"/><path d="M137 158h75c30 0 44 18 44 44v170c0-27-14-44-44-44h-75zm238 0h-75c-30 0-44 18-44 44v170c0-27 14-44 44-44h75z" fill="none" stroke="#202023" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+<defs>
+<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#1a1b1f"/><stop offset="1" stop-color="#0c0c0e"/></linearGradient>
+<radialGradient id="glow"><stop offset="0" stop-color="#F2F1ED" stop-opacity=".22"/><stop offset="1" stop-color="#F2F1ED" stop-opacity="0"/></radialGradient>
+</defs>
+<rect width="512" height="512" rx="115.2" fill="url(#bg)"/>
+<circle cx="146.28571428571428" cy="146.28571428571428" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="256" cy="146.28571428571428" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="365.7142857142857" cy="146.28571428571428" r="95.08571428571429" fill="url(#glow)"/><circle cx="365.7142857142857" cy="146.28571428571428" r="38.4" fill="#F2F1ED"/>
+<circle cx="146.28571428571428" cy="256" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="256" cy="256" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="365.7142857142857" cy="256" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="146.28571428571428" cy="365.7142857142857" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="256" cy="365.7142857142857" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+<circle cx="365.7142857142857" cy="365.7142857142857" r="24.685714285714287" fill="#F2F1ED" fill-opacity=".26"/>
+</svg>

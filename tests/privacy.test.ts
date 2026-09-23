@@ -13,8 +13,7 @@ import { DEMO_PLAN } from '@/lib/seed';
 import { practicePoints } from '@/lib/progress';
 import { validRecord } from '@/lib/records';
 import { openSlot, overlap, allBusy } from '@/lib/availability';
-import { VOICE_PROFILES, voiceInstructions } from '@/lib/voice';
-import { reportedCost, providerPreferences, model } from '@/lib/server/ai';
+import { route } from '@/lib/ai/tasks';
 import type { Command } from '@/lib/commands';
 beforeEach(() => clearLocal());
 describe('offline ownership and queue', () => {
@@ -97,33 +96,15 @@ describe('growth and scheduling', () => {
     ).toBe(false);
   });
 });
-describe('provider contracts', () => {
-  it('keeps unavailable cost distinct from zero and rejects malformed usage', () => {
-    expect(reportedCost({ cost: 0 })).toBe(0);
-    for (const cost of [undefined, -1, Infinity, '0.1'])
-      expect(reportedCost({ cost })).toBeNull();
+describe('model routing', () => {
+  it('keeps fast work on Luna and escalates only hard, high-stakes work', () => {
+    expect(route('grade.quick').tier).toBe('fast');
+    expect(route('tutor.beat').tier).toBe('primary');
+    expect(route('tutor.beat', { hard: true }).tier).toBe('reasoning');
+    expect(route('memory.extract', { hard: true }).tier).toBe('fast');
   });
-  it('routes default text to OpenRouter with parameter and price enforcement', () => {
-    expect(model()).toBe('openai/gpt-5.6-luna');
-    expect(providerPreferences()).toMatchObject({
-      require_parameters: true,
-      data_collection: 'deny',
-      max_price: { prompt: 0.2, completion: 1.2 },
-    });
-  });
-  it('uses distinct requested voices while preserving listening and assessment boundaries', () => {
-    expect(VOICE_PROFILES.cedar.name).toBe('Alex');
-    expect(VOICE_PROFILES.willow.name).toBe('Maya');
-    for (const voice of ['cedar', 'willow'] as const) {
-      const prompt = voiceInstructions(6, voice);
-      expect(prompt).toContain('Interruption policy');
-      expect(prompt).toContain('Backchannel policy');
-      expect(prompt).toContain('about 6 seconds');
-      expect(prompt).toContain('Feedback is provided by the app');
-      expect(prompt.length).toBeLessThan(4000);
-    }
-    expect(voiceInstructions(6, 'cedar')).not.toEqual(
-      voiceInstructions(6, 'willow'),
-    );
+  it('never sends effort none to the reasoning tier', () => {
+    expect(route('curriculum.map').effort).not.toBe('none');
+    expect(route('tutor.reply', { stakes: 'high' }).effort).toBe('medium');
   });
 });

@@ -1,0 +1,138 @@
+/* Design tokens. Dark is the reference; light is tuned separately rather than
+   inverted. Emphasis comes from luminance and one hue per subject, not from
+   borders or boxes. */
+:root {
+  --bg: #09090a;
+  --raised: #111113;
+  --surface: #161618;
+  --surface-2: #1d1d20;
+  --surface-3: #26262a;
+  --line: rgba(242, 241, 237, 0.07);
+  --line-2: rgba(242, 241, 237, 0.12);
+  --line-3: rgba(242, 241, 237, 0.2);
+  --text: #f2f1ed;
+  --text-2: #a4a3a8;
+  --text-3: #6d6c72;
+  --text-4: #48484d;
+  --accent: #f2f1ed;
+  --on-accent: #0b0b0c;
+  --glow: rgba(242, 241, 237, 0.5);
+
+  --finance: #5fe0a4;
+  --communication: #f3b862;
+  --judgment: #a898ff;
+  --review: #7cc4ff;
+  --life: #ff8f70;
+  --positive: #5fe0a4;
+  --negative: #ff7a66;
+  --caution: #f3b862;
+  --hatch: rgba(242, 241, 237, 0.1);
+
+  --shadow-sheet: 0 -1px 0 var(--line-2), 0 -24px 80px rgba(0, 0, 0, 0.55);
+  --shadow-pop: 0 0 0 1px var(--line-2), 0 18px 50px rgba(0, 0, 0, 0.5);
+  --inner: inset 0 1px 0 rgba(242, 241, 237, 0.05);
+
+  --sans: var(--font-sans), ui-sans-serif, -apple-system, system-ui, sans-serif;
+  --serif: var(--font-serif), ui-serif, Georgia, serif;
+
+  --r-xs: 8px;
+  --r-sm: 11px;
+  --r: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --t-fast: 160ms;
+  --t: 240ms;
+  --t-slow: 420ms;
+
+  --gutter: 16px;
+  --rail: 76px;
+  --tabbar: 64px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme='dark']) {
+    --bg: #f5f4f0;
+    --raised: #ffffff;
+    --surface: #efeee9;
+    --surface-2: #e7e6e0;
+    --surface-3: #dcdbd4;
+    --line: rgba(19, 19, 22, 0.07);
+    --line-2: rgba(19, 19, 22, 0.12);
+    --line-3: rgba(19, 19, 22, 0.22);
+    --text: #141416;
+    --text-2: #5c5b61;
+    --text-3: #8d8c92;
+    --text-4: #b4b3b8;
+    --accent: #141416;
+    --on-accent: #ffffff;
+    --glow: rgba(20, 20, 22, 0.18);
+    --finance: #13875a;
+    --communication: #b07015;
+    --judgment: #6552dc;
+    --review: #2877c0;
+    --life: #d0532f;
+    --positive: #13875a;
+    --negative: #d2432e;
+    --caution: #b07015;
+    --hatch: rgba(20, 20, 22, 0.1);
+    --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 60px rgba(20, 20, 22, 0.14);
+    --shadow-pop: 0 0 0 1px var(--line-2), 0 16px 40px rgba(20, 20, 22, 0.12);
+    --inner: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    color-scheme: light;
+  }
+}
+:root[data-theme='light'] {
+  --bg: #f5f4f0;
+  --raised: #ffffff;
+  --surface: #efeee9;
+  --surface-2: #e7e6e0;
+  --surface-3: #dcdbd4;
+  --line: rgba(19, 19, 22, 0.07);
+  --line-2: rgba(19, 19, 22, 0.12);
+  --line-3: rgba(19, 19, 22, 0.22);
+  --text: #141416;
+  --text-2: #5c5b61;
+  --text-3: #8d8c92;
+  --text-4: #b4b3b8;
+  --accent: #141416;
+  --on-accent: #ffffff;
+  --glow: rgba(20, 20, 22, 0.18);
+  --finance: #13875a;
+  --communication: #b07015;
+  --judgment: #6552dc;
+  --review: #2877c0;
+  --life: #d0532f;
+  --positive: #13875a;
+  --negative: #d2432e;
+  --caution: #b07015;
+  --hatch: rgba(20, 20, 22, 0.1);
+  --shadow-sheet: 0 -1px 0 var(--line), 0 -18px 60px rgba(20, 20, 22, 0.14);
+  --shadow-pop: 0 0 0 1px var(--line-2), 0 16px 40px rgba(20, 20, 22, 0.12);
+  --inner: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  color-scheme: light;
+}
+
+@media (min-width: 700px) {
+  :root {
+    --gutter: 28px;
+  }
+}
+@media (min-width: 1100px) {
+  :root {
+    --gutter: 48px;
+  }
+}
+
+/* Subject hues, applied with a class so components can read --c. */
+.t-finance { --c: var(--finance); }
+.t-communication { --c: var(--communication); }
+.t-judgment { --c: var(--judgment); }
+.t-review { --c: var(--review); }
+.t-life { --c: var(--life); }
+.t-general { --c: var(--text-2); }

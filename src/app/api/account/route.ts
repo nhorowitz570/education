@@ -1,4 +1,4 @@
-import { model } from '@/lib/server/ai';
+import { aiEnv } from '@/lib/ai/env';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { context, body, fail, HttpError } from '@/lib/server/http';
@@ -28,10 +28,10 @@ export async function GET(r: Request) {
             ),
           0,
         ),
-      limit: Number(process.env.AI_MONTHLY_LIMIT_USD || 20),
-      textModel: model(),
-      textProvider: 'OpenRouter',
-      voiceModel: process.env.OPENAI_VOICE_MODEL || 'gpt-live-1',
+      limit: aiEnv().AI_MONTHLY_LIMIT_USD ?? null,
+      textModel: aiEnv().AI_MODEL_PRIMARY,
+      textProvider: aiEnv().AI_PROVIDER === 'openrouter' ? 'OpenRouter' : 'OpenAI',
+      voiceModel: aiEnv().OPENAI_VOICE_MODEL,
     });
   } catch (e) {
     return fail(e);

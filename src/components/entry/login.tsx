@@ -110,7 +110,7 @@ export function Login({ linkError }: { linkError: boolean }) {
   return (
     <main className="entry entry-center">
       <div className="login" data-stage={stage}>
-        <a className="login-mark" href="/" aria-label="About Fieldwork">
+        <a className="login-mark" href="/welcome" aria-label="About Fieldwork">
           <Mark />
         </a>
         <p className="login-kicker">

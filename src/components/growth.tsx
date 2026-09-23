@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
-import type { ViewProps } from './app';
-import { Button, Pill, Modal, SectionTitle } from './ui';
+import { useEffect, useRef, useState } from 'react';
+import type { ViewProps } from './app/legacy';
+import { Button, Pill, Modal } from './ui';
 import { Icon } from './icons';
-import { api } from '@/lib/client/workspace';
+import { api } from '@/lib/client/api';
 type SetLog = { reps: string; load: string; done: boolean };
 type Workout = {
   name: string;
@@ -34,12 +34,13 @@ export function Growth(p: ViewProps) {
     exerciseNames = Array.isArray(template?.exercises)
       ? (template!.exercises as string[][])
       : defaults;
+  // Merge into the latest value, not the one captured at render, so two quick
+  // taps (protein, then produce) both persist.
+  const latestFood = useRef(food);
+  latestFood.current = { ...food, ...latestFood.current, ...food };
   async function tap(key: string, value: number) {
-    await p.w.record('food', 'food:' + p.today, {
-      ...food,
-      [key]: value,
-      date: p.today,
-    });
+    latestFood.current = { ...latestFood.current, [key]: value, date: p.today };
+    await p.w.record('food', 'food:' + p.today, latestFood.current);
     setSaved('Food check-in saved' + (p.w.online ? '' : ' on this device'));
   }
   const social = p.w.state.records.find((r) => r.id === 'social:' + p.today);
@@ -56,7 +57,6 @@ export function Growth(p: ViewProps) {
   ) : (
     <div className="screen-grid">
       <div className="main-lane">
-        <SectionTitle eyebrow="GROWTH" title="A few habits, kept simple." />
         <section className="hero peach">
           <div className="row between">
             <span className="circle">
@@ -255,7 +255,7 @@ export function Growth(p: ViewProps) {
           {...p}
           selected={selected}
           close={() => setSetup(false)}
-          start={() => {
+          begin={() => {
             setSetup(false);
             setRunning(true);
           }}
@@ -266,7 +266,7 @@ export function Growth(p: ViewProps) {
   );
 }
 function GymSetup(
-  p: ViewProps & { selected: number; close: () => void; start: () => void },
+  p: ViewProps & { selected: number; close: () => void; begin: () => void },
 ) {
   const prior = p.w.state.records.find((r) => r.id === 'settings:gym')?.data;
   const [text, setText] = useState(
@@ -299,7 +299,7 @@ function GymSetup(
         ),
       restrictions: notes,
     });
-    p.start();
+    p.begin();
   }
   return (
     <Modal title="Start where you are." onClose={p.close}>

@@ -1,0 +1,219 @@
+.app {
+  display: grid;
+  grid-template-columns: var(--rail) minmax(0, 1fr);
+  min-height: 100dvh;
+}
+.app.focus {
+  grid-template-columns: minmax(0, 1fr);
+}
+.main {
+  min-width: 0;
+  padding: calc(28px + var(--safe-top)) var(--gutter) 64px;
+  outline: none;
+}
+.app.focus .main {
+  padding: 0;
+}
+.page {
+  width: 100%;
+  max-width: 1160px;
+  margin: 0 auto;
+}
+.page.narrow {
+  max-width: 760px;
+}
+.row-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Desktop rail */
+.rail {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: calc(20px + var(--safe-top)) 0 20px;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+  z-index: 20;
+}
+.rail-mark {
+  margin-bottom: 28px;
+  border-radius: 9px;
+  transition: transform var(--t-fast) var(--ease);
+}
+.rail-mark:active {
+  transform: scale(0.94);
+}
+.rail-items {
+  display: grid;
+  gap: 4px;
+}
+.rail-item {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  width: 60px;
+  padding: 10px 0 8px;
+  border-radius: 14px;
+  color: var(--text-3);
+  font-size: 10.5px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  transition:
+    color var(--t-fast),
+    background var(--t-fast);
+}
+.rail-item:hover {
+  color: var(--text-2);
+  background: var(--surface);
+}
+.rail-item[aria-current='page'] {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.rail-item.secondary {
+  margin-top: 14px;
+  position: relative;
+}
+.rail-item.secondary::before {
+  content: '';
+  position: absolute;
+  top: -9px;
+  left: 18px;
+  right: 18px;
+  height: 1px;
+  background: var(--line);
+}
+.rail-you {
+  margin-top: auto;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  transition:
+    background var(--t-fast),
+    color var(--t-fast),
+    box-shadow var(--t-fast);
+}
+.rail-you:hover,
+.rail-you[aria-current='page'] {
+  color: var(--text);
+  box-shadow: 0 0 0 1.5px var(--line-3);
+}
+
+/* Phone tab bar */
+.tabbar {
+  display: none;
+}
+@media (max-width: 899px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .rail {
+    display: none;
+  }
+  .main {
+    padding-top: calc(18px + var(--safe-top));
+    padding-bottom: calc(var(--tabbar) + 40px + var(--safe-bottom));
+  }
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    height: calc(var(--tabbar) + var(--safe-bottom));
+    padding: 6px 6px var(--safe-bottom);
+    background: color-mix(in srgb, var(--bg) 94%, transparent);
+    backdrop-filter: saturate(1.4) blur(20px);
+    -webkit-backdrop-filter: saturate(1.4) blur(20px);
+    border-top: 1px solid var(--line);
+  }
+  .tabbar a {
+    display: grid;
+    justify-items: center;
+    align-content: center;
+    gap: 3px;
+    border-radius: 14px;
+    color: var(--text-3);
+    font-size: 10.5px;
+    font-weight: 500;
+    transition:
+      color var(--t-fast),
+      transform var(--t-fast) var(--ease);
+  }
+  .tabbar a:active {
+    transform: scale(0.94);
+  }
+  .tabbar a[aria-current='page'] {
+    color: var(--text);
+  }
+}
+
+/* Page headers */
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+.page-head .title {
+  margin-top: 6px;
+}
+@media (max-width: 520px) {
+  .page-head:has(> .row-inline) {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+.page-you {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+@media (max-width: 899px) {
+  .page-you {
+    display: grid;
+  }
+}
+
+/* Install / update prompt */
+.install {
+  position: fixed;
+  right: 16px;
+  bottom: calc(16px + var(--safe-bottom));
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 8px 8px 14px;
+  border-radius: 16px;
+  background: var(--surface-2);
+  box-shadow: var(--shadow-pop);
+  font-size: 14px;
+  animation: rise var(--t-slow) var(--ease) both;
+}
+@media (max-width: 899px) {
+  .install {
+    left: 16px;
+    bottom: calc(var(--tabbar) + 12px + var(--safe-bottom));
+  }
+}

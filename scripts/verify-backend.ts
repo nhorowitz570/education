@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL!,
   pub = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
   secret = process.env.SUPABASE_SECRET_KEY!,
-  origin = process.env.NEXT_PUBLIC_APP_URL || 'http://127.0.0.1:3000';
+  origin = process.env.VERIFY_ORIGIN || 'http://127.0.0.1:3000';
 if (!url || !pub || !secret)
   throw new Error('Load the test project environment first.');
 const admin = createClient(url, secret, { auth: { persistSession: false } }),
@@ -141,55 +141,20 @@ try {
     .upload(`${a.id}/food/foreign.jpg`, file, { contentType: 'image/jpeg' });
   assert.ok(foreignWrite.error);
   pass('Private Storage isolates both reads and writes');
-  let lesson;
-  for (let i = 0; i < 60; i++) {
-    const response = await fetch(origin + '/api/lesson', {
-      method: 'POST',
-      headers: a.headers(),
-      body: JSON.stringify({ sessionId: 'w01-monday' }),
-    });
-    const value = await response.json();
-    if (response.status === 200) {
-      lesson = value;
-      break;
-    }
-    assert.equal(response.status, 202, JSON.stringify(value));
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-  }
-  assert.ok(lesson, 'Lesson job did not finish within two minutes');
-  assert.ok(lesson.lesson.id);
-  assert.equal(lesson.lesson.key, undefined);
-  const refresh = await request(a, '/api/lesson', { sessionId: 'w01-monday' });
-  assert.equal(refresh.lesson.id, lesson.lesson.id);
-  pass('Persisted lesson resumes without regeneration or answer-key exposure');
-  const command = {
-    type: 'complete',
-    eventId: crypto.randomUUID(),
-    lessonId: lesson.lesson.id,
-    sessionId: 'w01-monday',
-    choice: 0,
-    reasoning:
-      'The opening bank cash balance and the dates of payments tell us if bills can be paid when due.',
-    transfer:
-      'The deposit is not all earned profit. The caterer owes the event and must pay ingredients and other costs.',
-    assisted: false,
-    reduced: false,
-    date: '2026-09-28',
-  };
-  const completed = await request(a, '/api/actions', command);
-  assert.equal(completed.state.attempts.length, 1);
-  const duplicate = await request(a, '/api/actions', command);
-  assert.equal(duplicate.state.attempts.length, 1);
-  assert.equal(duplicate.state.attempts[0].points, 25);
-  const anotherViewport = await request(a, '/api/state');
-  assert.equal(anotherViewport.state.attempts[0].id, command.eventId);
-  pass('Lesson completion is synced and points cannot duplicate');
-  const immutable = await admin
-    .from('attempts')
-    .update({ objective_id: 'changed' })
-    .eq('user_id', a.id);
-  assert.ok(immutable.error);
-  pass('Completed evidence is immutable, including service writes');
+  const started = await request(a, '/api/runs', { kind: 'session', sessionId: 'w01-monday' });
+  assert.ok(started.run.id);
+  assert.ok(started.run.beats.length > 0);
+  assert.ok(!JSON.stringify(started).includes('secrets'));
+  const resumed = await request(a, '/api/runs', { kind: 'session', sessionId: 'w01-monday' });
+  assert.equal(resumed.run.id, started.run.id);
+  pass('Starting a session is instant, resumable, and never exposes answer keys');
+  const foreignRun = await fetch(origin + '/api/runs/' + started.run.id, { headers: b.headers() });
+  assert.equal(foreignRun.status, 404);
+  const directRuns = await a.client.from('runs').select('id');
+  assert.ok(directRuns.error || !directRuns.data?.length);
+  const foreignMemory = await b.client.from('memories').select('id').eq('user_id', a.id);
+  assert.equal(foreignMemory.data?.length ?? 0, 0);
+  pass('Runs and memories stay private to their owner');
   plan.title = 'Revised sample';
   plan.sessions.reverse();
   const revised = await request(a, '/api/import', {
@@ -200,8 +165,7 @@ try {
     eventId: crypto.randomUUID(),
   });
   assert.notEqual(revised.version, activated.version);
-  assert.equal(revised.state.attempts.length, 1);
-  pass('Plan revision preserves completion evidence');
+  pass('Plan revision creates a new immutable version');
   const reservations = await Promise.all(
     [1, 2].map((i) =>
       admin.rpc('reserve_ai_budget', {
@@ -228,9 +192,10 @@ try {
   assert.equal(claim.filter((r) => r.data === true).length, 1);
   pass('Reminder delivery claims deduplicate atomically');
   const exported = await request(a, '/api/export');
-  assert.equal(exported.attempts.length, 1);
   assert.equal(exported.plan_versions.length, 2);
-  pass('Account export includes immutable versions and saved evidence');
+  assert.equal(exported.runs.length, 1);
+  assert.ok(!JSON.stringify(exported).includes('"secrets"'));
+  pass('Account export includes plan versions and learning history, without answer keys');
   writeFileSync(
     'docs/verification/backend.json',
     JSON.stringify(

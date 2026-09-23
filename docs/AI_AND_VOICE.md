@@ -1,40 +1,94 @@
-# AI and voice decisions
+# AI and voice
 
-Researched and verified September 21, 2026. Provider availability and prices can change.
+Model IDs, prices and GPT-Live behaviour were verified against the live APIs on September 22, 2026. Providers change; everything below is configurable in `.env`.
 
-## Provider split
+## Models
 
-OpenRouter handles the learning loop: researched lesson generation, tutoring, reasoning/transfer assessment, Markdown interpretation, text role-play, voice feedback, and optional food-image interpretation. Direct OpenAI handles GPT-Live and optional speech transcription/synthesis. The browser never receives either long-lived key.
+| Tier | Model | Price per 1M tokens (in / cached / out) | Used for |
+| --- | --- | --- | --- |
+| fast | `gpt-6-luna` | $0.10 / $0.01 / $0.50 | Quick grading, memory extraction, summaries, food-photo estimates |
+| primary | `gpt-6-sol` | $2 / $0.20 / $10 | Teaching beats, questions, tutor replies, deep grading, practice briefs, partners and feedback, Markdown import |
+| reasoning | `gpt-6-astra` | $10 / $1 / $50 | Curriculum mapping, diagnosing persistent misconceptions, and escalations |
+| voice | `gpt-live-1` | $0.05 per minute (15 s minimum) | Spoken practice |
+| embedding | `text-embedding-3-small` | — | Memory retrieval |
 
-The default text model is `openai/gpt-5.6-luna`. The OpenRouter model catalog returned $0.20 per million input tokens and $1.20 per million output tokens. Requests require structured-output support, deny providers that collect data under OpenRouter's routing policy, and enforce configured price ceilings. Server-side web search uses one bounded Exa fast search with at most three results. The app reconciles reported `usage.cost`; missing usage leaves the reservation held. Sources: [model catalog](https://openrouter.ai/api/v1/models), [structured output](https://openrouter.ai/docs/guides/features/structured-outputs), [provider selection](https://openrouter.ai/docs/guides/routing/provider-selection), [usage accounting](https://openrouter.ai/docs/cookbook/administration/usage-accounting), [web search](https://openrouter.ai/docs/guides/features/server-tools/web-search).
+Astra doesn't accept reasoning effort `none`, so routing lifts it to `medium`. Tasks marked escalatable (teaching, replies, deep grading, practice feedback) move up a tier when a signal says the work is hard or high-stakes. The signals are: two or more lapses or open misconceptions on the concept, a learner who has asked to go deeper twice, a practice transcript over 900 words, or grading a milestone piece of work. If Astra fails, the call falls back to Sol.
 
-Lesson URLs are fetched and checked separately from search. Retrieval blocks private-network destinations and pins validated DNS results. The model selects a real source passage, and the server checks its index before storing the claim support. A second quality check can request one repair; a material failure prevents persistence. Public lesson content excludes the answer key. A correct letter with incorrect reasoning is rejected. AI remains fallible: citations and uncertainty remain accessible in the lesson.
+**Providers.** Text models run through OpenRouter (`openai/gpt-6-*`), restricted to providers that don't retain prompts (`data_collection: deny`), and each call logs OpenRouter's reported billed cost. GPT-Live and embeddings call OpenAI directly with `OPENAI_API_KEY`. `AI_PROVIDER=openai` switches text to OpenAI direct as well. OpenRouter rejects the `prompt_cache_options` TTL, so it is sent only on the direct route; `prompt_cache_key` works on both.
 
-## Live transport and cost
+## How the tutor is kept concise
 
-GPT-Live has a dedicated session protocol. Fieldwork uses browser WebRTC, a server-mediated SDP handshake, and an authenticated server WebSocket attached to the same Live session. Instructions are supplied at session creation, so there is no separate dashboard agent to configure. Sources: [WebRTC](https://developers.openai.com/api/docs/guides/voice-webrtc?api=live), [server controls](https://developers.openai.com/api/docs/guides/voice-server-controls?api=live), [session management](https://developers.openai.com/api/docs/guides/live-conversations).
+Conciseness is set in the harness, not left to the model's taste:
 
-Published voice pricing is $0.05 per minute, billed by the second; backend work is separate. The session API applies a 15-second minimum, which Fieldwork's reservation and settlement code respect. A 10-minute call is approximately $0.50 for the voice layer, plus post-call text assessment. This is a pricing estimate, not a measured monthly bill. Sources: [model](https://developers.openai.com/api/docs/models/gpt-live-1), [pricing](https://developers.openai.com/api/docs/pricing).
+- **`text.verbosity` is `low`** on every tutoring task, with tight `max_output_tokens`.
+- **The core prompt** (`src/lib/ai/prompts.ts`) sets the defaults:
+  - Answer the question that was asked.
+  - Ask at most one question.
+  - Never re-explain something the learner already showed they understand.
+  - Sometimes just explain; a quiz isn't always the right move.
+  - Personalise silently, without narrating what you know about the learner.
+- **The output is structured**, as blocks with an optional visual. The UI then offers follow-ups ("go deeper", "example", "shorter") instead of the model pre-empting them. That makes answers concise by default, adaptive through the style profile, and expandable when the learner asks.
 
-The worker monitors usage and explicit close, enforces expiry, and closes sessions when client heartbeats expire. Unconfirmed closure leaves a reservation held. The microphone starts only after Start and browser permission; no background listening or raw-audio retention is implemented.
+## Prompt layers and caching
 
-## Cedar and Willow
+```
+instructions  = CORE (tutor) or OPERATOR_CORE (utility)  +  task / beat prompt     ← identical across learners
+developer     = <learner> <style> <memory> <curriculum> <session> <beat>          ← most stable → most volatile
+user          = the learner's input, or the beat to write
+```
 
-Both requested voices were accepted by actual GPT-Live sessions and returned audio. The prompt is maintained in `src/lib/voice.ts` with one shared scenario and a small delivery-specific profile:
+`prompt_cache_key` is `fw:{task}:{beat}` (plus a 30-minute TTL on the direct OpenAI route). Stable prefixes are shared across calls, so a session's beats mostly hit the cache. Every call is logged to `ai_calls` with cached-token counts.
 
-| Mode            | Character | Delivery                                                                                                                 |
-| --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Cedar · male    | Alex      | Relaxed and grounded, direct phrasing, subtle emphasis; no announcer voice or artificial gravitas                        |
-| Willow · female | Maya      | Warm and gently expressive, natural regional character; no exaggerated accent, sing-song rhythm, or constant reassurance |
+## Visuals
 
-The conversation itself follows the same standards in both modes: one or two short sentences per turn, one question at a time, sparse listening acknowledgments, time for self-correction, and prompt yielding when interrupted. The model stays in a plausible colleague role and saves evaluation until after practice. It never claims to send messages or perform real actions.
+The model never writes code. It returns a spec for one of 12 primitives (bar, line, waterfall, flow, timeline, compare, matrix, concepts, stat, statement, sim, spectrum). The spec is part of the structured-output schema, so it arrives already shaped correctly; the client still re-validates it with zod before drawing, and shows a skeleton until then. `sim` exposes sliders over a formula compiled by a whitelist expression parser, and an output whose formula doesn't compile is left out instead of breaking the visual.
 
-OpenAI's current prompting guide recommends distinct sections for backchannels, interruption, and delegation, plus a concise role/tone description. Fieldwork follows that structure. Thinking time is a conversational instruction, not a guaranteed silence timer. Actual interruption timing and subjective sound quality still require a human conversation test. Source: [Prompting GPT-Live](https://developers.openai.com/api/docs/guides/live-prompting).
+## GPT-Live harness
 
-The recorded-turn fallback is speech-to-text → OpenRouter text → OpenAI TTS. Regular TTS lists Cedar but does not list Willow. The UI therefore offers text fallback for both voices, and recorded speech replies only with Cedar; it never substitutes another female voice without saying so. We have not established that this fallback is cheaper. Source: [TTS voice availability](https://developers.openai.com/api/docs/guides/text-to-speech).
+**Session creation.** `client.live.create` with WebRTC transport. The browser sends its SDP offer to our server, which creates the session and returns the answer, so the API key never reaches the browser.
 
-## Evidence and next listening pass
+**Instructions** (`src/lib/practice/harness.ts`) follow OpenAI's GPT-Live prompting structure:
 
-`verification/voice.json` records two real synthetic-silence sessions and their final billed usage. The short WAV samples are generated greetings, not recordings of a user. `verification/webrtc.json` records the browser's successful remote audio track, transcript, and confirmed close. Synthetic silence verifies the transport without capturing the user's microphone; it does not verify recognition of an actual conversation.
+- **Role and tone:** the partner's name, role, stance and temperament from the brief.
+- **Conversation style:** one or two short sentences, one question at a time, no coaching or summarising.
+- **Difficulty:** gentle, realistic or tough.
+- **Debate conduct:** debates only. Use real facts without invented statistics, concede good points, and never strawman.
+- **Backchannel policy:** thinking room scaled to the learner's pause preference.
+- **Interruption policy:** stop and respond to the new point, and ignore noise.
+- **Complications:** only on the app's cue.
+- **Time and wrap-up.**
+- **Delegation policy:** none, so it always answers in character.
+- **Boundaries:** no feedback during the call, and never claim real actions.
 
-For the first human listening pass, try the same delegation in each mode: pause mid-sentence, say “let me think,” interrupt a reply, correct the deadline, and introduce one scope change. Judge intelligibility, natural pacing, interruption recovery, and useful clarification. Assess the learner's meaning and reasoning, never accent, pitch, personality, or neurotypical behavior.
+**The conductor** (`conduct()` in `src/lib/server/practice.ts`) attaches over `wss://api.openai.com/v1/live/sessions/{id}/attach` and:
+
+- sends `session.commentary.append` to open with the brief's line;
+- sends `session.instructions.append` for complications at 38% and 66% and the wrap-up about 60 s before the end;
+- closes the call on the hard limit, on a learner-ended signal, or when the client has been silent for more than 45 s;
+- records the transcript and usage, logs voice cost, and marks the session closed with a reason.
+
+**Verified end to end** on September 22 with a real WebRTC call and a synthetic microphone speaking three scripted lines (see [Verification](VERIFICATION.md)):
+
+- The partner opened with the brief's line and responded to each turn in role.
+- The first complication arrived on the partner's next turn after its cue ("finance pays suppliers 30 days after invoice").
+- The partner waited silently while the learner was quiet instead of filling the silence.
+- Ending the call recorded `learner-ended`, confirmed usage (267 s, $0.22) and a monitored session.
+- Feedback quoted the learner's own words and named the concession that weakened their position.
+
+**Voices** accepted by GPT-Live: cedar, willow, meridian, gleam, vesper, stone (`scripts/verify-voices.ts`).
+
+## Costs in practice
+
+Measured in development:
+
+| Activity | Measured cost |
+| --- | --- |
+| Session beat on Sol | about $0.01 |
+| Quick grade on Luna | under $0.001 |
+| Deep grade on Sol | about $0.01 |
+| Practice brief / feedback on Sol | about $0.005 / $0.008 |
+| 4½-minute voice call | $0.22 |
+| Markdown import of a 12-week plan | $0.02 |
+| Curriculum map on Astra (once per plan) | $0.42 |
+
+A full session with several questions typically costs well under $0.25, excluding voice. Everything is visible under You → Usage.

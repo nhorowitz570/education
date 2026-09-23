@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { context, body, fail, HttpError } from '@/lib/server/http';
-import { describeMeal } from '@/lib/server/ai';
+import { generate } from '@/lib/ai/engine';
 import { privatePut } from '@/lib/server/state';
 export async function POST(r: Request) {
   try {
@@ -20,12 +20,16 @@ export async function POST(r: Request) {
     const bytes = Buffer.from(v.image.split(',')[1], 'base64');
     if (bytes.length > 2097152 || bytes[0] !== 255 || bytes[1] !== 216)
       throw new HttpError('Choose a compressed JPEG smaller than 2 MB.');
-    const estimate = await describeMeal(
-      user.id,
-      v.eventId,
-      v.image,
-      v.portions,
-    );
+    const { data } = await generate({
+      task: 'food.estimate',
+      userId: user.id,
+      schema: z.object({ estimate: z.string() }),
+      input: [
+        { type: 'input_text', text: v.portions || 'Estimate visible portions only.' },
+        { type: 'input_image', image_url: v.image, detail: 'low' },
+      ],
+    });
+    const estimate = data.estimate.slice(0, 1200);
     if (v.retentionDays) {
       const path = `${user.id}/food/${v.eventId}.jpg`;
       const { error } = await db.storage

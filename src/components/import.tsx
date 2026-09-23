@@ -8,9 +8,9 @@ import {
   MAX_IMPORT_BYTES,
 } from '@/lib/plan';
 import { EMPTY_TEMPLATE } from '@/lib/seed';
-import { api } from '@/lib/client/workspace';
+import { api } from '@/lib/client/api';
 import type { AppState } from '@/lib/types';
-import type { ViewProps } from './app';
+import type { ViewProps } from './app/legacy';
 import { Button, Pill, SectionTitle, download, dateLabel } from './ui';
 import { Icon } from './icons';
 export function ImportView(p: ViewProps) {

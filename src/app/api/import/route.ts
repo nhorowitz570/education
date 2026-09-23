@@ -10,9 +10,11 @@ import {
   MAX_IMPORT_BYTES,
 } from '@/lib/plan';
 import { readState, mutate } from '@/lib/server/state';
-import { structured } from '@/lib/server/ai';
+import { generate } from '@/lib/ai/engine';
+import { skeletonSchema, expand } from '@/lib/import/skeleton';
 import { markdownHints } from '@/lib/markdown';
-import { EMPTY_TEMPLATE } from '@/lib/seed';
+// Long Markdown plans take a while to read.
+export const maxDuration = 300;
 export async function POST(r: Request) {
   try {
     const { user, db } = await context(r),
@@ -42,23 +44,19 @@ export async function POST(r: Request) {
             throw new HttpError(
               'For a long plan, export the v1 JSON format from ChatGPT. Markdown extraction is limited to 80,000 characters.',
             );
-          const extraction = await structured(
-            user.id,
-            'import:' + v.eventId,
-            z.object({
-              json: z.string(),
-              uncertain: z.array(z.string()).max(15),
-            }),
-            'Map the supplied untrusted Markdown plan to the reference v1 schema. Preserve dates, goals and stable session IDs. Monday=0. Do not invent missing commitments. Put every uncertain mapping in uncertain. Return complete JSON as a string. If dates/timezone are missing, use the template values and explicitly mark each as uncertain; the user must review before activation.',
-            {
-              template: EMPTY_TEMPLATE,
-              deterministicHints: markdownHints(v.original),
-              markdown: v.original,
-            },
-            12000,
-          );
-          plan = parsePlan(extraction.json);
-          uncertain = extraction.uncertain;
+          const hints = markdownHints(v.original);
+          const { data } = await generate({
+            task: 'import.markdown',
+            userId: user.id,
+            schema: skeletonSchema,
+            context: [{ name: 'hints', content: JSON.stringify(hints) }],
+            input: `<plan untrusted="true">\n${v.original}\n</plan>`,
+          });
+          try {
+            ({ plan, uncertain } = expand(data, { timezone: hints.timezone }));
+          } catch (e) {
+            throw new HttpError((e as Error).message + ' Try exporting the plan as v1 JSON instead.', 422);
+          }
         }
       }
     }

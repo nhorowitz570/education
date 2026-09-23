@@ -43,5 +43,5 @@ export function reminderCandidate(state: AppState, now = new Date()) {
     : due(String(prefs.followup || '10:30'))
       ? 'followup'
       : null;
-  return kind ? { key: `${date}:${kind}`, date, kind } : null;
+  return kind ? { key: `${date}:${kind}`, date, kind, title: planned[0].title, minutes: planned[0].duration_minutes } : null;
 }

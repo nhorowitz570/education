@@ -13,13 +13,24 @@ if (process.argv[2] === '--delete') {
   console.log(JSON.stringify({ deleted: process.argv[3] }));
   process.exit(0);
 }
-const email = `fieldwork-e2e-${crypto.randomUUID()}@example.invalid`;
-const { data: created, error } = await admin.auth.admin.createUser({
-  email,
-  email_confirm: true,
-  user_metadata: { purpose: 'disposable-e2e-verification' },
-});
-if (error || !created.user) throw error;
+// --user <id> signs an existing disposable account in again.
+const existing = process.argv[2] === '--user' ? process.argv[3] : null;
+let created: { user: { id: string; email?: string } };
+if (existing) {
+  const { data, error } = await admin.auth.admin.getUserById(existing);
+  if (error || !data.user) throw error;
+  created = { user: data.user };
+} else {
+  const email = `fieldwork-e2e-${crypto.randomUUID()}@example.invalid`;
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    email_confirm: true,
+    user_metadata: { purpose: 'disposable-e2e-verification' },
+  });
+  if (error || !data.user) throw error;
+  created = { user: data.user };
+}
+const email = created.user.email!;
 const { data: link, error: le } = await admin.auth.admin.generateLink({
   type: 'magiclink',
   email,
