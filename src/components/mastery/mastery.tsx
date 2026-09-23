@@ -29,6 +29,7 @@ type Concept = {
 type Data = {
   concepts: Concept[];
   mapped: boolean;
+  hasPlan: boolean;
   evidence: { run: string; title: string; date: string; text: string; verdict: string | null }[];
   practice: { id: string; title: string; date: string; mode: Mode; score: number | null; headline: string | null }[];
   history: { id: string; kind: string; title: string; date: string; summary: string | null }[];
@@ -45,8 +46,25 @@ const LEVEL_LABEL: Record<Concept['level'], string> = {
 
 export function Mastery() {
   const { user } = useApp();
-  const { data } = useCached<Data>('/api/mastery', user.id);
+  const { data, error, refresh } = useCached<Data>('/api/mastery', user.id);
   const [focus, setFocus] = useState<Concept | null>(null);
+  // Older no-plan responses may still be in session storage after a deploy.
+  const noPlan = data &&
+    (data.hasPlan === false || (data.hasPlan === undefined && !data.weeks && !data.history));
+  if (noPlan)
+    return (
+      <div className="page mastery">
+        <header className="page-head">
+          <div>
+            <p className="eyebrow">Mastery</p>
+            <h1 className="title">Your map starts with a plan.</h1>
+          </div>
+        </header>
+        <Link className="btn primary" href="/import">
+          Import a plan
+        </Link>
+      </div>
+    );
   const concepts = data?.concepts || [];
   const touched = concepts.filter((c) => c.level !== 'new');
   const now = Date.now();
@@ -85,18 +103,26 @@ export function Mastery() {
 
       {data ? (
         <KnowledgeMap concepts={concepts} onPick={setFocus} />
+      ) : error ? (
+        <div className="today-error">
+          <p className="heading">Mastery couldn’t load.</p>
+          <p className="muted">{error}</p>
+          <button className="btn" onClick={() => void refresh()}>
+            Try again
+          </button>
+        </div>
       ) : (
         <div className="skeleton" style={{ height: 260, borderRadius: 20 }} />
       )}
 
       <div className="mastery-grid">
-        {data && (
+        {data?.weeks && (
           <section>
             <p className="eyebrow">Momentum · 8 weeks</p>
             <Momentum weeks={data.weeks} />
           </section>
         )}
-        {data && data.practice.length > 0 && (
+        {data && (data.practice?.length || 0) > 0 && (
           <section>
             <p className="eyebrow">Speaking practice</p>
             <div className="rows">
@@ -117,7 +143,7 @@ export function Mastery() {
         )}
       </div>
 
-      {data && data.evidence.length > 0 && (
+      {data && (data.evidence?.length || 0) > 0 && (
         <section className="mastery-section">
           <p className="eyebrow">Evidence</p>
           <div className="evidence">
@@ -133,7 +159,7 @@ export function Mastery() {
         </section>
       )}
 
-      {data && data.history.length > 0 && (
+      {data && (data.history?.length || 0) > 0 && (
         <section className="mastery-section">
           <p className="eyebrow">Sessions</p>
           <div className="rows">

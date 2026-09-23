@@ -16,7 +16,16 @@ export async function GET(r: Request) {
     const runId = url.searchParams.get('run');
     const state = await readState(user.id),
       plan = state.plan;
-    if (!plan) return NextResponse.json({ concepts: [], mapped: false, evidence: [], practice: [] });
+    if (!plan)
+      return NextResponse.json({
+        concepts: [],
+        mapped: false,
+        hasPlan: false,
+        evidence: [],
+        practice: [],
+        history: [],
+        weeks: [],
+      });
     const [graph, learned] = await Promise.all([concepts(user.id, plan), states(user.id, plan.plan_id)]);
     const now = new Date().toISOString();
     // For a finished run, reconstruct each concept's strength before it by
@@ -103,7 +112,7 @@ export async function GET(r: Request) {
         solid: inWeek.filter((e) => (e.score ?? 0) >= 0.75).length,
       };
     });
-    return NextResponse.json({ concepts: list, mapped: graph.mapped, evidence, practice, history, weeks });
+    return NextResponse.json({ concepts: list, mapped: graph.mapped, hasPlan: true, evidence, practice, history, weeks });
   } catch (e) {
     return fail(e);
   }
