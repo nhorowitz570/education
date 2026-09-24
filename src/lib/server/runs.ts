@@ -32,12 +32,14 @@ import { zoneOf } from '@/lib/zone';
 import { activeMs, type Clock } from '@/lib/learning/duration';
 import { prefsOf } from '@/lib/prefs';
 import { writingLayer } from '@/lib/learning/voice';
+import { lessonCast } from '@/lib/learning/names';
 
 type RunContext = {
   session_concepts?: string[];
   memories?: string;
   scenario_facts?: string[];
   avoid_names?: string[];
+  cast?: string[];
   topic?: string;
   exposed?: string[];
   deeper?: number;
@@ -459,6 +461,13 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
     await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { avoid_names: avoid } });
     row.context.avoid_names = avoid;
   }
+  // The names this session's invented people get: familiar, and fresh.
+  let cast = row.context.cast;
+  if (!cast?.length) {
+    cast = lessonCast(avoid);
+    await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { cast } });
+    row.context.cast = cast;
+  }
   let conceptLines = '';
   if (plan) {
     const [graph, learned] = await Promise.all([concepts(userId, plan), states(userId, plan.plan_id)]);
@@ -480,7 +489,8 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
         plan ? `Name: ${plan.profile.name}. Goals: ${plan.profile.goals.slice(0, 6).join('; ')}.` : '',
         styleLayer(await style(userId)),
         writingLayer(prefsOf(state).writing),
-        avoid.length ? `Proper nouns from recent sessions’ scenarios (do not reuse any invented people or places among them; real institutions are fine): ${avoid.join(', ')}.` : '',
+        `Cast for this session (names for any people you invent, in this order): ${cast.join(', ')}.`,
+        avoid.length ? `Names and places from recent sessions’ scenarios (don’t bring these invented people back): ${avoid.join(', ')}.` : '',
       ]
         .filter(Boolean)
         .join('\n'),

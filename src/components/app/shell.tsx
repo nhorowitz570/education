@@ -6,7 +6,8 @@ import { Icon } from '@/components/icons';
 import { Mark } from '@/components/entry/mark';
 import { useApp } from './provider';
 import { InstallControl } from '@/components/pwa';
-import { TutorDock } from '@/components/tutor/chat';
+import { TutorDock, TUTOR_TOGGLE } from '@/components/tutor/chat';
+import { Aperture } from '@/components/tutor/aperture';
 
 export const NAV = [
   { href: '/', label: 'Today', icon: 'today' },
@@ -28,7 +29,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const path = usePathname();
   const { w } = useApp();
   // A running session is a focused space: no navigation competes with it.
-  const focus = path.startsWith('/session/') || /^\/practice\/[^/]+/.test(path);
+  const focus = path.startsWith('/session/') || /^\/practice\/[^/]+/.test(path) || path === '/dev/preview/session';
   const initials = (w.state.plan?.profile.name || 'You')
     .split(' ')
     .map((n) => n[0])
@@ -96,6 +97,10 @@ export function Shell({ children }: { children: ReactNode }) {
                 <span>{n.label}</span>
               </Link>
             ))}
+            <button type="button" className="tab-tutor" onClick={() => window.dispatchEvent(new Event(TUTOR_TOGGLE))}>
+              <Aperture size={22} />
+              <span>Tutor</span>
+            </button>
           </nav>
         )}
       </div>

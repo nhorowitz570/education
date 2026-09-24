@@ -195,7 +195,7 @@ export function TutorChat({ variant, page, onClose }: { variant: 'panel' | 'embe
       <footer className="tutor-foot">
         {chips.length > 0 && (
           <div className="tutor-chips" role="toolbar" aria-label="Suggestions">
-            {chips.slice(0, 4).map((c) => (
+            {chips.slice(0, 3).map((c) => (
               <button key={c} className="chip" disabled={pending} onClick={() => submit(c)}>
                 {c}
               </button>
@@ -288,8 +288,15 @@ function Actions({ actions, onClose }: { actions: TutorAction[]; onClose?: () =>
 }
 
 // The tutor on every page: a mark in the corner that opens the chat.
+export const TUTOR_TOGGLE = 'fw:tutor';
 export function TutorDock({ page }: { page: string }) {
   const [open, setOpen] = useState(false);
+  // The phone tab bar opens it too.
+  useEffect(() => {
+    const toggle = () => setOpen((o) => !o);
+    window.addEventListener(TUTOR_TOGGLE, toggle);
+    return () => window.removeEventListener(TUTOR_TOGGLE, toggle);
+  }, []);
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);

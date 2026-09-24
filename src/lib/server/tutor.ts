@@ -7,6 +7,7 @@ import { concepts, describeState, states } from './learner';
 import { today } from '@/lib/learning/today';
 import { styleLayer, NEUTRAL, type Style } from '@/lib/learning/style';
 import { writingLayer } from '@/lib/learning/voice';
+import { lessonCast } from '@/lib/learning/names';
 import { prefsOf } from '@/lib/prefs';
 import { dateInZone } from '@/lib/plan';
 import { hourIn, zoneOf } from '@/lib/zone';
@@ -64,6 +65,7 @@ async function learnerLayer(userId: string, state: AppState) {
     plan ? `Name: ${plan.profile.name}. Goals: ${plan.profile.goals.slice(0, 6).join('; ')}.` : '',
     styleLayer(style),
     writingLayer(prefsOf(state).writing),
+    `Cast (names for any people you invent, in this order): ${lessonCast().join(', ')}.`,
   ]
     .filter(Boolean)
     .join('\n');

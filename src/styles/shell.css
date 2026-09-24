@@ -16,11 +16,19 @@
 }
 .page {
   width: 100%;
-  max-width: 1160px;
+  max-width: 1200px;
   margin: 0 auto;
 }
-.page.narrow {
+/* Every page shares one frame, so their left edges line up; narrower pages
+   keep a readable measure inside it rather than centring on their own. */
+.page.narrow > :not(dialog, .sheet, .sheet-layer, .toast) {
   max-width: 760px;
+}
+@media (min-width: 900px) {
+  .main {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
 }
 .row-inline {
   display: inline-flex;
@@ -232,6 +240,8 @@
   }
   .main {
     padding-top: calc(18px + var(--safe-top));
+    padding-left: var(--gutter);
+    padding-right: var(--gutter);
     padding-bottom: calc(var(--tabbar) + 40px + var(--safe-bottom));
   }
   .tabbar {
@@ -239,7 +249,7 @@
     inset: auto 0 0 0;
     z-index: 30;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     height: calc(var(--tabbar) + var(--safe-bottom));
     padding: 6px 6px var(--safe-bottom);
     background: color-mix(in srgb, var(--bg) 94%, transparent);
@@ -247,7 +257,8 @@
     -webkit-backdrop-filter: saturate(1.4) blur(20px);
     border-top: 1px solid var(--line);
   }
-  .tabbar a {
+  .tabbar a,
+  .tabbar .tab-tutor {
     display: grid;
     justify-items: center;
     align-content: center;
@@ -260,7 +271,16 @@
       color var(--t-fast),
       transform var(--t-fast) var(--ease);
   }
-  .tabbar a:active {
+  .tabbar .tab-tutor {
+    border: 0;
+    background: none;
+    font: inherit;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-3);
+  }
+  .tabbar a:active,
+  .tabbar .tab-tutor:active {
     transform: scale(0.94);
   }
   .tabbar a[aria-current='page'] {
@@ -280,7 +300,7 @@
   margin-top: 6px;
 }
 @media (max-width: 520px) {
-  .page-head:has(> .row-inline) {
+  .page-head:has(> .row-inline, > .btn, > a.btn) {
     flex-direction: column;
     align-items: flex-start;
   }
@@ -321,7 +341,7 @@
 @media (max-width: 899px) {
   .install {
     left: 16px;
-    right: 76px;
+    right: 16px;
     bottom: calc(var(--tabbar) + 14px + var(--safe-bottom));
   }
 }

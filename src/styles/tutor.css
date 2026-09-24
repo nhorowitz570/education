@@ -199,15 +199,17 @@
 }
 .tutor-chips {
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  mask-image: linear-gradient(90deg, #000 88%, transparent);
 }
 .tutor-chips .chip {
-  flex: none;
-  height: 30px;
+  min-height: 30px;
+  height: auto;
+  padding-top: 5px;
+  padding-bottom: 5px;
   font-size: 12.5px;
+  line-height: 1.3;
+  text-align: left;
 }
 .tutor-compose {
   display: flex;
@@ -248,7 +250,10 @@
 
 /* Today, wide screens: the tutor sits beside the plan. */
 .tutor-embedded {
-  height: min(620px, calc(100dvh - 180px));
+  max-height: min(640px, calc(100dvh - 72px));
+}
+.tutor-embedded .tutor-thread {
+  min-height: 200px;
 }
 
 /* Every other page: a mark in the corner that opens a panel. */
@@ -305,12 +310,16 @@
     transform: translateY(10px) scale(0.97);
   }
 }
+@media (min-width: 900px) {
+  /* Room at the end of every page, so the mark never covers the last row. */
+  .app:not(.focus) .main {
+    padding-bottom: 104px;
+  }
+}
 @media (max-width: 899px) {
+  /* Phones reach the tutor from the tab bar; nothing floats over the page. */
   .tutor-fab {
-    right: 16px;
-    bottom: calc(var(--tabbar) + 14px + var(--safe-bottom));
-    width: 48px;
-    height: 48px;
+    display: none;
   }
   .tutor-layer {
     background: color-mix(in srgb, var(--bg) 60%, transparent);
@@ -329,8 +338,12 @@
 }
 .ws-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: 10px;
+}
+/* Five styles: the default spans the top row so none sits alone. */
+.ws-grid > :first-child {
+  grid-column: 1 / -1;
 }
 .ws-card {
   display: grid;

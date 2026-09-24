@@ -146,8 +146,7 @@ svg {
 }
 .num {
   font-variant-numeric: tabular-nums;
-  font-stretch: 78%;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.01em;
   font-weight: 500;
 }
 .tnum {

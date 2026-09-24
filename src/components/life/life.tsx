@@ -23,7 +23,7 @@ export function Life() {
           <button className="btn quiet" onClick={() => setModal('reflection')}>
             Weekly reflection
           </button>
-          <button className={'btn ' + (checked ? 'quiet' : 'primary')} onClick={() => setModal('checkin')}>
+          <button className="btn quiet" onClick={() => setModal('checkin')}>
             {checked ? <Icon name="check" size={17} /> : null}
             {checked ? 'Checked in' : 'Two-minute check-in'}
           </button>

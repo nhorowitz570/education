@@ -10,6 +10,7 @@ import { reserve, settle } from './budget';
 import { record, slug } from './learner';
 import { consolidate, memoryLayer, recall } from './memory';
 import { signal } from './runs';
+import { partnerName } from '@/lib/learning/names';
 import { generate } from '@/lib/ai/engine';
 import { logCall } from '@/lib/ai/usage';
 import { aiEnv } from '@/lib/ai/env';
@@ -163,6 +164,7 @@ export async function createPractice(
   // The character is whoever this voice sounds like: gender and accent come
   // from the voice, and the name and background are written to fit them.
   const sound = VOICES[input.voice];
+  const name = partnerName(sound.accent, sound.gender, recentNames.filter((n): n is string => !!n));
   const { data: brief } = await generate({
     task: 'practice.brief',
     userId,
@@ -177,7 +179,7 @@ export async function createPractice(
       `What the learner wants to practise: ${input.topic}`,
       input.side ? `The learner will argue: ${input.side}. The partner argues the strongest opposing case.` : '',
       `Difficulty: ${input.difficulty}. Length: about ${input.minutes} minutes.`,
-      `The partner is voiced by a ${sound.gender} with a ${sound.accent} accent. Write them as a ${sound.gender} whose name, hometown and background plausibly go with that accent (an Irish accent means an Irish name and an Irish life, or clearly Irish roots), and whose role fits the scenario. Give a first name and surname that fit, not a stock AI name (no Priya, Marcus, Elena, Maya, Alex, Jordan, Sarah). Avoid these recently used first names: ${[...new Set(recentNames)].join(', ') || 'none'}.`,
+      `The partner is voiced by a ${sound.gender} with a ${sound.accent} accent. Their name is exactly ${name}. Write them as a ${sound.gender} whose hometown and background go with that accent and name, and whose role fits the scenario.`,
       input.difficulty === 'tough'
         ? 'Tough mode: make this someone with strong feelings about the topic, with specific triggers the learner could plausibly hit.'
         : '',

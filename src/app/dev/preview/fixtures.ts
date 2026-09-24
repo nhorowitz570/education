@@ -203,7 +203,7 @@ const LESSON: RunView = {
       minutes: 2,
       status: 'done',
       concept: 'cash-cycle',
-      blocks: [{ type: 'text', md: 'Inès’s studio just landed its biggest client. The work starts Monday, the invoice goes out in six weeks, and the client pays on 60-day terms.' }],
+      blocks: [{ type: 'text', md: 'Megan’s studio just landed its biggest client. The work starts Monday, the invoice goes out in six weeks, and the client pays on 60-day terms.' }],
     },
     {
       id: 'c2',
@@ -215,7 +215,7 @@ const LESSON: RunView = {
       blocks: [
         {
           type: 'text',
-          md: 'You already know that **profit** and cash drift apart. The cash cycle is how long that drift lasts: the days between paying for the work and being paid for it.\n\nFor Inès, that’s about fourteen weeks of salaries paid before a dollar arrives. That gap is what **working capital** has to cover, and why fast-growing studios often feel poorer, not richer.',
+          md: 'You already know that **profit** and cash drift apart. The cash cycle is how long that drift lasts: the days between paying for the work and being paid for it.\n\nFor Megan, that’s about fourteen weeks of salaries paid before a dollar arrives. That gap is what **working capital** has to cover, and why fast-growing studios often feel poorer, not richer.',
         },
         { type: 'callout', md: 'The longer the cycle, the more cash growth eats.' },
       ],
@@ -308,6 +308,55 @@ const TUTOR_STREAM = {
   ]),
 };
 
+let pos = 0;
+const concept = (key: string, title: string, track: string, strength: number, level: string, extra: Record<string, unknown> = {}) => ({
+  key,
+  title,
+  track,
+  summary: '',
+  prerequisites: [],
+  sessions: [],
+  position: pos++,
+  strength,
+  before: Math.max(0, strength - 0.2),
+  recall: strength,
+  level,
+  due_at: level === 'new' ? null : ago(-3 + strength * 6),
+  last_seen_at: level === 'new' ? null : ago(2),
+  successes: Math.round(strength * 6),
+  lapses: strength < 0.5 ? 1 : 0,
+  misconceptions: [],
+  model: null,
+  ...extra,
+});
+const MASTERY = {
+  hasPlan: true,
+  mapped: true,
+  concepts: [
+    concept('profit-vs-cash', 'Profit vs cash', 'finance', 0.78, 'solid', { summary: 'Why a profitable business can still run out of money.' }),
+    concept('working-capital', 'Working capital', 'finance', 0.41, 'learning', { prerequisites: ['profit-vs-cash'], misconceptions: ['Treats revenue as cash received'] }),
+    concept('margins', 'Margin vs markup', 'finance', 0.63, 'practiced'),
+    concept('income-statement', 'Reading an income statement', 'finance', 0.55, 'practiced', { prerequisites: ['profit-vs-cash'] }),
+    concept('break-even', 'Break-even', 'finance', 0, 'new', { prerequisites: ['margins'] }),
+    concept('state-the-point', 'State the point first', 'communication', 0.82, 'solid'),
+    concept('active-listening', 'Listening before answering', 'communication', 0.48, 'learning'),
+    concept('delegation', 'Delegating so it comes back right', 'communication', 0, 'new'),
+    concept('base-rates', 'Base rates', 'judgment', 0.36, 'learning'),
+    concept('steelman', 'Steelmanning the other side', 'judgment', 0.7, 'practiced'),
+    concept('filibuster', 'How the filibuster works', 'judgment', 0.58, 'practiced'),
+  ],
+  evidence: [{ run: 'r1', title: 'Cash briefing', date: ago(3), text: 'A one-page cash forecast for the café’s first quarter, showing the May low point.', verdict: 'solid' }],
+  practice: [{ id: 'p1', title: 'Deposit before the shoot', date: ago(4), mode: 'negotiation', score: 0.72, headline: 'Held your ground on the deposit without losing the client.' }],
+  history: [
+    { id: 'r1', kind: 'session', title: 'Profit vs cash', date: ago(3), summary: 'Covered why profit and cash drift apart.' },
+    { id: 'r2', kind: 'session', title: 'Margins', date: ago(1), summary: 'Margin vs markup, with two worked examples.' },
+    { id: 'r3', kind: 'review', title: 'Review', date: ago(0.2), summary: null },
+  ],
+  weeks: Array.from({ length: 8 }, (_, i) => ({ week: ago((7 - i) * 7).slice(0, 10), count: [0, 2, 5, 3, 8, 6, 9, 7][i], solid: [0, 1, 3, 2, 5, 4, 6, 5][i] })),
+  calibration: { low: { n: 5, right: 2 }, medium: { n: 9, right: 6 }, high: { n: 7, right: 6 } },
+  milestones: [{ date: iso(40), title: 'Read a P&L cold' }],
+};
+
 export const FIXTURES: Record<string, Fixture> = {
   'GET /api/today': TODAY,
   'POST /api/today/brief': BRIEF,
@@ -339,10 +388,7 @@ export const FIXTURES: Record<string, Fixture> = {
     ],
     badges: [],
   },
-  'GET /api/mastery': { concepts: [
-    { key: 'profit-vs-cash', title: 'Profit vs cash', track: 'finance', strength: 0.78, before: 0.52, level: 'solid' },
-    { key: 'working-capital', title: 'Working capital', track: 'finance', strength: 0.41, before: 0.3, level: 'learning' },
-  ] },
+  'GET /api/mastery': MASTERY,
   'GET /api/practice': { practices: [] },
   'POST /api/shares': { token: 'demo-token-bbbbbbbbbbbbbbbb' },
   'DELETE /api/shares': { ok: true },

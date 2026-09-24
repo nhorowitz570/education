@@ -8,6 +8,10 @@ import { Notebook } from '@/components/notebook/notebook';
 import { Complete } from '@/components/session/complete';
 import { Runner } from '@/components/session/runner';
 import { Today } from '@/components/today/today';
+import { Learn } from '@/components/learn/learn';
+import { Mastery } from '@/components/mastery/mastery';
+import { Insights } from '@/components/insights/insights';
+import { Life } from '@/components/life/life';
 import { toRolling } from '@/lib/rolling';
 import type { AppConfig } from '@/lib/types';
 import { FIXTURES, RUN } from './fixtures';
@@ -46,6 +50,39 @@ if (typeof window !== 'undefined' && !(window as { __previewFetch?: boolean })._
   };
 }
 
+// Layout audit for development: window.__audit() lists anything that spills
+// off the page, is clipped, or overlaps other text.
+if (typeof window !== 'undefined')
+  (window as unknown as { __audit: () => string[] }).__audit = () => {
+  const W = innerWidth, out: string[] = [];
+  const vis = (el: Element) => { const s = getComputedStyle(el); return s.display !== 'none' && s.visibility !== 'hidden' && +s.opacity > 0.05; };
+  const name = (el: Element) => el.tagName.toLowerCase() + (typeof el.className === 'string' && el.className.trim() ? '.' + el.className.trim().split(/\s+/).slice(0, 3).join('.') : '');
+  const fixed = (el: Element) => { for (let e: Element | null = el; e; e = e.parentElement) if (getComputedStyle(e).position === 'fixed') return true; return false; };
+  if (document.documentElement.scrollWidth > W + 1) out.push('PAGE-SCROLL-X ' + document.documentElement.scrollWidth + '>' + W);
+  const all = [...document.querySelectorAll('main *, nav *, .tutor-panel *')];
+  for (const el of all) {
+    if (!vis(el)) continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height) continue;
+    if (r.right > W + 1 && !el.closest('.viz-scroll,.tutor-chips,.dock-chips')) out.push('OFF-RIGHT ' + name(el) + ' ' + Math.round(r.right));
+    const s = getComputedStyle(el);
+    if ((s.overflowX === 'hidden' || s.overflowX === 'clip') && el.scrollWidth > el.clientWidth + 2 && s.textOverflow !== 'ellipsis') out.push('CLIP-X ' + name(el) + ' ' + el.scrollWidth + '>' + el.clientWidth + ' "' + (el.textContent || '').trim().slice(0, 30) + '"');
+    if ((s.overflowY === 'hidden' || s.overflowY === 'clip') && el.scrollHeight > el.clientHeight + 3 && !/-webkit-box/.test(s.display)) out.push('CLIP-Y ' + name(el) + ' ' + el.scrollHeight + '>' + el.clientHeight + ' "' + (el.textContent || '').trim().slice(0, 30) + '"');
+  }
+  const leaves = all
+    .filter((e) => vis(e) && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent?.trim()))
+    .map((e) => ({ e, r: e.getBoundingClientRect(), f: fixed(e) }))
+    .filter((x) => x.r.width && x.r.height && x.r.bottom > 0 && x.r.top < innerHeight * 4);
+  for (let i = 0; i < leaves.length; i++)
+    for (let j = i + 1; j < leaves.length; j++) {
+      const a = leaves[i], b = leaves[j];
+      if (a.e.contains(b.e) || b.e.contains(a.e) || a.f !== b.f) continue;
+      const ix = Math.min(a.r.right, b.r.right) - Math.max(a.r.left, b.r.left), iy = Math.min(a.r.bottom, b.r.bottom) - Math.max(a.r.top, b.r.top);
+      if (ix > 3 && iy > 3) out.push('OVERLAP ' + name(a.e) + ' "' + (a.e.textContent || '').trim().slice(0, 24) + '" × ' + name(b.e) + ' "' + (b.e.textContent || '').trim().slice(0, 24) + '"');
+    }
+  return [...new Set(out)].slice(0, 50);
+};
+
 const CONFIG: AppConfig = { supabase: false, backend: false, ai: true, voice: true, voiceProvider: 'live', push: true, demo: true };
 
 export function Preview({ children }: { children: ReactNode }) {
@@ -81,6 +118,14 @@ export function Screen({ path }: { path: string[] }) {
       return <Runner id="r2" />;
     case 'today':
       return <Today />;
+    case 'learn':
+      return <Learn />;
+    case 'mastery':
+      return <Mastery />;
+    case 'insights':
+      return <Insights />;
+    case 'life':
+      return <Life />;
     default:
       return <p className="page">Preview: /dev/preview/you, /notebook, /practice, /complete</p>;
   }

@@ -366,7 +366,9 @@ function KnowledgeMap({ concepts, onPick, ahead = false }: { concepts: Concept[]
     (w.state.plan ? curriculumSessions(w.state.plan) : []).forEach((s, i) => m.set(s.id, i));
     return m;
   }, [w.state.plan]);
-  const when = (c: Concept) => Math.min(...c.sessions.map((s) => order.get(s) ?? c.position), Number.MAX_SAFE_INTEGER);
+  // Ideas met outside the plan (a side trip) have no session; they sit by
+  // their own position rather than all piling up at the far end.
+  const when = (c: Concept) => (c.sessions?.length ? Math.min(...c.sessions.map((s) => order.get(s) ?? c.position)) : c.position);
   const tracks = useMemo(() => {
     const first = new Map<string, number>();
     for (const c of concepts) first.set(c.track, Math.min(first.get(c.track) ?? Infinity, c.position));

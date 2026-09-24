@@ -83,3 +83,20 @@ describe('tutor chat', () => {
       expect(vizSchema.options.some((o) => o.shape.type.value === type)).toBe(true);
   });
 });
+
+describe('names', async () => {
+  const { lessonCast, partnerName, NAMES } = await import('@/lib/learning/names');
+  it('gives lessons familiar American names and skips recent ones', () => {
+    const cast = lessonCast(['Emily', 'Jake']);
+    expect(cast).toHaveLength(4);
+    for (const n of cast) expect([...NAMES.american.woman, ...NAMES.american.man]).toContain(n);
+    expect(cast).not.toContain('Emily');
+    expect(cast).not.toContain('Jake');
+  });
+  it('matches a practice partner’s name to the voice’s accent and gender', () => {
+    const irish = partnerName('Irish', 'woman').split(' ')[0];
+    expect(NAMES.irish.woman as readonly string[]).toContain(irish);
+    const american = partnerName('North American', 'man').split(' ')[0];
+    expect(NAMES.american.man as readonly string[]).toContain(american);
+  });
+});

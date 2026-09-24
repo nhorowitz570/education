@@ -17,9 +17,6 @@
   align-items: start;
 }
 @media (min-width: 1180px) {
-  .page.today {
-    max-width: 1240px;
-  }
   .today-grid {
     grid-template-columns: minmax(0, 1fr) 372px;
     gap: 28px;
@@ -171,14 +168,10 @@
   margin-top: 24px;
 }
 .brief-ends {
-  flex: 1;
-  text-align: right;
+  flex-basis: 100%;
+  margin-top: 2px;
 }
 @media (max-width: 640px) {
-  .brief-ends {
-    flex-basis: 100%;
-    text-align: left;
-  }
   .agenda li {
     grid-template-columns: 22px 8px minmax(0, 1fr) auto;
     gap: 10px;
@@ -244,9 +237,6 @@
   font-family: var(--serif);
   font-size: 17px;
   line-height: 1.4;
-}
-.card-note .eyebrow {
-  font-family: var(--sans);
 }
 .today-error-line {
   color: var(--negative);
@@ -355,8 +345,8 @@
 /* Side: progress, the week */
 .today-side {
   display: grid;
-  gap: 28px;
-  padding-top: 4px;
+  gap: 24px;
+  align-content: start;
 }
 .stat.big b {
   font-size: 64px;
@@ -470,9 +460,11 @@
   font-size: 15px;
 }
 .xp-quests {
-  display: grid;
-  justify-items: center;
-  gap: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-right: 12px;
+  border-right: 1px solid var(--line);
 }
 .quest-pips {
   display: flex;
@@ -608,11 +600,16 @@
   .today-top {
     margin-bottom: 24px;
   }
-  .hero-actions .btn.begin {
-    flex: 1;
-  }
   .today-side {
     gap: 24px;
+  }
+  .today-side .day {
+    max-width: none;
+  }
+}
+@media (max-width: 520px) {
+  .hero-actions .btn.begin {
+    flex: 1;
   }
 }
 @media (max-width: 520px) {
@@ -1930,9 +1927,9 @@
 }
 .streak {
   flex: none;
-  display: grid;
-  justify-items: center;
-  gap: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--text-4);
 }
 .streak b {
@@ -1941,7 +1938,6 @@
 }
 .streak.lit {
   color: var(--life);
-  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--life) 55%, transparent));
 }
 .streak.lit b {
   color: var(--text);
@@ -2261,6 +2257,8 @@
 .rolling {
   display: grid;
   gap: 8px;
+}
+.rolling > * {
   max-width: 880px;
 }
 .rolling > section {
@@ -2434,23 +2432,14 @@
   gap: 10px;
   padding: 18px;
   border-radius: var(--r-lg);
-  background:
-    radial-gradient(120% 100% at 0% 0%, color-mix(in srgb, var(--c, var(--text)) 10%, transparent), transparent 60%),
-    var(--raised);
+  background: var(--raised);
   box-shadow: var(--inner), 0 0 0 1px var(--line);
   text-align: left;
   color: inherit;
   overflow: hidden;
   transition: transform var(--t) var(--ease), box-shadow var(--t) var(--ease);
 }
-.track-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: var(--c, var(--text-3));
-  opacity: 0.8;
-}
+
 .track-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--inner), 0 0 0 1px var(--line-2), 0 16px 40px rgba(0, 0, 0, 0.16);
@@ -2610,9 +2599,8 @@
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--c, var(--text)) 45%, transparent);
 }
 .streak-unit {
-  font-size: 10px;
+  font-size: 12px;
   color: var(--text-3);
-  margin-top: -2px;
 }
 @media (max-width: 600px) {
   .rl-suggest {
@@ -2954,17 +2942,7 @@ button.row:disabled:hover {
     box-shadow var(--t-fast),
     transform var(--t) var(--ease);
 }
-.nb-card::before {
-  content: '';
-  position: absolute;
-  left: 18px;
-  top: 0;
-  width: 28px;
-  height: 2px;
-  border-radius: 0 0 2px 2px;
-  background: var(--c, var(--text-3));
-  opacity: 0.8;
-}
+
 @media (hover: hover) {
   .nb-card:hover {
     background: var(--surface-2);

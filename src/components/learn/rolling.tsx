@@ -291,7 +291,7 @@ function WeekList({
 }
 
 const strengthOf = (concepts: Concept[], s: Session) => {
-  const cs = concepts.filter((c) => c.sessions.includes(s.id));
+  const cs = concepts.filter((c) => c.sessions?.includes(s.id));
   return cs.length ? cs.reduce((a, c) => a + c.strength, 0) / cs.length : null;
 };
 

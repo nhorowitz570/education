@@ -11,6 +11,24 @@ import { arr, clamp, fit, fmt, num, str, tc, textWidth, useWidth } from './util'
 type Of<T extends Viz['type']> = Extract<Viz, { type: T }>;
 const vars = (o: Record<string, string | number>) => o as CSSProperties;
 
+// Up to two lines per item, then an ellipsis.
+function wrap(text: string, max: number, size: number, weight: number) {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const next = line ? line + ' ' + word : word;
+    if (textWidth(next, size, weight) <= max || !line) line = next;
+    else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line) lines.push(line);
+  if (lines.length <= 2) return lines.map((l) => fit(l, max, size, weight));
+  return [lines[0], fit(lines.slice(1).join(' '), max, size, weight)];
+}
+
 // ---------- Cycle ----------
 export function Cycle({ spec, label }: { spec: Of<'cycle'>; label: string }) {
   const [ref, w] = useWidth<HTMLDivElement>();
@@ -21,7 +39,7 @@ export function Cycle({ spec, label }: { spec: Of<'cycle'>; label: string }) {
     // The ring shrinks to leave room for the side labels, so names aren't cut.
     const widest = Math.min(w * 0.36, Math.max(...steps.map((s) => textWidth(str(s.label), 12.5, 500))));
     const r = Math.max(52, Math.min(136, w / 2 - widest - 20));
-    const H = Math.round(2 * r + 64);
+    const H = Math.round(2 * r + 84);
     const cx = w / 2,
       cy = H / 2;
     const pts = steps.map((s, i) => {
@@ -30,14 +48,17 @@ export function Cycle({ spec, label }: { spec: Of<'cycle'>; label: string }) {
         y = cy + r * Math.sin(a);
       const right = Math.cos(a) > 0.25,
         left = Math.cos(a) < -0.25;
-      const text = fit(str(s.label), right || left ? Math.max(60, w / 2 - r - 16) : w * 0.6, 12.5, 500);
+      const lines = wrap(str(s.label), right || left ? Math.max(60, w / 2 - r - 18) : w * 0.6, 12.5, 500);
+      const up = Math.sin(a) < -0.5,
+        down = Math.sin(a) > 0.5;
       return {
         s,
         x,
         y,
-        text,
+        lines,
         tx: right ? x + 12 : left ? x - 12 : x,
-        ty: Math.sin(a) < -0.5 ? y - 12 : Math.sin(a) > 0.5 ? y + 22 : y + 4,
+        // Two-line labels grow away from the ring.
+        ty: up ? y - 12 - (lines.length - 1) * 15 : down ? y + 22 : y + 4 - ((lines.length - 1) * 15) / 2,
         anchor: right ? 'start' : left ? 'end' : 'middle',
       };
     });
@@ -74,7 +95,11 @@ export function Cycle({ spec, label }: { spec: Of<'cycle'>; label: string }) {
               <title>{[str(p.s.label), str(p.s.detail)].filter(Boolean).join(': ')}</title>
               <circle cx={p.x} cy={p.y} r={6} />
               <text x={p.tx} y={p.ty} textAnchor={p.anchor as 'start' | 'middle' | 'end'}>
-                {p.text}
+                {p.lines.map((l, j) => (
+                  <tspan key={j} x={p.tx} dy={j ? 15 : 0}>
+                    {l}
+                  </tspan>
+                ))}
               </text>
             </g>
           ))}
@@ -202,24 +227,6 @@ export function Balance({ spec, label }: { spec: Of<'balance'>; label: string })
       </div>
     </div>
   );
-}
-
-// Up to two lines per item, then an ellipsis.
-function wrap(text: string, max: number, size: number, weight: number) {
-  const words = text.split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let line = '';
-  for (const word of words) {
-    const next = line ? line + ' ' + word : word;
-    if (textWidth(next, size, weight) <= max || !line) line = next;
-    else {
-      lines.push(line);
-      line = word;
-    }
-  }
-  if (line) lines.push(line);
-  if (lines.length <= 2) return lines.map((l) => fit(l, max, size, weight));
-  return [lines[0], fit(lines.slice(1).join(' '), max, size, weight)];
 }
 
 // ---------- Venn ----------
