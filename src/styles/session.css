@@ -226,13 +226,17 @@
 .block {
   animation: rise 360ms var(--ease) both;
 }
-.prose .fresh {
-  animation: fresh 520ms var(--ease) both;
+/* Streamed text arrives a sentence at a time; each unit fades in once. */
+.prose .unit {
+  animation: fresh 560ms var(--ease) both;
 }
 @keyframes fresh {
   from {
     opacity: 0;
-    filter: blur(2px);
+    filter: blur(3px);
+  }
+  60% {
+    filter: blur(0);
   }
 }
 .callout {

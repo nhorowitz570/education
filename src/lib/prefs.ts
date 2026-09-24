@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { voiceSchema } from './practice/harness';
+import { writingSchema, type Writing } from './learning/voice';
 
 // The learner's preferences, as one synced setting. The server reads the parts
 // that change what it does (how sessions are shaped, which notifications to
@@ -20,6 +21,7 @@ const font = z.enum(Object.keys(FONTS) as [Font, ...Font[]]);
 const DEFAULTS = {
   session: { familiarity: true, confidence: true, dontKnow: true, breaks: 5 as 0 | 5 | 10 },
   voice: 'cedar' as z.infer<typeof voiceSchema>,
+  writing: 'balanced' as Writing,
   game: { xp: true, streak: true, quests: true, pops: true },
   reading: {
     size: 'm' as 's' | 'm' | 'l' | 'xl',
@@ -42,6 +44,7 @@ export const prefsSchema = z.object({
     })
     .catch(DEFAULTS.session),
   voice: voiceSchema.catch(DEFAULTS.voice),
+  writing: writingSchema.catch(DEFAULTS.writing),
   game: z
     .object({
       xp: z.boolean().catch(true),

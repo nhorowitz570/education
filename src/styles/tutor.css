@@ -1,0 +1,629 @@
+/* ---------- The tutor: a chat on every page ---------- */
+
+.aperture {
+  flex: none;
+  display: block;
+}
+.aperture-blades {
+  transform-origin: 12px 12px;
+  transition: transform 600ms var(--ease);
+}
+.aperture.is-busy .aperture-blades {
+  animation: aperture-turn 2.4s var(--ease-in-out) infinite;
+}
+@keyframes aperture-turn {
+  50% {
+    transform: rotate(60deg) scale(0.82);
+  }
+  100% {
+    transform: rotate(120deg);
+  }
+}
+
+.tutor {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.tutor-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 12px 14px 16px;
+  border-bottom: 1px solid var(--line);
+}
+.tutor-who {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+.tutor-who b {
+  font-size: 14px;
+  font-weight: 600;
+}
+.tutor-who span {
+  font-size: 12px;
+  color: var(--text-3);
+}
+.tutor-style {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-2);
+}
+.tutor-style select {
+  appearance: none;
+  height: 100%;
+  padding: 0 26px 0 11px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+.tutor-style select:focus-visible {
+  outline: 2px solid var(--line-3);
+}
+.tutor-style svg {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+  transform: rotate(90deg);
+  color: var(--text-3);
+}
+
+.tutor-thread {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  display: grid;
+  align-content: start;
+  gap: 18px;
+  padding: 18px 16px 8px;
+  scrollbar-width: thin;
+}
+.tutor-empty {
+  display: grid;
+  gap: 8px;
+  padding: 8px 4px;
+}
+.tutor-hello {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 26px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+.tutor-empty .muted {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.tmsg.from-user {
+  justify-self: end;
+  max-width: 86%;
+  padding: 9px 13px;
+  border-radius: 16px 16px 5px 16px;
+  background: var(--surface-3);
+  font-size: 14.5px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  animation: rise var(--t) var(--ease) both;
+}
+.tmsg.from-tutor {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+/* Chat reads smaller and in the app's sans, not the lesson serif. */
+.tmsg.from-tutor .blocks {
+  gap: 12px;
+}
+.tmsg.from-tutor .prose {
+  font-family: var(--sans);
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: color-mix(in srgb, var(--text) 88%, transparent);
+}
+.tmsg.from-tutor .viz {
+  padding: 14px;
+  border-radius: var(--r);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  --viz-bg: var(--bg);
+}
+.tmsg.from-tutor .viz-takeaway {
+  font-size: 14px;
+}
+.tutor-dots {
+  display: inline-flex;
+  gap: 4px;
+  padding: 6px 0;
+}
+.tutor-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  animation: tutor-dot 1.2s var(--ease-in-out) infinite;
+}
+.tutor-dots i:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.tutor-dots i:nth-child(3) {
+  animation-delay: 0.3s;
+}
+@keyframes tutor-dot {
+  30% {
+    transform: translateY(-3px);
+    background: var(--text);
+  }
+}
+.tutor-error {
+  font-size: 13.5px;
+  color: var(--negative);
+}
+.tutor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.tutor-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  color: var(--accent);
+  font-size: 12.5px;
+}
+:root[data-theme='light'] .tutor-done {
+  color: var(--text);
+}
+
+.tutor-foot {
+  display: grid;
+  gap: 10px;
+  padding: 10px 12px 12px;
+}
+.tutor-chips {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(90deg, #000 88%, transparent);
+}
+.tutor-chips .chip {
+  flex: none;
+  height: 30px;
+  font-size: 12.5px;
+}
+.tutor-compose {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 6px 6px 6px 14px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  transition: border-color var(--t-fast);
+}
+.tutor-compose:focus-within {
+  border-color: var(--line-3);
+}
+.tutor-compose textarea {
+  flex: 1;
+  min-height: 32px;
+  max-height: 140px;
+  padding: 6px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14.5px;
+  line-height: 1.4;
+  resize: none;
+  outline: none;
+}
+.tutor-compose textarea::placeholder {
+  color: var(--text-3);
+}
+.tutor-compose .btn.icon {
+  width: 34px;
+  min-height: 34px;
+  height: 34px;
+  border-radius: 10px;
+}
+
+/* Today, wide screens: the tutor sits beside the plan. */
+.tutor-embedded {
+  height: min(620px, calc(100dvh - 180px));
+}
+
+/* Every other page: a mark in the corner that opens a panel. */
+.tutor-fab {
+  position: fixed;
+  right: 20px;
+  bottom: calc(20px + var(--safe-bottom));
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line-2);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.45);
+  transition:
+    transform var(--t-fast) var(--ease),
+    background var(--t-fast);
+}
+.tutor-fab:hover {
+  transform: translateY(-1px);
+  background: var(--surface-3);
+}
+.tutor-fab:active {
+  transform: scale(0.94);
+}
+.tutor-fab.is-open .aperture-blades {
+  transform: rotate(60deg) scale(0.7);
+}
+@media (min-width: 1180px) {
+  .app.on-today ~ .tutor-fab {
+    display: none;
+  }
+}
+.tutor-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+}
+.tutor-panel {
+  position: fixed;
+  right: 20px;
+  bottom: calc(84px + var(--safe-bottom));
+  width: min(420px, calc(100vw - 40px));
+  height: min(640px, calc(100dvh - 120px));
+  box-shadow: var(--shadow-pop);
+  transform-origin: 100% 100%;
+  animation: tutor-open 260ms var(--ease) both;
+}
+@keyframes tutor-open {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+}
+@media (max-width: 899px) {
+  .tutor-fab {
+    right: 16px;
+    bottom: calc(var(--tabbar) + 14px + var(--safe-bottom));
+    width: 48px;
+    height: 48px;
+  }
+  .tutor-layer {
+    background: color-mix(in srgb, var(--bg) 60%, transparent);
+  }
+  .tutor-panel {
+    inset: calc(8px + var(--safe-top)) 8px calc(var(--tabbar) + 8px + var(--safe-bottom));
+    width: auto;
+    height: auto;
+  }
+}
+
+/* ---------- Writing style picker ---------- */
+.ws {
+  display: grid;
+  gap: 18px;
+}
+.ws-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.ws-card {
+  display: grid;
+  gap: 2px;
+  padding: 12px 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r);
+  background: var(--raised);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color var(--t-fast),
+    background var(--t-fast),
+    transform var(--t-fast) var(--ease);
+}
+.ws-card:hover {
+  background: var(--surface);
+}
+.ws-card:active {
+  transform: scale(0.98);
+}
+.ws-card.is-on {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.ws-card:focus-visible {
+  outline: 2px solid var(--line-3);
+  outline-offset: 2px;
+}
+.ws-name {
+  margin-top: 10px;
+  font-size: 14.5px;
+  font-weight: 600;
+}
+.ws-note {
+  font-size: 12.5px;
+  color: var(--text-3);
+}
+.ws-stage {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  height: 58px;
+  border-radius: 10px;
+  background: var(--bg);
+  overflow: hidden;
+}
+/* Motion runs on the chosen style, and on hover. */
+.ws-stage * {
+  animation-play-state: paused;
+}
+.ws-card.is-on .ws-stage *,
+.ws-card:hover .ws-stage * {
+  animation-play-state: running;
+}
+
+/* Balanced: three even strokes, drawn in turn. */
+.ws-balanced {
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 0 18px;
+}
+.ws-balanced i {
+  height: 4px;
+  width: 78%;
+  border-radius: 2px;
+  background: var(--text-3);
+  transform-origin: left;
+  animation: ws-draw 2.4s var(--ease) infinite;
+}
+.ws-balanced i:nth-child(2) {
+  width: 64%;
+  animation-delay: 0.2s;
+}
+.ws-balanced i:nth-child(3) {
+  width: 70%;
+  animation-delay: 0.4s;
+}
+@keyframes ws-draw {
+  0% {
+    transform: scaleX(0);
+  }
+  35%,
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+/* Candid: says it with its chest, and the odd word gets bleeped. */
+.ws-bang {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--accent);
+  transform: rotate(-8deg);
+  animation: ws-shout 1.6s var(--ease) infinite;
+}
+.ws-talk {
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  transform: rotate(2deg);
+  animation: ws-shout 1.6s var(--ease) infinite 0.08s;
+}
+.ws-bleep {
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 600;
+  transform: rotate(9deg) scale(0);
+  animation: ws-bleep 1.6s var(--ease) infinite;
+}
+@keyframes ws-shout {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  8% {
+    translate: -1.5px 0;
+  }
+  16% {
+    translate: 1.5px 0;
+  }
+  24% {
+    translate: 0 0;
+  }
+}
+@keyframes ws-bleep {
+  0%,
+  30% {
+    transform: rotate(9deg) scale(0);
+  }
+  40%,
+  80% {
+    transform: rotate(9deg) scale(1);
+  }
+  100% {
+    transform: rotate(9deg) scale(0);
+  }
+}
+
+/* Concise: a paragraph trims itself down to one line. */
+.ws-concise {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 0 18px;
+}
+.ws-concise i {
+  height: 3px;
+  width: 76%;
+  border-radius: 2px;
+  background: var(--text-3);
+  animation: ws-trim 2.8s var(--ease) infinite;
+}
+.ws-concise i:first-child {
+  background: var(--text);
+  animation-name: ws-keep;
+}
+.ws-concise i:nth-child(3) {
+  width: 60%;
+}
+.ws-concise i:nth-child(4) {
+  width: 42%;
+}
+@keyframes ws-trim {
+  0%,
+  25% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+  55%,
+  85% {
+    opacity: 0;
+    transform: scaleX(0.2);
+    height: 0;
+    margin-top: -4px;
+  }
+  100% {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+@keyframes ws-keep {
+  0%,
+  25% {
+    width: 76%;
+  }
+  55%,
+  85% {
+    width: 46%;
+    height: 5px;
+  }
+  100% {
+    width: 76%;
+  }
+}
+
+/* Formal: a serif word, underlined by pen. */
+.ws-formal {
+  flex-direction: column;
+  gap: 0;
+}
+.ws-thus {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 24px;
+  line-height: 1;
+}
+.ws-pen {
+  width: 64px;
+  height: 10px;
+  overflow: visible;
+}
+.ws-pen path {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-dasharray: 90;
+  stroke-dashoffset: 90;
+  animation: ws-pen 2.6s var(--ease) infinite;
+}
+@keyframes ws-pen {
+  15% {
+    stroke-dashoffset: 90;
+  }
+  50%,
+  85% {
+    stroke-dashoffset: 0;
+  }
+  100% {
+    stroke-dashoffset: -90;
+  }
+}
+
+/* Warm: a slow breath. */
+.ws-sun {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: ws-breathe 3.2s var(--ease-in-out) infinite;
+}
+.ws-ring {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent);
+  opacity: 0;
+  animation: ws-ripple 3.2s var(--ease) infinite;
+}
+@keyframes ws-breathe {
+  50% {
+    transform: scale(1.25);
+  }
+}
+@keyframes ws-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(3.2);
+    opacity: 0;
+  }
+}
+
+.ws-sample {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 16px 18px;
+  border-radius: var(--r);
+  background: var(--surface);
+  animation: rise var(--t-slow) var(--ease) both;
+}
+.ws-sample blockquote {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  line-height: 1.5;
+  color: var(--text);
+  text-wrap: pretty;
+}

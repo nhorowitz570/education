@@ -112,6 +112,113 @@
   box-shadow: 0 0 0 1.5px var(--line-3);
 }
 
+.rail-word,
+.rail-who {
+  display: none;
+}
+.rail-initials {
+  display: contents;
+}
+
+/* Wide screens: the rail opens into a labelled sidebar. */
+@media (min-width: 1180px) {
+  :root {
+    --rail: 232px;
+  }
+  .rail {
+    align-items: stretch;
+    padding: calc(24px + var(--safe-top)) 14px 16px;
+    background: #000;
+  }
+  :root[data-theme='light'] .rail {
+    background: var(--raised);
+  }
+  .rail-mark {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 8px;
+    margin-bottom: 30px;
+  }
+  .rail-word {
+    display: inline;
+    font-family: var(--serif);
+    font-size: 23px;
+    font-variation-settings: 'opsz' 36;
+    letter-spacing: -0.015em;
+    color: var(--text);
+  }
+  .rail-items {
+    gap: 2px;
+  }
+  .rail-item {
+    grid-template-columns: 20px minmax(0, 1fr);
+    justify-items: start;
+    align-items: center;
+    gap: 12px;
+    width: auto;
+    height: 38px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 14px;
+    letter-spacing: 0;
+    color: var(--text-2);
+  }
+  .rail-item[aria-current='page'] {
+    background: var(--surface-2);
+    box-shadow: var(--inner);
+  }
+  .rail-item.secondary::before {
+    left: 10px;
+    right: 10px;
+  }
+  .rail-you {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: auto;
+    height: auto;
+    padding: 8px;
+    border-radius: 12px;
+    background: transparent;
+    text-align: left;
+  }
+  .rail-you:hover,
+  .rail-you[aria-current='page'] {
+    box-shadow: none;
+    background: var(--surface);
+  }
+  .rail-initials {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--text);
+    font-size: 12px;
+  }
+  .rail-who {
+    display: grid;
+    min-width: 0;
+  }
+  .rail-who b {
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .rail-who span {
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: 0;
+    color: var(--text-3);
+  }
+}
+
 /* Phone tab bar */
 .tabbar {
   display: none;
@@ -198,8 +305,8 @@
 /* Install / update prompt */
 .install {
   position: fixed;
-  right: 16px;
-  bottom: calc(16px + var(--safe-bottom));
+  right: 84px;
+  bottom: calc(20px + var(--safe-bottom));
   z-index: 40;
   display: flex;
   align-items: center;
@@ -214,6 +321,7 @@
 @media (max-width: 899px) {
   .install {
     left: 16px;
-    bottom: calc(var(--tabbar) + 12px + var(--safe-bottom));
+    right: 76px;
+    bottom: calc(var(--tabbar) + 14px + var(--safe-bottom));
   }
 }

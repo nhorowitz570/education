@@ -31,11 +31,13 @@ import { sessionById } from '@/lib/rolling';
 import { zoneOf } from '@/lib/zone';
 import { activeMs, type Clock } from '@/lib/learning/duration';
 import { prefsOf } from '@/lib/prefs';
+import { writingLayer } from '@/lib/learning/voice';
 
 type RunContext = {
   session_concepts?: string[];
   memories?: string;
   scenario_facts?: string[];
+  avoid_names?: string[];
   topic?: string;
   exposed?: string[];
   deeper?: number;
@@ -450,6 +452,13 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
     await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { memories } });
     row.context.memories = memories;
   }
+  // Names invented in recent sessions, once per run, so new scenarios meet new people.
+  let avoid = row.context.avoid_names;
+  if (avoid === undefined) {
+    avoid = await recentNames(userId, row.id);
+    await db().rpc('merge_run', { p_run: row.id, p_user: userId, p_context: { avoid_names: avoid } });
+    row.context.avoid_names = avoid;
+  }
   let conceptLines = '';
   if (plan) {
     const [graph, learned] = await Promise.all([concepts(userId, plan), states(userId, plan.plan_id)]);
@@ -470,11 +479,16 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
       content: [
         plan ? `Name: ${plan.profile.name}. Goals: ${plan.profile.goals.slice(0, 6).join('; ')}.` : '',
         styleLayer(await style(userId)),
-      ].join('\n'),
+        writingLayer(prefsOf(state).writing),
+        avoid.length ? `Proper nouns from recent sessions’ scenarios (do not reuse any invented people or places among them; real institutions are fine): ${avoid.join(', ')}.` : '',
+      ]
+        .filter(Boolean)
+        .join('\n'),
     },
     { name: 'memories', content: memories || null },
-    // Lessons may use the learner's own Venture company as their scenario.
-    { name: 'venture', content: row.kind !== 'practice' ? await ventureLayer(userId) : null },
+    // Lessons about money may use the learner's own Venture company as their
+    // scenario; anywhere else it would drag every idea into business.
+    { name: 'venture', content: row.kind !== 'practice' && moneyish(session?.subject, row.context.topic) ? await ventureLayer(userId) : null },
     { name: 'concept_states', content: conceptLines || null },
     {
       name: 'curriculum',
@@ -518,6 +532,28 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
     },
   ];
   return { layers: result, plan, session };
+}
+
+const moneyish = (subject?: string, topic?: string) =>
+  /financ|business|money|econom|invest|account|venture/i.test(`${subject || ''} ${topic || ''}`);
+
+const NOT_NAMES = new Set(['The', 'This', 'That', 'They', 'Their', 'There', 'When', 'After', 'Before', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']);
+async function recentNames(userId: string, exceptRun: string) {
+  const { data } = await db()
+    .from('runs')
+    .select('id,context')
+    .eq('user_id', userId)
+    .neq('kind', 'practice')
+    .order('started_at', { ascending: false })
+    .limit(10);
+  const names = new Map<string, number>();
+  for (const r of data || []) {
+    if (r.id === exceptRun) continue;
+    for (const fact of ((r.context as { scenario_facts?: string[] })?.scenario_facts || []).slice(0, 12))
+      for (const m of fact.matchAll(/\b[A-Z][a-z]{2,}\b/g))
+        if (!NOT_NAMES.has(m[0])) names.set(m[0], (names.get(m[0]) || 0) + 1);
+  }
+  return [...names.keys()].slice(0, 24);
 }
 
 const FAMILIARITY_TEXT: Record<Familiarity | 'unknown', string> = {

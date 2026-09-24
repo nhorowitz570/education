@@ -6,6 +6,75 @@ import { Visual, VisualSkeleton } from '@/components/viz/visual';
 const EXAMPLES: { spec: Viz; wide?: boolean }[] = [
   {
     spec: {
+      type: 'tree',
+      title: 'Who makes US federal law',
+      nodes: [
+        { id: 'c', parent: null, label: 'Constitution', detail: 'Splits power three ways', tone: 'accent' },
+        { id: 'l', parent: 'c', label: 'Congress', detail: 'Writes and passes bills', tone: 'default' },
+        { id: 'h', parent: 'l', label: 'House', detail: '435 seats, 2-year terms', tone: 'muted' },
+        { id: 's', parent: 'l', label: 'Senate', detail: '100 seats, filibuster', tone: 'muted' },
+        { id: 'e', parent: 'c', label: 'President', detail: 'Signs or vetoes', tone: 'default' },
+        { id: 'j', parent: 'c', label: 'Courts', detail: 'Strike down what conflicts', tone: 'default' },
+      ],
+      takeaway: 'A bill needs two chambers and a signature, and can still be undone in court.',
+    },
+  },
+  {
+    spec: {
+      type: 'cycle',
+      title: 'The news-outrage loop',
+      centre: 'attention',
+      steps: [
+        { label: 'Provocative claim', detail: null, tone: 'accent' },
+        { label: 'Shares and replies', detail: null, tone: 'default' },
+        { label: 'Coverage of the fight', detail: null, tone: 'default' },
+        { label: 'More reach', detail: null, tone: 'default' },
+      ],
+      takeaway: 'Rebuttals feed the loop, because attention is the currency either way.',
+    },
+  },
+  {
+    spec: {
+      type: 'parts',
+      title: 'Seats after the 2024 UK election',
+      unit: 'seats',
+      parts: [
+        { label: 'Labour', value: 411, tone: 'accent' },
+        { label: 'Conservative', value: 121, tone: 'default' },
+        { label: 'Lib Dem', value: 72, tone: 'default' },
+        { label: 'Others', value: 46, tone: 'muted' },
+      ],
+      total_label: 'Total',
+      takeaway: 'About a third of the vote became almost two thirds of the seats.',
+    },
+  },
+  {
+    spec: {
+      type: 'balance',
+      title: 'Should the filibuster go?',
+      left: { label: 'Keep it', items: [{ label: 'Protects the minority', weight: 3 }, { label: 'Forces compromise', weight: 2 }] },
+      right: { label: 'End it', items: [{ label: 'Majority can govern', weight: 3 }, { label: 'Ends routine gridlock', weight: 2 }, { label: 'Rarely used as intended', weight: 1 }] },
+      takeaway: 'The case turns on whether you expect to be in the majority.',
+    },
+  },
+  {
+    spec: {
+      type: 'venn',
+      title: 'Federalism and devolution',
+      sets: [
+        { label: 'Federalism', tone: 'accent' },
+        { label: 'Devolution', tone: 'default' },
+      ],
+      regions: [
+        { sets: [0], items: ['Written guarantee', 'Courts referee'] },
+        { sets: [0, 1], items: ['Regional parliaments', 'Local taxes'] },
+        { sets: [1], items: ['Centre can revoke'] },
+      ],
+      takeaway: 'Both share power; only federalism makes the split hard to take back.',
+    },
+  },
+  {
+    spec: {
       type: 'stat',
       items: [
         { label: 'Revenue', value: '$184k', delta: '+12% vs Q2', tone: 'accent' },

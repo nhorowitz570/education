@@ -28,6 +28,8 @@ export const TASKS = {
   'tutor.beat': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 2500, escalate: 'reasoning' },
   'tutor.question': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 1800 },
   'tutor.reply': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 2200, escalate: 'reasoning' },
+  'tutor.chat': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 2600, escalate: 'reasoning' },
+  'today.brief': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 900 },
   'grade.deep': { tier: 'primary', effort: 'medium', verbosity: 'low', maxOutput: 1800, escalate: 'reasoning' },
   'practice.partner': { tier: 'primary', effort: 'none', verbosity: 'low', maxOutput: 700 },
   'practice.brief': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 1800 },

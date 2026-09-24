@@ -190,6 +190,63 @@ const spectrum = z.object({
   takeaway,
 });
 
+const cycle = z.object({
+  type: z.literal('cycle'),
+  title: z.string(),
+  steps: z.array(z.object({ label: z.string(), detail: z.string().nullable(), tone })).describe('3–6 stages that repeat.'),
+  centre: z.string().nullable().describe('What the loop is, shown in the middle (≤ 18 characters).'),
+  takeaway,
+});
+
+const tree = z.object({
+  type: z.literal('tree'),
+  title: z.string(),
+  nodes: z
+    .array(
+      z.object({
+        id: z.string(),
+        parent: z.string().nullable().describe('id of the parent; null only for the single root.'),
+        label: z.string(),
+        detail: z.string().nullable(),
+        tone,
+      }),
+    )
+    .describe('A hierarchy at most three levels deep, ≤ 12 nodes.'),
+  takeaway,
+});
+
+const parts = z.object({
+  type: z.literal('parts'),
+  title: z.string(),
+  unit: z.string(),
+  parts: z.array(z.object({ label: z.string(), value: z.number(), tone })).describe('2–6 parts of one whole.'),
+  total_label: z.string().nullable(),
+  takeaway,
+});
+
+const balance = z.object({
+  type: z.literal('balance'),
+  title: z.string(),
+  left: z.object({ label: z.string(), items: z.array(z.object({ label: z.string(), weight: z.number().describe('1 (minor) to 3 (major)') })) }),
+  right: z.object({ label: z.string(), items: z.array(z.object({ label: z.string(), weight: z.number().describe('1 (minor) to 3 (major)') })) }),
+  takeaway,
+});
+
+const venn = z.object({
+  type: z.literal('venn'),
+  title: z.string(),
+  sets: z.array(z.object({ label: z.string(), tone })).describe('Exactly 2 or 3 sets.'),
+  regions: z
+    .array(
+      z.object({
+        sets: z.array(z.number().int()).describe('Indexes of the sets this region belongs to, e.g. [0] or [0,1].'),
+        items: z.array(z.string()),
+      }),
+    )
+    .describe('What sits in each region; ≤ 3 short items per region.'),
+  takeaway,
+});
+
 export const vizSchema = z.discriminatedUnion('type', [
   bar,
   line,
@@ -203,6 +260,11 @@ export const vizSchema = z.discriminatedUnion('type', [
   statement,
   sim,
   spectrum,
+  cycle,
+  tree,
+  parts,
+  balance,
+  venn,
 ]);
 export type Viz = z.infer<typeof vizSchema>;
 export type VizType = Viz['type'];
@@ -219,6 +281,11 @@ export const VIZ_LABELS: Record<VizType, string> = {
   statement: 'statement',
   sim: 'model',
   spectrum: 'spectrum',
+  cycle: 'cycle',
+  tree: 'hierarchy',
+  parts: 'breakdown',
+  balance: 'balance',
+  venn: 'overlap',
 };
 
 // Read by the tutor: when each primitive is the right picture.
@@ -235,4 +302,10 @@ export const VIZ_GUIDE = `Visual primitives (use at most one per turn, only when
 - statement: a small financial statement with subtotal/total rows.
 - sim: an interactive model the learner can move (break-even, pricing, dilution). Formulas use only input ids, numbers, + - * / ^ ( ), min, max, round, abs. Keep ranges realistic.
 - spectrum: positions between two poles (strength of evidence, political positions); positions 0–1.
+- cycle: a loop that feeds itself (business cycle, feedback loops, the legislative calendar); 3–6 stages.
+- tree: a hierarchy or breakdown (branches of government, a taxonomy, a decision's sub-questions); one root, ≤ 3 levels.
+- parts: shares of one whole (a budget, seats in a parliament, where time goes); values in the same unit.
+- balance: arguments or forces weighed against each other; weights 1–3; the heavier side tips.
+- venn: what two or three things share and where they differ (e.g. federalism vs devolution).
+Match the picture to the subject: timelines, trees, cycles, spectra and venns suit history, politics and ideas; bars, lines and statements suit quantities.
 Labels ≤ 24 characters. Numbers must be internally consistent. Tones: accent = the focus, positive/negative = good/bad direction, muted = context.`;

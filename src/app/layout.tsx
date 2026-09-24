@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
-import { Atkinson_Hyperlegible, Instrument_Sans, Newsreader } from 'next/font/google';
+import { Atkinson_Hyperlegible, IBM_Plex_Mono, Instrument_Sans, Newsreader } from 'next/font/google';
 import '@fontsource/opendyslexic/400.css';
 import '@fontsource/opendyslexic/400-italic.css';
 import '@fontsource/opendyslexic/700.css';
@@ -12,6 +12,7 @@ import '@/styles/screens.css';
 import '@/styles/session.css';
 import '@/styles/viz.css';
 import '@/styles/insights.css';
+import '@/styles/tutor.css';
 import '@/styles/legacy.css';
 const sans = Instrument_Sans({
   subsets: ['latin'],
@@ -24,6 +25,13 @@ const serif = Newsreader({
   axes: ['opsz'],
   style: ['normal', 'italic'],
   variable: '--font-serif',
+  display: 'swap',
+});
+// Small labels only: dates, counts, the brief's number.
+const mono = IBM_Plex_Mono({
+  subsets: ['latin'],
+  weight: ['400', '500'],
+  variable: '--font-mono',
   display: 'swap',
 });
 // Only downloaded when chosen under You → Reading.
@@ -59,7 +67,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${sans.variable} ${serif.variable} ${hyper.variable}`}
+      className={`${sans.variable} ${serif.variable} ${mono.variable} ${hyper.variable}`}
       suppressHydrationWarning
     >
       <body>

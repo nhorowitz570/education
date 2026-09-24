@@ -1,25 +1,29 @@
 'use client';
-import { useRef, type ReactNode } from 'react';
-import { Markdown, Paragraph, splitParagraphs } from '@/components/ui';
+import { useEffect, useState } from 'react';
+import { inline, Paragraph, renderInline, shape, splitParagraphs } from '@/components/ui';
 import { Visual, VisualSkeleton } from '@/components/viz/visual';
 import { vizSchema } from '@/lib/viz/schema';
 import type { Block } from '@/lib/learning/run';
+import { sentences } from '@/lib/stream-text';
 
-// Renders tutor output. While streaming, finished paragraphs render normally
-// and the paragraph being written reveals new text chunk by chunk with a
-// short fade, so the page builds itself without a typing effect.
+// Renders tutor output. While it streams, text appears a finished sentence
+// (or list line) at a time, each fading in once as a unit. Holding back the
+// sentence still being written means a slow or bursty model never shows as
+// stutter, and nothing half-formed (a dangling "**", a broken word) is ever
+// on screen. Every block keeps the same element from its first sentence to
+// the end, so finishing the stream changes nothing visible: no remount, no
+// replayed entrance, no jump.
 export function Blocks({ blocks, streaming = false }: { blocks: Block[]; streaming?: boolean }) {
+  const live = useLive(streaming);
   return (
     <div className="blocks">
       {blocks.map((b, i) => {
-        const last = i === blocks.length - 1,
-          open = streaming && last;
-        if (b.type === 'text')
-          return open ? <StreamingText key={i} md={b.md || ''} /> : <Markdown key={i} src={b.md || ''} className="prose block" />;
+        const open = streaming && i === blocks.length - 1;
+        if (b.type === 'text') return <TextBlock key={i} md={b.md || ''} open={open} live={live} className="prose block" />;
         if (b.type === 'callout')
           return (
-            <div key={i} className={'callout block' + (open ? ' streaming' : '')}>
-              {open ? <StreamingText md={b.md || ''} /> : <Markdown src={b.md || ''} className="prose" />}
+            <div key={i} className="callout block">
+              <TextBlock md={b.md || ''} open={open} live={live} className="prose" />
             </div>
           );
         // A visual is drawn once its spec is complete and valid; until then a
@@ -39,84 +43,57 @@ export function Blocks({ blocks, streaming = false }: { blocks: Block[]; streami
   );
 }
 
-function StreamingText({ md }: { md: string }) {
+// True from the first streamed snapshot until a moment after the last, so
+// the final sentences finish fading before the text settles into plain
+// paragraphs (which the known-term decorations need).
+function useLive(streaming: boolean) {
+  const [live, setLive] = useState(streaming);
+  useEffect(() => {
+    if (streaming) return setLive(true);
+    if (!live) return;
+    const t = setTimeout(() => setLive(false), 700);
+    return () => clearTimeout(t);
+  }, [streaming, live]);
+  return live || streaming;
+}
+
+function TextBlock({ md, open, live, className }: { md: string; open: boolean; live: boolean; className: string }) {
   const paragraphs = splitParagraphs(md);
-  const done = paragraphs.slice(0, -1),
-    current = paragraphs.at(-1) || '';
   return (
-    <div className="prose block streaming">
-      {done.map((p, i) => (
-        <Paragraph key={i} src={p} />
-      ))}
-      {current && <FreshParagraph key={done.length} src={current} />}
+    <div className={className + (open ? ' streaming' : '')}>
+      {live
+        ? paragraphs.map((p, i) => <LiveParagraph key={i} src={p} writing={open && i === paragraphs.length - 1} />)
+        : paragraphs.map((p, i) => <Paragraph key={i} src={p} />)}
     </div>
   );
 }
 
-// Text written in the last ~700ms is wrapped in spans that fade in once.
-function FreshParagraph({ src }: { src: string }) {
-  const marks = useRef<{ at: number; t: number }[]>([]);
-  const visible = visibleLength(src);
-  const now = performance.now();
-  if (!marks.current.length) marks.current.push({ at: 0, t: now });
-  const lastMark = marks.current.at(-1);
-  if (!lastMark || visible > lastMark.at) marks.current.push({ at: visible, t: now });
-  // Older chunks settle into plain text.
-  while (marks.current.length > 1 && now - marks.current[1].t > 700) marks.current.shift();
-  const boundaries = marks.current.map((m) => m.at);
-  // The first boundary is where settled text ends; chunks after it are fresh.
-  const settled = marks.current.length > 1 ? boundaries[0] : visible;
-  return <p>{renderFresh(src, settled, boundaries)}</p>;
-}
-
-// Minimal inline markdown (bold, italic, code). Used both to measure the
-// visible text and to render it, so chunk boundaries always line up.
-type InlineNode = { text: string; style: 'b' | 'i' | 'code' | null };
-function parseInline(src: string): InlineNode[] {
-  const nodes: InlineNode[] = [];
-  const re = /(\*\*([^*]+)\*\*|\*([^*\n]+)\*|`([^`]+)`)/g;
-  let last = 0,
-    m: RegExpExecArray | null;
-  while ((m = re.exec(src))) {
-    if (m.index > last) nodes.push({ text: src.slice(last, m.index), style: null });
-    nodes.push(m[2] ? { text: m[2], style: 'b' } : m[3] ? { text: m[3], style: 'i' } : { text: m[4], style: 'code' });
-    last = m.index + m[0].length;
+// A paragraph being streamed: only its finished units are shown.
+function LiveParagraph({ src, writing }: { src: string; writing: boolean }) {
+  const { kind } = shape(src);
+  if (kind === 'ul' || kind === 'ol') {
+    // A list item is finished once the next line has begun.
+    const lines = src.split('\n');
+    const done = writing ? lines.slice(0, -1) : lines;
+    if (!done.length) return null;
+    const List = kind;
+    return (
+      <List>
+        {shape(done.join('\n')).items.map((parts, i) => (
+          <li key={i} className="unit">
+            {renderInline(parts, `l${i}-`)}
+          </li>
+        ))}
+      </List>
+    );
   }
-  // Unclosed markers mid-stream are hidden rather than shown as symbols.
-  if (last < src.length) nodes.push({ text: src.slice(last).replace(/\*\*|`|\*(?=\S)/g, ''), style: null });
-  return nodes;
-}
-function visibleLength(src: string) {
-  return parseInline(src).reduce((n, x) => n + x.text.length, 0);
-}
-function renderFresh(src: string, settled: number, boundaries: number[]): ReactNode[] {
-  const nodes = parseInline(src);
-  const out: ReactNode[] = [];
-  let offset = 0;
-  nodes.forEach((n, ni) => {
-    const start = offset,
-      end = offset + n.text.length;
-    offset = end;
-    const cuts = [start, ...boundaries.filter((b) => b > start && b < end && b >= settled), end];
-    if (settled > start && settled < end && !cuts.includes(settled)) cuts.splice(1, 0, settled);
-    cuts.sort((a, b) => a - b);
-    for (let i = 0; i < cuts.length - 1; i++) {
-      const a = cuts[i],
-        b = cuts[i + 1];
-      if (b <= a) continue;
-      const text = n.text.slice(a - start, b - start);
-      const styled =
-        n.style === 'b' ? <strong>{text}</strong> : n.style === 'i' ? <em>{text}</em> : n.style === 'code' ? <code>{text}</code> : text;
-      out.push(
-        a >= settled ? (
-          <span className="fresh" key={'f' + a}>
-            {styled}
-          </span>
-        ) : (
-          <span key={`s${ni}-${i}`}>{styled}</span>
-        ),
-      );
-    }
-  });
-  return out;
+  const text = kind === 'quote' ? src.split('\n').map((l) => l.replace(/^\s*>\s?/, '')).join(' ') : src.replace(/^#{1,6}\s+/gm, '');
+  const units = sentences(text, writing);
+  if (!units.length) return null;
+  const body = units.map((u, i) => (
+    <span key={i} className="unit">
+      {renderInline(inline(u), `u${i}-`)}
+    </span>
+  ));
+  return kind === 'quote' ? <blockquote>{body}</blockquote> : <p>{body}</p>;
 }

@@ -1183,3 +1183,237 @@
     transition: none !important;
   }
 }
+
+/* ---------- Cycle ---------- */
+.viz-cy-arc {
+  fill: none;
+  stroke: var(--line-3);
+  stroke-width: 1.5;
+}
+.viz-cy-head {
+  fill: none;
+  stroke: var(--text-3);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.viz-cy-node circle {
+  fill: var(--viz-bg);
+  stroke: var(--tc);
+  stroke-width: 2;
+}
+.viz-cy-node.tone-accent circle {
+  fill: var(--tc);
+}
+.viz-cy-node text {
+  font-size: 12.5px;
+  font-weight: 500;
+  fill: var(--text);
+}
+.viz-cy-centre {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13px;
+  fill: var(--text-2);
+}
+
+/* ---------- Tree ---------- */
+.viz-tree,
+.viz-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.viz-tree ul {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding-left: 18px;
+  border-left: 1px solid var(--line-2);
+  margin-left: 6px;
+}
+.viz-tree-node > ul > .viz-tree-node {
+  position: relative;
+}
+.viz-tree ul > .viz-tree-node::before {
+  content: '';
+  position: absolute;
+  left: -18px;
+  top: 17px;
+  width: 12px;
+  border-top: 1px solid var(--line-2);
+}
+.viz-tree-card {
+  display: grid;
+  gap: 3px;
+  padding: 9px 12px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+}
+.viz-tree-node[style*='--d: 0'] > .viz-tree-card,
+.viz-tree > .viz-tree-node > .viz-tree-card {
+  background: var(--surface-2);
+}
+.viz-tree-card b {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.viz-tree-card p {
+  margin: 0 0 0 15px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-2);
+}
+
+/* ---------- Parts ---------- */
+.viz-parts-bar {
+  display: flex;
+  gap: 3px;
+  height: 14px;
+}
+.viz-parts-bar i {
+  flex-basis: 0;
+  min-width: 4px;
+  border-radius: 4px;
+  background: var(--tc);
+}
+.viz-parts-bar i.tone-default {
+  background: color-mix(in srgb, var(--text) 30%, transparent);
+}
+.viz-parts-legend {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.viz-parts-legend li {
+  display: grid;
+  grid-template-columns: 7px minmax(0, 1fr) auto 44px;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+}
+.viz-parts-legend span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.viz-parts-legend em {
+  font-style: normal;
+  text-align: right;
+  color: var(--text-3);
+}
+.viz-parts-total {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text-2);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ---------- Balance ---------- */
+.viz-bal-beam {
+  position: relative;
+  height: 34px;
+  margin: 4px 12% 10px;
+}
+.viz-bal-bar {
+  position: absolute;
+  inset: 12px 0 auto;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--text-2);
+  transform: rotate(var(--tilt));
+  transform-origin: 50% 50%;
+}
+.viz[data-anim] .viz-bal-bar {
+  animation: viz-tilt 900ms var(--ease) both 200ms;
+}
+@keyframes viz-tilt { from { transform: rotate(0deg); } }
+.viz-bal-pivot {
+  position: absolute;
+  left: calc(50% - 9px);
+  top: 16px;
+  width: 0;
+  height: 0;
+  border-left: 9px solid transparent;
+  border-right: 9px solid transparent;
+  border-bottom: 14px solid var(--text-3);
+}
+.viz-bal-pans {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.viz-bal-head {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.viz-bal-pan ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.viz-bal-pan li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--text-2);
+}
+.viz-bal-w {
+  display: inline-flex;
+  gap: 3px;
+  flex: none;
+  padding-top: 5px;
+}
+.viz-bal-w i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--line-2);
+}
+.viz-bal-w i[data-on] {
+  background: var(--text);
+}
+
+/* ---------- Venn ---------- */
+.viz-venn-set {
+  fill: color-mix(in srgb, var(--tc) 14%, transparent);
+  stroke: color-mix(in srgb, var(--tc) 70%, transparent);
+  stroke-width: 1.25;
+  mix-blend-mode: normal;
+}
+.viz-venn-set.tone-default {
+  fill: color-mix(in srgb, var(--text) 6%, transparent);
+  stroke: var(--line-3);
+}
+.viz[data-anim] .viz-venn-set {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: viz-pop 560ms var(--ease) both calc(var(--i) * 90ms);
+}
+.viz-venn-label {
+  font-size: 13px;
+  font-weight: 600;
+  fill: var(--text);
+}
+.viz-venn-items {
+  font-size: 12px;
+  fill: var(--text-2);
+}
+.viz-venn-items.is-shared {
+  fill: var(--text);
+  font-weight: 500;
+}

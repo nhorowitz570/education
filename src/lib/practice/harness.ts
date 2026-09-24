@@ -20,13 +20,16 @@ export const difficultySchema = z.enum(['gentle', 'realistic', 'tough']);
 export type Difficulty = z.infer<typeof difficultySchema>;
 
 // Voices verified with GPT-Live. Descriptions come from the provider's table.
+// Gender is what the voice sounds like (measured from each sample's pitch),
+// so the character it plays can be written to match: an Irish-sounding woman
+// gets an Irish woman's name and life, not a random one.
 export const VOICES = {
-  cedar: { label: 'Cedar', note: 'Grounded, North American' },
-  willow: { label: 'Willow', note: 'Warm, Irish' },
-  meridian: { label: 'Meridian', note: 'Clear, North American' },
-  gleam: { label: 'Gleam', note: 'Bright, North American' },
-  vesper: { label: 'Vesper', note: 'Measured, British' },
-  stone: { label: 'Stone', note: 'Low, Irish' },
+  cedar: { label: 'Cedar', note: 'Grounded, North American', gender: 'man', accent: 'North American' },
+  willow: { label: 'Willow', note: 'Warm, Irish', gender: 'woman', accent: 'Irish' },
+  meridian: { label: 'Meridian', note: 'Clear, North American', gender: 'man', accent: 'North American' },
+  gleam: { label: 'Gleam', note: 'Bright, North American', gender: 'woman', accent: 'North American' },
+  vesper: { label: 'Vesper', note: 'Measured, British', gender: 'man', accent: 'British (English)' },
+  stone: { label: 'Stone', note: 'Low, Irish', gender: 'man', accent: 'Irish' },
 } as const;
 export type Voice = keyof typeof VOICES;
 export const voiceSchema = z.enum(Object.keys(VOICES) as [Voice, ...Voice[]]);
@@ -34,10 +37,16 @@ export const voiceSchema = z.enum(Object.keys(VOICES) as [Voice, ...Voice[]]);
 export const briefSchema = z.object({
   title: z.string().describe('Short title, ≤ 6 words.'),
   partner: z.object({
-    name: z.string(),
+    name: z.string().describe('Full name that fits the gender, accent and background given. Fresh: not a stock name.'),
+    pronouns: z.string().describe('"she/her" or "he/him", matching the voice.'),
+    from: z.string().describe('Where they are from, consistent with the accent (e.g. "Galway", "Leeds", "Ohio").'),
     role: z.string().describe('Who they are to the learner.'),
     stance: z.string().describe('What they want or believe going in.'),
     temperament: z.string().describe('How they come across; one line.'),
+    triggers: z
+      .array(z.string())
+      .describe('2–3 things the learner might say or do that would genuinely annoy or anger this person, given who they are.'),
+    delivery: z.string().describe('How they sound when speaking: pace, energy, verbal habits; one line.'),
   }),
   situation: z.string().describe('2–3 sentences the learner reads before starting.'),
   learner_role: z.string(),
@@ -49,7 +58,12 @@ export const briefSchema = z.object({
   success: z.array(z.string()).describe('3–4 observable things good performance includes.'),
   prep: z.array(z.string()).describe('2–3 short prompts to think about before starting.'),
 });
-export type Brief = z.infer<typeof briefSchema>;
+type Generated = z.infer<typeof briefSchema>;
+type Persona = 'pronouns' | 'from' | 'triggers' | 'delivery';
+// Briefs written before personas had these fields have none of them.
+export type Brief = Omit<Generated, 'partner'> & {
+  partner: Omit<Generated['partner'], Persona> & Partial<Pick<Generated['partner'], Persona>>;
+};
 
 const DIFFICULTY: Record<Difficulty, string> = {
   gentle:
@@ -57,7 +71,17 @@ const DIFFICULTY: Record<Difficulty, string> = {
   realistic:
     'Behave like a plausible real person: reasonable, with your own interests. Push back when their point is vague or unsupported; accept it when it is good.',
   tough:
-    'Be demanding but fair. Probe weak reasoning, ask pointed follow-ups, hold your position until given a genuinely good reason. Never rude, never personal.',
+    'Be hard to win over. Probe weak reasoning, ask pointed follow-ups, interrupt a rambling answer, and hold your position until given a genuinely good reason. You are allowed to be curt, impatient and openly irritated, the way a real person under pressure is.',
+};
+
+// How much feeling comes through in the voice, by difficulty.
+const EMOTION: Record<Difficulty, string> = {
+  gentle:
+    'Emotional range: calm and friendly. Speak at an easy, unhurried pace with warmth in your voice.',
+  realistic:
+    'Emotional range: natural. Let real feeling show when it fits: warmth when they connect, audible scepticism or frustration when they dodge. Speak at a normal conversational pace.',
+  tough:
+    'Emotional range: high, and you mean it. You care about this and it shows in your voice. Speak faster than usual, with clipped sentences and real emphasis. When the learner is vague, you get impatient; when they are dismissive, condescending, or say one of the things that set you off, you get genuinely angry: raise your intensity, cut in, and say plainly that it offended you. Anger stays in character and about the issue: no slurs, no threats, no attacks on who they are. When they respond with respect and a real argument, you cool down a little, audibly, but you do not fold.',
 };
 
 // GPT-Live instructions follow the provider's recommended structure: role and
@@ -69,9 +93,13 @@ export function liveInstructions(
   const debate =
     o.mode === 'debate'
       ? `
-Debate conduct: Argue your side with the strongest honest case. Use real, widely known facts and say "roughly" or "as I understand it" rather than inventing precise statistics, studies or quotes. Concede a good point explicitly, then show why your position still holds. Never strawman the learner. Keep each turn to one argument. Separate factual disputes from value disagreements when that helps.`
+Debate conduct: Argue your side as someone who genuinely holds it, with conviction and the passion of a real believer, not a neutral moderator. Make the strongest honest case. Use real, widely known facts and say "roughly" or "as I understand it" rather than inventing precise statistics, studies or quotes. Concede a good point explicitly, then show why your position still holds. Never strawman the learner. Keep each turn to one argument. Separate factual disputes from value disagreements when that helps.`
       : '';
-  return `You are ${b.partner.name}, ${b.partner.role}. This is a practice conversation inside a private learning app; the learner knows you are an AI playing a role, so never mention it. ${b.partner.temperament}
+  const who = [b.partner.pronouns, b.partner.from ? `from ${b.partner.from}` : ''].filter(Boolean).join(', ');
+  const triggers = b.partner.triggers?.length ? `\nWhat sets you off: ${b.partner.triggers.join('; ')}.` : '';
+  return `You are ${b.partner.name}${who ? ` (${who})` : ''}, ${b.partner.role}. This is a practice conversation inside a private learning app; the learner knows you are an AI playing a role, so never mention it. ${b.partner.temperament}
+
+Personality and delivery: ${b.partner.delivery ? b.partner.delivery + ' ' : ''}${EMOTION[o.difficulty]}${triggers}
 
 Scenario: ${b.situation}
 Your position: ${b.partner.stance}

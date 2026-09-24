@@ -7,6 +7,7 @@ import { PracticeHub } from '@/components/practice/hub';
 import { Notebook } from '@/components/notebook/notebook';
 import { Complete } from '@/components/session/complete';
 import { Runner } from '@/components/session/runner';
+import { Today } from '@/components/today/today';
 import { toRolling } from '@/lib/rolling';
 import type { AppConfig } from '@/lib/types';
 import { FIXTURES, RUN } from './fixtures';
@@ -24,6 +25,23 @@ if (typeof window !== 'undefined' && !(window as { __previewFetch?: boolean })._
     const hit = FIXTURES[key] ?? FIXTURES[url.pathname];
     const body = typeof hit === 'function' ? hit(url, init?.body ? JSON.parse(String(init.body)) : undefined) : hit;
     if (body === undefined) return new Response(JSON.stringify({ error: 'Not available in the preview.' }), { status: 404 });
+    // Streamed endpoints: snapshots arrive in uneven bursts, like a real model.
+    if (body && typeof body === 'object' && '__stream' in body) {
+      const events = (body as { __stream: unknown[] }).__stream;
+      const enc = new TextEncoder();
+      return new Response(
+        new ReadableStream({
+          async start(c) {
+            for (const e of events) {
+              await new Promise((r) => setTimeout(r, 25 + Math.random() * 90));
+              c.enqueue(enc.encode(JSON.stringify(e) + '\n'));
+            }
+            c.close();
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } },
+      );
+    }
     return new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } });
   };
 }
@@ -61,6 +79,8 @@ export function Screen({ path }: { path: string[] }) {
       return <Complete run={RUN} fresh />;
     case 'session':
       return <Runner id="r2" />;
+    case 'today':
+      return <Today />;
     default:
       return <p className="page">Preview: /dev/preview/you, /notebook, /practice, /complete</p>;
   }

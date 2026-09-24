@@ -61,6 +61,8 @@ export function useRun(id: string) {
   const touch = useCallback(() => {
     setClock((c) => {
       const now = Date.now();
+      // Before the run has loaded there is no clock to add to yet.
+      if (!c.at) return { elapsed: c.elapsed, at: now };
       return { elapsed: c.elapsed + Math.min(now - c.at, IDLE) / 60000, at: now };
     });
   }, []);
@@ -213,6 +215,7 @@ export function useRun(id: string) {
 
   const ask = useCallback(
     async (beatId: string, intent: AskIntent, prompt = '', quote?: string) => {
+      touch();
       setAsking((a) => ({ ...a, [beatId]: { prompt, intent, quote, partial: [] } }));
       try {
         const done = await stream<Ask>(
@@ -243,7 +246,7 @@ export function useRun(id: string) {
         setAsking((a) => ({ ...a, [beatId]: { prompt, intent, quote, partial: [], error: (e as Error).message } }));
       }
     },
-    [id],
+    [id, touch],
   );
   const dismissAsk = useCallback((beatId: string) => {
     setAsking((a) => {

@@ -1,31 +1,32 @@
-/* Design tokens. Dark is the reference; light is tuned separately rather than
-   inverted. Emphasis comes from luminance and one hue per subject, not from
-   borders or boxes. */
+/* Design tokens. "Darkroom": near-black surfaces, bone-white type, and one
+   warm safelight (--accent) used about once per screen. Dark is the
+   reference; light is tuned separately rather than inverted. Emphasis comes
+   from luminance and one hue per subject, not from borders, boxes or glow. */
 :root {
-  --bg: #09090a;
+  --bg: #0a0a0b;
   --raised: #111113;
-  --surface: #161618;
-  --surface-2: #1d1d20;
-  --surface-3: #26262a;
-  --line: rgba(242, 241, 237, 0.07);
-  --line-2: rgba(242, 241, 237, 0.12);
-  --line-3: rgba(242, 241, 237, 0.2);
-  --text: #f2f1ed;
+  --surface: #151517;
+  --surface-2: #1b1b1e;
+  --surface-3: #242428;
+  --line: rgba(237, 235, 230, 0.07);
+  --line-2: rgba(237, 235, 230, 0.12);
+  --line-3: rgba(237, 235, 230, 0.2);
+  --text: #edebe6;
   --text-2: #a4a3a8;
-  --text-3: #6d6c72;
-  --text-4: #48484d;
-  --accent: #f2f1ed;
-  --on-accent: #0b0b0c;
-  --glow: rgba(242, 241, 237, 0.5);
+  --text-3: #75747a;
+  --text-4: #4a4a4f;
+  --accent: #f2c6a6;
+  --on-accent: #1a120c;
+  --glow: rgba(242, 198, 166, 0.14);
 
-  --finance: #5fe0a4;
-  --communication: #f3b862;
-  --judgment: #a898ff;
-  --review: #7cc4ff;
-  --life: #ff8f70;
-  --positive: #5fe0a4;
-  --negative: #ff7a66;
-  --caution: #f3b862;
+  --finance: #7fd8ae;
+  --communication: #f0be79;
+  --judgment: #b2a6f5;
+  --review: #8cc8f5;
+  --life: #f4957a;
+  --positive: #7fd8ae;
+  --negative: #ff8a75;
+  --caution: #f0be79;
   --hatch: rgba(242, 241, 237, 0.1);
 
   --shadow-sheet: 0 -1px 0 var(--line-2), 0 -24px 80px rgba(0, 0, 0, 0.55);
@@ -33,6 +34,7 @@
   --inner: inset 0 1px 0 rgba(242, 241, 237, 0.05);
 
   --stack-sans: var(--font-sans), ui-sans-serif, -apple-system, system-ui, sans-serif;
+  --mono: var(--font-mono), ui-monospace, 'SF Mono', Menlo, monospace;
   --stack-serif: var(--font-serif), ui-serif, Georgia, serif;
   --stack-hyper: var(--font-hyper), var(--font-sans), ui-sans-serif, system-ui, sans-serif;
   --stack-dyslexic: 'OpenDyslexic', var(--font-sans), ui-sans-serif, system-ui, sans-serif;

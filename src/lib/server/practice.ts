@@ -28,6 +28,7 @@ import {
   type Mode,
   type PracticeFeedback,
   type Voice,
+  VOICES,
 } from '@/lib/practice/harness';
 
 export type PracticeState = {
@@ -57,7 +58,6 @@ export type PracticeView = {
 };
 
 const db = () => adminClient();
-const NAMES = ['Priya', 'Marcus', 'Elena', 'Tomás', 'Aisha', 'Daniel', 'Hana', 'Owen', 'Lucía', 'Kwame', 'Sofia', 'Ravi', 'Grace', 'Mateo', 'Noor', 'Ben', 'Ingrid', 'Andre', 'Mei', 'Callum', 'Yara', 'Felix', 'Rosa', 'Idris'];
 
 async function load(userId: string, id: string) {
   const { data } = await db()
@@ -160,7 +160,9 @@ export async function createPractice(
   const recentNames = (recentRuns || [])
     .map((r) => (r.context as { practice?: PracticeState }).practice?.brief.partner.name.split(' ')[0])
     .filter(Boolean);
-  const name = NAMES.filter((n) => !recentNames.includes(n))[Math.floor(Math.random() * NAMES.length) % Math.max(1, NAMES.length - recentNames.length)] || 'Jordan';
+  // The character is whoever this voice sounds like: gender and accent come
+  // from the voice, and the name and background are written to fit them.
+  const sound = VOICES[input.voice];
   const { data: brief } = await generate({
     task: 'practice.brief',
     userId,
@@ -175,7 +177,10 @@ export async function createPractice(
       `What the learner wants to practise: ${input.topic}`,
       input.side ? `The learner will argue: ${input.side}. The partner argues the strongest opposing case.` : '',
       `Difficulty: ${input.difficulty}. Length: about ${input.minutes} minutes.`,
-      `Call the partner ${name} (add a surname if natural). Avoid these recently used names: ${[...new Set(recentNames)].join(', ') || 'none'}.`,
+      `The partner is voiced by a ${sound.gender} with a ${sound.accent} accent. Write them as a ${sound.gender} whose name, hometown and background plausibly go with that accent (an Irish accent means an Irish name and an Irish life, or clearly Irish roots), and whose role fits the scenario. Give a first name and surname that fit, not a stock AI name (no Priya, Marcus, Elena, Maya, Alex, Jordan, Sarah). Avoid these recently used first names: ${[...new Set(recentNames)].join(', ') || 'none'}.`,
+      input.difficulty === 'tough'
+        ? 'Tough mode: make this someone with strong feelings about the topic, with specific triggers the learner could plausibly hit.'
+        : '',
     ]
       .filter(Boolean)
       .join('\n'),

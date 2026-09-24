@@ -21,6 +21,8 @@ import {
   toggleSound,
 } from './sheets';
 import { VOICES } from '@/lib/practice/harness';
+import { WRITING } from '@/lib/learning/voice';
+import { WritingSheet } from './writing';
 import { DAY_NAMES, isRolling, slots } from '@/lib/rolling';
 import type { Memory, Origin } from '@/lib/server/memory';
 import type { Style } from '@/lib/learning/style';
@@ -32,7 +34,7 @@ const GROUPS: { title: string; kinds: Memory['kind'][] }[] = [
   { title: 'Moments worth remembering', kinds: ['episode'] },
 ];
 type Usage = { total: number; byTier: Record<string, { calls: number; usd: number }>; cacheRate: number; models: Record<string, string> };
-type Open = 'memory' | 'style' | 'voice' | 'rhythm' | 'plan' | 'notify' | 'reading' | 'game' | 'signin' | 'usage' | 'data' | null;
+type Open = 'memory' | 'style' | 'writing' | 'voice' | 'rhythm' | 'plan' | 'notify' | 'reading' | 'game' | 'signin' | 'usage' | 'data' | null;
 
 // When the learner last looked at their memory. Anything inferred after that
 // is new to them. First visits count only the last day, so a long history
@@ -123,6 +125,13 @@ export function You() {
           detail="How it explains, learned from what you do."
           value={style === null && memories === null ? '…' : learned ? 'Learning' : 'Not yet'}
           onClick={() => setOpen('style')}
+        />
+        <IndexRow
+          icon="text"
+          title="Writing style"
+          detail="How it talks to you: tone, length, and whether it swears."
+          value={WRITING[prefs.writing].label}
+          onClick={() => setOpen('writing')}
         />
         <IndexRow
           icon="practice"
@@ -254,6 +263,7 @@ export function You() {
       )}
       {open === 'style' && <StyleSheet style={style} onClose={close} />}
       {open === 'voice' && <VoiceSheet onClose={close} />}
+      {open === 'writing' && <WritingSheet onClose={close} />}
       {open === 'rhythm' && rolling && <RhythmSheet plan={rolling} onClose={close} />}
       {open === 'plan' && <PlanSheet onClose={close} />}
       {open === 'notify' && <NotificationsSheet onClose={close} />}

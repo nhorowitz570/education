@@ -4,6 +4,7 @@ import { VIZ_LABELS, type Viz, type VizType } from '@/lib/viz/schema';
 import { BarChart, LineChart, Statement, Stats, Waterfall } from './charts';
 import { Compare, Concepts, Flow, Matrix, Spectrum, Timeline } from './diagrams';
 import { Sim } from './sim';
+import { Balance, Cycle, Parts, Tree, Venn } from './shapes';
 import { str } from './util';
 
 // A renderer bug must never take the lesson down with it.
@@ -43,6 +44,16 @@ function Graphic({ spec, label }: { spec: Viz; label: string }) {
       return <Sim spec={spec} label={label} />;
     case 'spectrum':
       return <Spectrum spec={spec} label={label} />;
+    case 'cycle':
+      return <Cycle spec={spec} label={label} />;
+    case 'tree':
+      return <Tree spec={spec} label={label} />;
+    case 'parts':
+      return <Parts spec={spec} label={label} />;
+    case 'balance':
+      return <Balance spec={spec} label={label} />;
+    case 'venn':
+      return <Venn spec={spec} label={label} />;
     default:
       return null;
   }
@@ -81,6 +92,11 @@ const SHAPE: Record<VizType, 'rows' | 'plot' | 'tiles' | 'track' | 'square' | 'f
   stat: 'figures',
   sim: 'track',
   spectrum: 'track',
+  cycle: 'square',
+  tree: 'tiles',
+  parts: 'track',
+  balance: 'rows',
+  venn: 'square',
 };
 
 export function VisualSkeleton({ type }: { type?: string }) {

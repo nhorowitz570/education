@@ -29,6 +29,30 @@ describe('practice harness', () => {
     expect(prompt).toContain('Debate conduct');
     expect(prompt).toContain('about 8 seconds');
   });
+  it('lets tough partners get heated and speak fast, gentle ones stay calm', () => {
+    const persona: Brief = {
+      ...brief,
+      partner: { ...brief.partner, pronouns: 'she/her', from: 'Cork', triggers: ['being talked down to'], delivery: 'Quick and dry.' },
+    };
+    const tough = liveInstructions(persona, { mode: 'debate', difficulty: 'tough', minutes: 5, pause: 4 });
+    expect(tough).toContain('(she/her, from Cork)');
+    expect(tough).toContain('Speak faster');
+    expect(tough).toContain('genuinely angry');
+    expect(tough).toContain('being talked down to');
+    expect(tough).toContain('no slurs');
+    const gentle = liveInstructions(persona, { mode: 'negotiation', difficulty: 'gentle', minutes: 5, pause: 4 });
+    expect(gentle).toContain('unhurried');
+    expect(gentle).not.toContain('genuinely angry');
+  });
+  it('gives every voice a gender and accent to write the character around', async () => {
+    const { VOICES } = await import('@/lib/practice/harness');
+    for (const v of Object.values(VOICES)) {
+      expect(['man', 'woman']).toContain(v.gender);
+      expect(v.accent.length).toBeGreaterThan(2);
+    }
+    expect(VOICES.willow.gender).toBe('woman');
+    expect(VOICES.willow.accent).toBe('Irish');
+  });
   it('opens with the brief line', () => {
     expect(openingCommentary(brief)).toContain(brief.opening);
   });

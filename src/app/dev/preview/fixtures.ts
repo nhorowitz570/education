@@ -203,7 +203,7 @@ const LESSON: RunView = {
       minutes: 2,
       status: 'done',
       concept: 'cash-cycle',
-      blocks: [{ type: 'text', md: 'Maya’s studio just landed its biggest client. The work starts Monday, the invoice goes out in six weeks, and the client pays on 60-day terms.' }],
+      blocks: [{ type: 'text', md: 'Inès’s studio just landed its biggest client. The work starts Monday, the invoice goes out in six weeks, and the client pays on 60-day terms.' }],
     },
     {
       id: 'c2',
@@ -215,7 +215,7 @@ const LESSON: RunView = {
       blocks: [
         {
           type: 'text',
-          md: 'You already know that **profit** and cash drift apart. The cash cycle is how long that drift lasts: the days between paying for the work and being paid for it.\n\nFor Maya, that’s about fourteen weeks of salaries paid before a dollar arrives. That gap is what **working capital** has to cover, and why fast-growing studios often feel poorer, not richer.',
+          md: 'You already know that **profit** and cash drift apart. The cash cycle is how long that drift lasts: the days between paying for the work and being paid for it.\n\nFor Inès, that’s about fourteen weeks of salaries paid before a dollar arrives. That gap is what **working capital** has to cover, and why fast-growing studios often feel poorer, not richer.',
         },
         { type: 'callout', md: 'The longer the cycle, the more cash growth eats.' },
       ],
@@ -224,7 +224,94 @@ const LESSON: RunView = {
 };
 
 type Fixture = unknown | ((url: URL, body?: Record<string, unknown>) => unknown);
+const iso = (d: number) => new Date(now + d * 86400000).toISOString().slice(0, 10);
+const TODAY = {
+  today: {
+    phase: 'learning-day',
+    greeting: 'Good morning',
+    headline: 'Working capital: why growing can drain cash',
+    why: 'Finance · the timing gap between paying and being paid.',
+    primary: { kind: 'session', label: 'Begin', detail: '', sessionId: 's1', minutes: 40, track: 'finance' },
+    secondary: [
+      { kind: 'session', label: 'Only 20 minutes', detail: '', sessionId: 's1', minutes: 20 },
+      { kind: 'review', label: 'Review 3 ideas', detail: 'About 8 minutes, before they fade.', minutes: 8 },
+      { kind: 'practice', label: 'Practise out loud', detail: 'A debate, a hard conversation or a pitch, by voice.' },
+    ],
+    week: {
+      index: 4,
+      total: 26,
+      done: 3,
+      planned: 5,
+      days: [
+        { date: iso(-3), weekday: 'Mon', status: 'done', track: 'finance', title: 'Profit vs cash' },
+        { date: iso(-2), weekday: 'Tue', status: 'done', track: 'communication', title: 'Framing a request' },
+        { date: iso(-1), weekday: 'Wed', status: 'done', track: 'finance', title: 'Margins' },
+        { date: iso(0), weekday: 'Thu', status: 'today', track: 'finance', title: 'Working capital' },
+        { date: iso(1), weekday: 'Fri', status: 'planned', track: 'judgment', title: 'Base rates' },
+        { date: iso(2), weekday: 'Sat', status: 'rest' },
+        { date: iso(3), weekday: 'Sun', status: 'rest' },
+      ],
+    },
+    focus: { title: 'Working capital: why growing can drain cash', subject: 'finance', objective: 'Explain why growth can drain cash.', evidence: 'A one-page cash forecast for a small business.', date: iso(0), minutes: 40 },
+    due: { count: 3, minutes: 8 },
+    milestone: { title: 'Read a P&L cold', date: iso(40), days: 40 },
+    startsIn: null,
+    next: null,
+  },
+  date: iso(0),
+  preview: [],
+  insight: null,
+  exploring: null,
+  recap: null,
+  memories: { fresh: 0 },
+};
+
+const BRIEF = {
+  brief: {
+    title: 'Today we fix the timing problem',
+    note: 'Yesterday you nailed why cash and profit drift apart, then froze the moment payment timing came up. Today goes straight at that: working capital, and why a café that grows fast can run out of money.',
+    item_notes: ['the bit you froze on', null, null],
+  },
+};
+
+// A tutor reply delivered as a stream of snapshots, a few words at a time,
+// so the preview shows exactly how streaming looks.
+const REPLY =
+  'Because the money goes out before it comes in. You pay for beans, milk and staff this week, but a catering client on 30-day terms pays you next month.\n\nThe faster you grow, the bigger that gap gets: more orders means more cash tied up waiting to arrive. That is **working capital**, and it is why growing businesses often feel poorer, not richer.';
+const TUTOR_STREAM = {
+  __stream: Array.from({ length: Math.ceil(REPLY.length / 9) }, (_, i) => ({ t: 'snap', data: { blocks: [{ type: 'text', md: REPLY.slice(0, (i + 1) * 9) }] } })).concat([
+    {
+      t: 'done',
+      data: {
+        blocks: [
+          { type: 'text', md: REPLY },
+          {
+            type: 'visual',
+            visual: {
+              type: 'cycle',
+              title: 'The cash gap in a growing café',
+              centre: 'cash tied up',
+              steps: [
+                { label: 'Buy stock', detail: null, tone: 'default' },
+                { label: 'Serve the order', detail: null, tone: 'default' },
+                { label: 'Invoice, wait 30 days', detail: null, tone: 'accent' },
+                { label: 'Get paid', detail: null, tone: 'positive' },
+              ],
+              takeaway: 'Growth widens the gap between the first step and the last.',
+            },
+          },
+        ],
+        suggestions: ['How do I fix the gap?', 'Quiz me on this'],
+        actions: [],
+      },
+    } as never,
+  ]),
+};
+
 export const FIXTURES: Record<string, Fixture> = {
+  'GET /api/today': TODAY,
+  'POST /api/today/brief': BRIEF,
+  'POST /api/tutor': TUTOR_STREAM,
   'GET /api/notebook': (url: URL) => (url.searchParams.get('terms') ? { terms: TERMS } : NOTEBOOK),
   'GET /api/memory': {
     memories: [

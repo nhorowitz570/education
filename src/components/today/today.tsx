@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState, startTransition, ViewTransition } from 'react';
 import { api } from '@/lib/client/api';
 import { useCached } from '@/lib/client/cached';
@@ -11,6 +11,9 @@ import type { RunView } from '@/lib/learning/run';
 import { primeRun } from '@/components/session/use-run';
 import type { Progress } from '@/lib/gamify';
 import { ProgressStrip, useProgress } from '@/components/progress/progress';
+import { Aperture } from '@/components/tutor/aperture';
+import { TutorChat } from '@/components/tutor/chat';
+import type { Brief } from '@/lib/tutor';
 
 type Recap = { minutes: number; sessions: number; answers: number; ideas: string[]; more: number };
 type Payload = {
@@ -23,49 +26,62 @@ type Payload = {
   memories?: { fresh: number };
 };
 
-const STEP: Record<string, string> = {
-  recall: 'Warm-up',
-  situation: 'Situation',
-  orient: 'Big picture',
-  worked: 'Worked example',
-  explain: 'Idea',
-  check: 'Decide',
-  attempt: 'Explain it',
-  transfer: 'Transfer',
-  produce: 'Evidence',
-  roleplay: 'Role-play',
-  break: 'Break',
-  recap: 'Wrap-up',
-};
 const weekday = (d: string) => new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long' });
 
-// A one-line hook for the session, fetched after Today paints and kept for
-// the day, so it costs one small call per session at most.
-function useHook(owner: string, sessionId: string | undefined, date: string | undefined) {
-  const [hook, setHook] = useState('');
+type AgendaItem = { label: string; kind: string; minutes: number | null; track: string | null; action?: Action };
+
+// What the day holds, in order: the session, then anything else worth doing.
+function agendaOf(t: TodayView): AgendaItem[] {
+  const out: AgendaItem[] = [];
+  const p = t.primary;
+  if (p && p.kind !== 'explore' && p.kind !== 'practice')
+    out.push({
+      label: p.kind === 'review' ? p.label : t.focus?.title || t.headline,
+      kind: p.kind,
+      minutes: p.minutes ?? t.focus?.minutes ?? null,
+      track: p.track || t.focus?.subject || null,
+      action: p,
+    });
+  for (const s of t.secondary) {
+    if (out.length >= 4) break;
+    if (s.kind === 'review' && p?.kind !== 'review') out.push({ label: s.label, kind: 'review', minutes: s.minutes ?? null, track: 'review', action: s });
+    if (s.kind === 'rehearsal') out.push({ label: s.label, kind: 'rehearsal', minutes: 30, track: 'judgment', action: s });
+    if (s.kind === 'practice') out.push({ label: 'Practise it out loud', kind: 'practice', minutes: null, track: 'communication', action: s });
+  }
+  return out;
+}
+
+// The morning brief: written once a day from what the learner actually did,
+// kept by the browser for the day so Today never waits on it twice.
+function useBrief(owner: string, date: string | undefined, agenda: AgendaItem[], enabled: boolean) {
+  const [brief, setBrief] = useState<Brief | null>(null);
+  const [failed, setFailed] = useState(false);
+  const items = agenda.map(({ label, kind, minutes, track }) => ({ label, kind, minutes, track }));
+  const sig = JSON.stringify(items);
   useEffect(() => {
-    setHook('');
-    if (!sessionId || !date) return;
-    const key = `fw:${owner}:hook:${sessionId}:${date}`;
+    setBrief(null);
+    setFailed(false);
+    if (!date || !enabled) return;
+    const key = `fw:${owner}:brief:${date}:${sig.length}:${sig.slice(0, 80)}`;
     try {
       const cached = localStorage.getItem(key);
-      if (cached !== null) return setHook(cached);
+      if (cached) return setBrief(JSON.parse(cached) as Brief);
     } catch {}
     let alive = true;
-    void api<{ hook: string }>(`/api/today/hook?session=${encodeURIComponent(sessionId)}`)
-      .then(({ hook }) => {
+    void api<{ brief: Brief }>('/api/today/brief', { date, agenda: JSON.parse(sig) })
+      .then(({ brief }) => {
         if (!alive) return;
-        setHook(hook);
+        setBrief(brief);
         try {
-          localStorage.setItem(key, hook);
+          localStorage.setItem(key, JSON.stringify(brief));
         } catch {}
       })
-      .catch(() => {});
+      .catch(() => alive && setFailed(true));
     return () => {
       alive = false;
     };
-  }, [owner, sessionId, date]);
-  return hook;
+  }, [owner, date, sig, enabled]);
+  return { brief, loading: enabled && !brief && !failed };
 }
 
 export function Today() {
@@ -76,8 +92,8 @@ export function Today() {
   const [busy, setBusy] = useState<string | null>(null),
     [startError, setStartError] = useState('');
   const t = data?.today;
-  const hookFor = t?.primary && (t.primary.kind === 'session' || t.primary.kind === 'return') ? t.primary.sessionId : undefined;
-  const hook = useHook(user.id, hookFor, data?.date);
+  const agenda = t ? agendaOf(t) : [];
+  const briefing = useBrief(user.id, data?.date, agenda, !!t && t.phase !== 'no-plan' && t.phase !== 'done-today');
 
   // New memories from recent sessions: said once, quietly, with a way to look.
   const fresh = data?.memories?.fresh || 0;
@@ -119,6 +135,17 @@ export function Today() {
   }
   const explore = (topic: string) => void run({ kind: 'explore', label: 'Explore', detail: '' }, { topic });
 
+  // The tutor can send the learner here to begin today's session.
+  const params = useSearchParams();
+  const begin = params.get('begin') === '1';
+  const primary = t?.primary;
+  useEffect(() => {
+    if (!begin || !primary || busy) return;
+    router.replace('/');
+    void run(primary);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [begin, primary]);
+
   if (!t)
     return (
       <div className="page today">
@@ -138,8 +165,8 @@ export function Today() {
 
   const d = data!;
   const dateLabel = new Date((d.date || '') + 'T12:00:00').toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
+    weekday: 'short',
+    month: 'short',
     day: 'numeric',
   });
   const track = t.primary?.track || t.focus?.subject || 'general';
@@ -231,10 +258,15 @@ export function Today() {
   return (
     <div className={'page today t-' + track}>
       <header className="today-top">
-        <p className="label">
-          {dateLabel}
-          {t.week && t.phase !== 'before-start' ? ` · Week ${t.week.index}${t.week.total ? ` of ${t.week.total}` : ''}` : ''}
-        </p>
+        <div className="today-hello">
+          <p className="eyebrow num">
+            {dateLabel}
+            {t.week && t.phase !== 'before-start' ? ` · Week ${t.week.index}${t.week.total ? ` of ${t.week.total}` : ''}` : ''}
+          </p>
+          <h1 className="display" id="today-headline">
+            {greetingFor(new Date().getHours(), name)}
+          </h1>
+        </div>
         <Link href="/you" className="page-you" aria-label="You and settings">
           {(name || 'You').slice(0, 1).toUpperCase()}
         </Link>
@@ -243,8 +275,7 @@ export function Today() {
       {t.phase === 'no-plan' ? (
         <div className="today-main">
           <section className="session-card stagger">
-            <p className="muted">{greetingFor(new Date().getHours(), w.state.plan?.profile.name)}</p>
-            <h1 className="display">{t.headline}</h1>
+            <h2 className="brief-title">{t.headline}</h2>
             <p className="hero-why">{t.why}</p>
             <div className="hero-actions">
               <Link href="/import" className="btn primary large">
@@ -261,60 +292,25 @@ export function Today() {
             {recapped ? (
               <RecapCard t={t} recap={d.recap!} progress={progress} busy={busy} onRun={(a) => void run(a)} />
             ) : (
-              <section className="session-card stagger" aria-labelledby="today-headline">
-                <p className="muted">{greetingFor(new Date().getHours(), w.state.plan?.profile.name)}</p>
-                {/* Carries into the session's title bar when it begins. */}
-                <ViewTransition name="session-title" share="session-title">
-                  <h1 className="display" id="today-headline">
-                    {t.headline}
-                  </h1>
-                </ViewTransition>
-                {hook && <p className="hook serif">{hook}</p>}
-                <p className="hero-why">
-                  {t.primary?.track && <i className="dot lit" />}
-                  {t.why}
-                </p>
-                {d.preview.length > 0 && <SessionShape steps={d.preview} />}
-                {t.primary && (
-                  <div className="hero-actions">
-                    <button
-                      className="btn primary large begin"
-                      onClick={() => void run(t.primary!)}
-                      data-busy={busy === t.primary.label || undefined}
-                      disabled={!!busy}
-                    >
-                      {t.primary.label}
-                      {busy !== t.primary.label && <Icon name="arrow" size={19} />}
-                    </button>
-                    {t.secondary
-                      .filter((s) => s.kind === 'session')
-                      .map((s) =>
-                        s.label === 'Only 20 minutes' ? (
-                          <button key={s.label} className="btn ghost short" onClick={() => void run(s)} disabled={!!busy} data-busy={busy === s.label || undefined}>
-                            Short on time? <b>20 min</b>
-                          </button>
-                        ) : (
-                          <button key={s.label} className="btn quiet large" onClick={() => void run(s)} disabled={!!busy}>
-                            {s.label}
-                          </button>
-                        ),
-                      )}
-                  </div>
-                )}
-                {startError && <p className="today-error-line">{startError}</p>}
-                {t.focus?.evidence && t.phase === 'learning-day' && (
-                  <p className="card-note">
-                    <span className="eyebrow">This week you’ll produce</span>
-                    <span>{t.focus.evidence}</span>
-                  </p>
-                )}
-              </section>
+              <BriefCard
+                t={t}
+                agenda={agenda}
+                brief={briefing.brief}
+                loading={briefing.loading}
+                number={dayNumber(w.state.plan?.weeks[0]?.start_date, d.date)}
+                busy={busy}
+                startError={startError}
+                onRun={(a) => void run(a)}
+              />
             )}
             <LearnAnything busy={busy === 'explore'} disabled={!!busy} onGo={explore} />
             {more}
           </div>
 
           <aside className="today-side stagger">
+            <div className="today-tutor">
+              <TutorChat variant="embedded" page="/" />
+            </div>
             {progress && (t.phase !== 'before-start' || progress.xp > 0) && <ProgressStrip progress={progress} />}
             {t.startsIn !== null && (
               <div className="stat big">
@@ -328,6 +324,117 @@ export function Today() {
       )}
 
     </div>
+  );
+}
+
+// Days since the plan began, counting today as one: the brief's number.
+function dayNumber(start: string | undefined, date: string) {
+  if (!start || !date) return null;
+  const n = Math.round((Date.parse(date + 'T12:00:00') - Date.parse(start + 'T12:00:00')) / 86400000) + 1;
+  return n > 0 ? n : null;
+}
+
+// The morning brief: what today is for, the day's agenda with the tutor's
+// margin notes, and one way in.
+function BriefCard({
+  t,
+  agenda,
+  brief,
+  loading,
+  number,
+  busy,
+  startError,
+  onRun,
+}: {
+  t: TodayView;
+  agenda: AgendaItem[];
+  brief: Brief | null;
+  loading: boolean;
+  number: number | null;
+  busy: string | null;
+  startError: string;
+  onRun: (a: Action) => void;
+}) {
+  const total = agenda.filter((a) => a.kind !== 'practice').reduce((n, a) => n + (a.minutes || 0), 0);
+  const ends = total ? new Date(Date.now() + total * 60000).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null;
+  return (
+    <section className={'session-card brief stagger' + (loading ? ' is-loading' : '')} aria-labelledby="brief-title" aria-busy={loading || undefined}>
+      <p className="brief-stamp">
+        <Aperture size={20} busy={loading} />
+        <span className="eyebrow num">
+          {number ? `No. ${String(number).padStart(3, '0')} · ` : ''}
+          {loading ? 'Developing…' : brief ? 'Prepared for you' : t.phase === 'rest-day' ? 'A rest day' : 'Today'}
+        </span>
+      </p>
+      <h2 className="brief-title" id="brief-title">
+        {brief?.title || (t.phase === 'rest-day' ? 'Nothing due today. Rest counts' : 'Here’s what we’re working on today')}
+      </h2>
+      <p className="brief-note" key={brief ? 'brief' : 'why'}>
+        {brief?.note || t.why}
+      </p>
+      {agenda.length > 0 && (
+        <ol className="agenda">
+          {agenda.map((a, i) => {
+            const note = brief?.item_notes[i] || null;
+            const label =
+              i === 0 && a.action ? (
+                // Carries into the session's title bar when it begins.
+                <ViewTransition name="session-title" share="session-title">
+                  <span className="agenda-label">{a.label}</span>
+                </ViewTransition>
+              ) : (
+                <span className="agenda-label">{a.label}</span>
+              );
+            return (
+              <li key={a.label + i} className={a.track ? 't-' + a.track : ''}>
+                <span className="agenda-n num">{String(i + 1).padStart(2, '0')}</span>
+                <i className="dot lit" aria-hidden="true" />
+                <span className="agenda-text">
+                  {i > 0 && a.action ? (
+                    <button className="agenda-go" onClick={() => onRun(a.action!)} disabled={!!busy}>
+                      {label}
+                    </button>
+                  ) : (
+                    label
+                  )}
+                  {note && <em className="agenda-note">{note}</em>}
+                </span>
+                <span className="agenda-min num">{a.minutes ? `${Math.max(1, Math.round(a.minutes))} min` : ''}</span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+      {t.primary && (
+        <div className="hero-actions">
+          <button className="btn primary large begin" onClick={() => onRun(t.primary!)} data-busy={busy === t.primary.label || undefined} disabled={!!busy}>
+            {t.primary.label}
+            {busy !== t.primary.label && <Icon name="arrow" size={19} />}
+          </button>
+          {t.secondary
+            .filter((s) => s.kind === 'session')
+            .map((s) =>
+              s.label === 'Only 20 minutes' ? (
+                <button key={s.label} className="btn ghost short" onClick={() => onRun(s)} disabled={!!busy} data-busy={busy === s.label || undefined}>
+                  Short on time? <b>20 min</b>
+                </button>
+              ) : (
+                <button key={s.label} className="btn quiet large" onClick={() => onRun(s)} disabled={!!busy}>
+                  {s.label}
+                </button>
+              ),
+            )}
+          {ends && <span className="label num brief-ends">Ends around {ends} · adapts as you go</span>}
+        </div>
+      )}
+      {startError && <p className="today-error-line">{startError}</p>}
+      {t.focus?.evidence && t.phase === 'learning-day' && (
+        <p className="card-note">
+          <span className="eyebrow">This week you’ll produce</span>
+          <span>{t.focus.evidence}</span>
+        </p>
+      )}
+    </section>
   );
 }
 
@@ -428,10 +535,11 @@ function RecapCard({
   const next = t.focus;
   return (
     <section className="session-card recap stagger" aria-labelledby="today-headline">
-      <p className="muted">{greetingFor(new Date().getHours(), w.state.plan?.profile.name)}</p>
-      <h1 className="display" id="today-headline">
-        Today’s done.
-      </h1>
+      <p className="brief-stamp">
+        <Aperture size={20} />
+        <span className="eyebrow">Wrapped for today</span>
+      </p>
+      <h2 className="brief-title">Today’s done.</h2>
       <div className="recap-stats">
         <div className="stat">
           <b className="num">{recap.minutes}</b>
@@ -474,31 +582,6 @@ function RecapCard({
         </div>
       )}
     </section>
-  );
-}
-
-// The morning at a glance: each step sized by its time, like a route. Step
-// names live in the bar itself rather than a list under it.
-function SessionShape({ steps }: { steps: Payload['preview'] }) {
-  const total = Math.round(steps.reduce((s, x) => s + x.minutes, 0));
-  const required = Math.round(steps.filter((s) => !s.optional).reduce((s, x) => s + x.minutes, 0));
-  const named = steps.filter((s) => s.type !== 'break');
-  return (
-    <div className="shape">
-      <div className="shape-bar" role="img" aria-label={`About ${required} minutes: ${named.map((s) => STEP[s.type]).join(', ')}`}>
-        {steps.map((s, i) => (
-          <i
-            key={i}
-            className={'k-' + s.type + (s.optional ? ' optional' : '')}
-            style={{ flexGrow: s.minutes, animationDelay: `${120 + i * 45}ms` }}
-            title={`${STEP[s.type]} · ${Math.max(1, Math.round(s.minutes))} min${s.optional ? ' · optional' : ''}`}
-          />
-        ))}
-      </div>
-      <p className="label">
-        About {required} min in {named.length} steps{total > required ? `, plus ${total - required} optional` : ''} · adapts as you go
-      </p>
-    </div>
   );
 }
 

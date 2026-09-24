@@ -24,3 +24,20 @@ export function activeMs(r: Timed, at = Date.now()) {
 }
 
 export const activeMinutes = (r: Timed, at = Date.now()) => activeMs(r, at) / 60000;
+
+// What is actually left, not what the budget says. The steps still to come
+// are sized by the planner's estimates, corrected by this learner's measured
+// pace. Until the plan reaches its wrap-up, more steps will be planned to fill
+// the time, so the budget is the floor; once the recap is planned (or the
+// learner wrapped up), only the remaining steps count.
+type Step = { type: string; minutes: number; status: string; optional?: boolean };
+export function minutesLeft(beats: Step[], index: number, elapsed: number, budget: number, wrapping: boolean) {
+  const doneSteps = beats.slice(0, index).filter((b) => b.type !== 'break' && b.status !== 'skipped');
+  const expected = doneSteps.reduce((n, b) => n + b.minutes, 0);
+  const pace = expected >= 6 ? Math.min(2, Math.max(0.5, elapsed / expected)) : 1;
+  const ahead = beats.slice(index).filter((b) => !(b.optional && b.status === 'pending') && b.status !== 'skipped');
+  // The step on screen is partly done already; count half of it.
+  const committed = ahead.reduce((n, b, i) => n + b.minutes * (b.type === 'break' ? 1 : pace) * (i === 0 ? 0.5 : 1), 0);
+  const planned = wrapping || beats.some((b) => b.type === 'recap');
+  return planned ? committed : Math.max(committed, budget - elapsed);
+}

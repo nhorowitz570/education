@@ -1,16 +1,41 @@
 /* ---------- Today ---------- */
 .today-top {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   min-height: 36px;
-  margin-bottom: clamp(24px, 5vh, 56px);
+  margin-bottom: clamp(24px, 4.5vh, 44px);
+}
+.today-hello {
+  display: grid;
+  gap: 12px;
 }
 .today-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
-  gap: clamp(28px, 5vw, 72px);
+  gap: clamp(28px, 4vw, 48px);
   align-items: start;
+}
+@media (min-width: 1180px) {
+  .page.today {
+    max-width: 1240px;
+  }
+  .today-grid {
+    grid-template-columns: minmax(0, 1fr) 372px;
+    gap: 28px;
+  }
+}
+/* The tutor sits beside the plan only when there's room; elsewhere it's
+   the mark in the corner. */
+.today-tutor {
+  display: none;
+}
+@media (min-width: 1180px) {
+  .today-tutor {
+    display: block;
+    position: sticky;
+    top: 28px;
+  }
 }
 .today-main {
   display: grid;
@@ -24,21 +49,140 @@
   display: grid;
   gap: 12px;
   padding: clamp(22px, 3.4vw, 36px);
-  border-radius: var(--r-xl);
-  background:
-    radial-gradient(120% 90% at 0% 0%, color-mix(in srgb, var(--c, var(--text)) 13%, transparent), transparent 62%),
-    var(--raised);
+  border-radius: var(--r-lg);
+  background: var(--raised);
   box-shadow: var(--inner), 0 0 0 1px var(--line);
   overflow: hidden;
   isolation: isolate;
 }
-.session-card::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: linear-gradient(90deg, var(--c, var(--text-3)), transparent 70%);
-  opacity: 0.7;
+
+/* The morning brief */
+.brief {
+  gap: 0;
+}
+.brief-stamp {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+.brief-stamp .eyebrow {
+  color: var(--text-2);
+}
+.brief-title {
+  max-width: 24ch;
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: clamp(26px, 3.2vw, 34px);
+  font-weight: 400;
+  font-variation-settings: 'opsz' 48;
+  line-height: 1.12;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+.brief-note {
+  max-width: 60ch;
+  margin-top: 12px;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--text-2);
+  text-wrap: pretty;
+  animation: fade var(--t-slow) var(--ease) both;
+}
+.brief.is-loading .brief-title,
+.brief.is-loading .brief-note {
+  opacity: 0.55;
+}
+.agenda {
+  display: grid;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--line);
+}
+.agenda li {
+  display: grid;
+  grid-template-columns: 26px 8px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 52px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+}
+.agenda li:last-child {
+  border-bottom: 0;
+}
+.agenda-n {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text-3);
+}
+.agenda .dot {
+  width: 7px;
+  height: 7px;
+}
+.agenda-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 12px;
+  row-gap: 2px;
+  min-width: 0;
+}
+.agenda-label {
+  font-size: 15px;
+  color: var(--text);
+}
+.agenda-go {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.agenda-go:hover .agenda-label {
+  text-decoration: underline;
+  text-decoration-color: var(--line-3);
+  text-underline-offset: 3px;
+}
+/* The tutor's pencil note in the margin. */
+.agenda-note {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 15.5px;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.agenda-note::before {
+  content: '← ';
+  font-style: normal;
+  opacity: 0.8;
+}
+:root[data-theme='light'] .agenda-note {
+  color: var(--text-2);
+}
+.agenda-min {
+  font-size: 13px;
+  color: var(--text-3);
+}
+.brief .hero-actions {
+  margin-top: 24px;
+}
+.brief-ends {
+  flex: 1;
+  text-align: right;
+}
+@media (max-width: 640px) {
+  .brief-ends {
+    flex-basis: 100%;
+    text-align: left;
+  }
+  .agenda li {
+    grid-template-columns: 22px 8px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
 }
 .session-card .display {
   max-width: 16ch;
@@ -81,14 +225,6 @@
 }
 .btn.begin {
   min-width: 150px;
-  box-shadow: 0 0 0 0 var(--glow);
-  transition:
-    transform var(--t-fast) var(--ease),
-    box-shadow var(--t-slow) var(--ease),
-    background var(--t-fast);
-}
-.btn.begin:hover:not(:disabled) {
-  box-shadow: 0 0 36px -6px var(--glow);
 }
 .btn.short {
   padding: 0 10px;
@@ -260,13 +396,7 @@
 }
 .day.s-today .day-mark {
   background: color-mix(in srgb, var(--c, var(--text)) 18%, var(--surface));
-  box-shadow: inset 0 0 0 1.5px var(--c, var(--text)), 0 0 18px -4px var(--c, var(--glow));
-  animation: today-glow 2.8s var(--ease) infinite;
-}
-@keyframes today-glow {
-  50% {
-    box-shadow: inset 0 0 0 1.5px var(--c, var(--text)), 0 0 26px -2px var(--c, var(--glow));
-  }
+  box-shadow: inset 0 0 0 1.5px var(--c, var(--text));
 }
 .day.s-planned .day-mark,
 .day.s-reduced .day-mark {

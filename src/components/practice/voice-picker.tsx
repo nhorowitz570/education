@@ -33,7 +33,7 @@ export function VoicePicker({ value, onChange }: { value: Voice; onChange: (v: V
             </span>
             <span className="grow">
               <b>{VOICES[v].label}</b>
-              <span className="label">{VOICES[v].note}</span>
+              <span className="label">{VOICES[v].note} · plays a {VOICES[v].gender}</span>
             </span>
           </button>
           <button

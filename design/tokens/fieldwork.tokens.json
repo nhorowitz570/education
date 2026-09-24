@@ -3,7 +3,7 @@
   "color": {
     "bg": {
       "$type": "color",
-      "$value": "#09090a",
+      "$value": "#0a0a0b",
       "$extensions": {
         "app.fieldwork.light": "#f5f4f0"
       }
@@ -17,49 +17,49 @@
     },
     "surface": {
       "$type": "color",
-      "$value": "#161618",
+      "$value": "#151517",
       "$extensions": {
         "app.fieldwork.light": "#efeee9"
       }
     },
     "surface-2": {
       "$type": "color",
-      "$value": "#1d1d20",
+      "$value": "#1b1b1e",
       "$extensions": {
         "app.fieldwork.light": "#e7e6e0"
       }
     },
     "surface-3": {
       "$type": "color",
-      "$value": "#26262a",
+      "$value": "#242428",
       "$extensions": {
         "app.fieldwork.light": "#dcdbd4"
       }
     },
     "line": {
       "$type": "color",
-      "$value": "#f2f1ed12",
+      "$value": "#edebe612",
       "$extensions": {
         "app.fieldwork.light": "#13131612"
       }
     },
     "line-2": {
       "$type": "color",
-      "$value": "#f2f1ed1f",
+      "$value": "#edebe61f",
       "$extensions": {
         "app.fieldwork.light": "#1313161f"
       }
     },
     "line-3": {
       "$type": "color",
-      "$value": "#f2f1ed33",
+      "$value": "#edebe633",
       "$extensions": {
         "app.fieldwork.light": "#13131638"
       }
     },
     "text": {
       "$type": "color",
-      "$value": "#f2f1ed",
+      "$value": "#edebe6",
       "$extensions": {
         "app.fieldwork.light": "#141416"
       }
@@ -73,91 +73,91 @@
     },
     "text-3": {
       "$type": "color",
-      "$value": "#6d6c72",
+      "$value": "#75747a",
       "$extensions": {
         "app.fieldwork.light": "#8d8c92"
       }
     },
     "text-4": {
       "$type": "color",
-      "$value": "#48484d",
+      "$value": "#4a4a4f",
       "$extensions": {
         "app.fieldwork.light": "#b4b3b8"
       }
     },
     "accent": {
       "$type": "color",
-      "$value": "#f2f1ed",
+      "$value": "#f2c6a6",
       "$extensions": {
         "app.fieldwork.light": "#141416"
       }
     },
     "on-accent": {
       "$type": "color",
-      "$value": "#0b0b0c",
+      "$value": "#1a120c",
       "$extensions": {
         "app.fieldwork.light": "#ffffff"
       }
     },
     "glow": {
       "$type": "color",
-      "$value": "#f2f1ed80",
+      "$value": "#f2c6a624",
       "$extensions": {
         "app.fieldwork.light": "#1414162e"
       }
     },
     "finance": {
       "$type": "color",
-      "$value": "#5fe0a4",
+      "$value": "#7fd8ae",
       "$extensions": {
         "app.fieldwork.light": "#13875a"
       }
     },
     "communication": {
       "$type": "color",
-      "$value": "#f3b862",
+      "$value": "#f0be79",
       "$extensions": {
         "app.fieldwork.light": "#b07015"
       }
     },
     "judgment": {
       "$type": "color",
-      "$value": "#a898ff",
+      "$value": "#b2a6f5",
       "$extensions": {
         "app.fieldwork.light": "#6552dc"
       }
     },
     "review": {
       "$type": "color",
-      "$value": "#7cc4ff",
+      "$value": "#8cc8f5",
       "$extensions": {
         "app.fieldwork.light": "#2877c0"
       }
     },
     "life": {
       "$type": "color",
-      "$value": "#ff8f70",
+      "$value": "#f4957a",
       "$extensions": {
         "app.fieldwork.light": "#d0532f"
       }
     },
     "positive": {
       "$type": "color",
-      "$value": "#5fe0a4",
+      "$value": "#7fd8ae",
       "$extensions": {
         "app.fieldwork.light": "#13875a"
       }
     },
     "negative": {
       "$type": "color",
-      "$value": "#ff7a66",
+      "$value": "#ff8a75",
       "$extensions": {
         "app.fieldwork.light": "#d2432e"
       }
     },
     "caution": {
       "$type": "color",
-      "$value": "#f3b862",
+      "$value": "#f0be79",
       "$extensions": {
         "app.fieldwork.light": "#b07015"
       }

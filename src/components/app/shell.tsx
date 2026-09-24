@@ -6,6 +6,7 @@ import { Icon } from '@/components/icons';
 import { Mark } from '@/components/entry/mark';
 import { useApp } from './provider';
 import { InstallControl } from '@/components/pwa';
+import { TutorDock } from '@/components/tutor/chat';
 
 export const NAV = [
   { href: '/', label: 'Today', icon: 'today' },
@@ -39,11 +40,12 @@ export function Shell({ children }: { children: ReactNode }) {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <div className={'app' + (focus ? ' focus' : '')}>
+      <div className={'app' + (focus ? ' focus' : '') + (path === '/' ? ' on-today' : '')}>
         {!focus && (
           <nav className="rail" aria-label="Main">
             <Link href="/" className="rail-mark" aria-label="Today">
               <Mark size={30} />
+              <span className="rail-word">Fieldwork</span>
             </Link>
             <div className="rail-items">
               {NAV.map((n) => (
@@ -59,7 +61,11 @@ export function Shell({ children }: { children: ReactNode }) {
               ))}
             </div>
             <Link href="/you" className="rail-you" aria-label="You and settings" aria-current={path.startsWith('/you') ? 'page' : undefined}>
-              {initials}
+              <span className="rail-initials">{initials}</span>
+              <span className="rail-who">
+                <b>{w.state.plan?.profile.name || 'You'}</b>
+                <span>Settings and memory</span>
+              </span>
             </Link>
           </nav>
         )}
@@ -94,6 +100,7 @@ export function Shell({ children }: { children: ReactNode }) {
         )}
       </div>
       {!focus && <InstallControl pending={w.pending} />}
+      {!focus && <TutorDock page={path} />}
     </>
   );
 }

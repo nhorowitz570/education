@@ -10,6 +10,7 @@ import { Complete } from './complete';
 import { Roleplay } from './roleplay';
 import { SessionExtras, useExtras } from './extras';
 import { sessionXp } from '@/lib/gamify';
+import { minutesLeft } from '@/lib/learning/duration';
 import { useApp } from '@/components/app/provider';
 import type { AskIntent, Beat, RunView } from '@/lib/learning/run';
 
@@ -262,7 +263,7 @@ function ClockBar({ run, state, track, onClose }: { run: RunView; state: RunStat
   }, []);
   const budget = run.minutes_planned || 60;
   const elapsed = state.clock.at ? state.clock.elapsed + Math.min(now - state.clock.at, 12 * 60000) / 60000 : run.elapsed || 0;
-  const left = Math.max(0, Math.round(budget - elapsed));
+  const left = Math.max(0, Math.round(minutesLeft(run.beats, state.index, elapsed, budget, !!run.wrapping)));
   const xp = sessionXp(run.beats);
   const graded = run.beats.filter((b) => b.feedback);
   return (
@@ -278,10 +279,10 @@ function ClockBar({ run, state, track, onClose }: { run: RunView; state: RunStat
           className={'clock-bar t-' + track}
           role="progressbar"
           aria-valuemin={0}
-          aria-valuemax={budget}
+          aria-valuemax={Math.round(elapsed + left)}
           aria-valuenow={Math.round(elapsed)}
-          aria-label={`${Math.round(elapsed)} of ${budget} minutes`}
-          style={{ '--p': Math.min(1, elapsed / budget) } as React.CSSProperties}
+          aria-label={`${Math.round(elapsed)} minutes in, about ${left} to go`}
+          style={{ '--p': Math.min(1, elapsed / Math.max(1, elapsed + left)) } as React.CSSProperties}
         >
           <i className="clock-fill" />
           <span className="clock-marks" aria-hidden="true">

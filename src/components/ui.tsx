@@ -338,8 +338,8 @@ export const dateLabel = (d: string, withWeekday: boolean | Intl.DateTimeFormatO
 
 // ---- Markdown subset for tutor text: paragraphs, **bold**, *italic*,
 // `code`, lists, > quotes. Builds React elements; never injects HTML.
-type Inline = string | { t: 'b' | 'i' | 'code'; c: Inline[] | string };
-function inline(src: string): Inline[] {
+export type Inline = string | { t: 'b' | 'i' | 'code'; c: Inline[] | string };
+export function inline(src: string): Inline[] {
   const out: Inline[] = [];
   const re = /(\*\*([^*]+)\*\*|__([^_]+)__|\*([^*\n]+)\*|_([^_\n]+)_|`([^`]+)`)/g;
   let last = 0,
@@ -363,7 +363,7 @@ function Plain({ text, k }: { text: string; k: string }) {
   const decorate = useContext(DecorateText);
   return <>{decorate ? decorate(text, k) : text}</>;
 }
-function renderInline(parts: Inline[], key = ''): ReactNode[] {
+export function renderInline(parts: Inline[], key = ''): ReactNode[] {
   return parts.map((p, i) =>
     typeof p === 'string' ? (
       <Plain key={key + i} text={p} k={key + i} />
@@ -384,7 +384,7 @@ export function splitParagraphs(md: string) {
     .filter(Boolean);
 }
 // A paragraph's shape: a list, a quote, or plain text, as inline parts.
-function shape(src: string): { kind: 'ul' | 'ol' | 'quote' | 'p'; items: Inline[][] } {
+export function shape(src: string): { kind: 'ul' | 'ol' | 'quote' | 'p'; items: Inline[][] } {
   const lines = src.split('\n');
   if (lines.every((l) => /^\s*[-*•]\s+/.test(l))) return { kind: 'ul', items: lines.map((l) => inline(l.replace(/^\s*[-*•]\s+/, ''))) };
   if (lines.every((l) => /^\s*\d+[.)]\s+/.test(l))) return { kind: 'ol', items: lines.map((l) => inline(l.replace(/^\s*\d+[.)]\s+/, ''))) };
