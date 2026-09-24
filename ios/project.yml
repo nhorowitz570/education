@@ -1,0 +1,154 @@
+# Generates Fieldwork.xcodeproj. Run `xcodegen` in ios/ after adding or
+# removing files (the .xcodeproj is generated and not committed).
+name: Fieldwork
+options:
+  bundleIdPrefix: co.nhorowitz
+  deploymentTarget:
+    iOS: "27.0"
+  createIntermediateGroups: true
+  developmentLanguage: en
+settings:
+  base:
+    DEVELOPMENT_TEAM: WB5QDXNHR8
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    exactVersion: 2.55.2
+  WebRTC:
+    url: https://github.com/stasel/WebRTC.git
+    exactVersion: 153.0.0
+targets:
+  Fieldwork:
+    type: application
+    platform: iOS
+    sources:
+      - path: Fieldwork
+        excludes: ["**/.impeccable/**", "Debug/Fixtures/**"]
+      - path: Fieldwork/Debug/Fixtures
+        type: folder
+        buildPhase: resources
+      - path: Shared
+        excludes: ["**/.impeccable/**"]
+      - path: ../design/tokens/FieldworkTokens.swift
+        group: Fieldwork/Design
+    dependencies:
+      - package: Supabase
+        product: Supabase
+      - package: WebRTC
+        product: WebRTC
+      - target: FieldworkWidget
+        embed: true
+    entitlements:
+      path: Fieldwork/Fieldwork.entitlements
+      properties:
+        com.apple.developer.associated-domains:
+          - webcredentials:edu.nhorowitz.co
+        aps-environment: development
+        com.apple.security.application-groups:
+          - group.co.nhorowitz.fieldwork
+    info:
+      path: Fieldwork/Info.plist
+      properties:
+        CFBundleDisplayName: Fieldwork
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        UIAppFonts:
+          - AtkinsonHyperlegible-Bold.ttf
+          - AtkinsonHyperlegible-Italic.ttf
+          - AtkinsonHyperlegible-Regular.ttf
+          - IBMPlexMono-Medium.ttf
+          - IBMPlexMono-Regular.ttf
+          - InstrumentSans-Medium.ttf
+          - InstrumentSans-Regular.ttf
+          - InstrumentSans-SemiBold.ttf
+          - NewsreaderDisplay-Italic.ttf
+          - NewsreaderDisplay-Medium.ttf
+          - NewsreaderDisplay-Regular.ttf
+          - NewsreaderDisplay-SemiBold.ttf
+          - NewsreaderText-Italic.ttf
+          - NewsreaderText-Medium.ttf
+          - NewsreaderText-Regular.ttf
+          - NewsreaderText-SemiBold.ttf
+          - OpenDyslexic-Bold.ttf
+          - OpenDyslexic-Italic.ttf
+          - OpenDyslexic-Regular.ttf
+        UIBackgroundModes: [audio, remote-notification]
+        NSMicrophoneUsageDescription: Fieldwork uses the microphone for spoken practice with your tutor.
+        NSCameraUsageDescription: Fieldwork uses the camera only when you choose to photograph a page to import.
+        ITSAppUsesNonExemptEncryption: false
+        CFBundleURLTypes:
+          - CFBundleURLName: co.nhorowitz.fieldwork
+            CFBundleURLSchemes: [fieldwork]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.nhorowitz.fieldwork
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+      configs:
+        Release:
+          # Demo fixtures are for the simulator only.
+          EXCLUDED_SOURCE_FILE_NAMES: Fixtures
+  FieldworkWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: FieldworkWidget
+        excludes: ["**/.impeccable/**"]
+      - path: Shared
+        excludes: ["**/.impeccable/**"]
+      - path: ../design/tokens/FieldworkTokens.swift
+        group: FieldworkWidget
+      - path: Fieldwork/Resources/Fonts/IBMPlexMono-Regular.ttf
+        buildPhase: resources
+      - path: Fieldwork/Resources/Fonts/NewsreaderDisplay-Regular.ttf
+        buildPhase: resources
+      - path: Fieldwork/Resources/Fonts/NewsreaderDisplay-Italic.ttf
+        buildPhase: resources
+      - path: Fieldwork/Resources/Fonts/InstrumentSans-Medium.ttf
+        buildPhase: resources
+    entitlements:
+      path: FieldworkWidget/FieldworkWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.co.nhorowitz.fieldwork
+    info:
+      path: FieldworkWidget/Info.plist
+      properties:
+        CFBundleDisplayName: Fieldwork
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        UIAppFonts:
+          - IBMPlexMono-Regular.ttf
+          - NewsreaderDisplay-Regular.ttf
+          - NewsreaderDisplay-Italic.ttf
+          - InstrumentSans-Medium.ttf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: co.nhorowitz.fieldwork.widget
+        SKIP_INSTALL: YES
+  FieldworkTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [FieldworkTests]
+    dependencies:
+      - target: Fieldwork
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  Fieldwork:
+    build:
+      targets:
+        Fieldwork: all
+        FieldworkTests: [test]
+    test:
+      targets: [FieldworkTests]

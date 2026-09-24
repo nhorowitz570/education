@@ -1,0 +1,7 @@
+Fieldwork.xcodeproj/
+build/
+DerivedData/
+*.xcuserstate
+xcuserdata/
+.impeccable/
+build*/
