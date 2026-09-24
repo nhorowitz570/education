@@ -83,32 +83,24 @@ All model calls go through `generate()` in `src/lib/ai/engine.ts`. Tasks are dec
 | `learner_profiles` | Style profile | RLS: owner read |
 | `ai_calls` | Every model call: task, tier, model, tokens, cost, latency | RLS: owner read |
 | `private.voice_sessions` | Live call lifecycle | Server only via RPC |
-| `ventures` | One Venture company per learner, with a revision | RLS: owner read; server writes |
 | `plan_chapters` | Outcome names for a plan's chapters, written once by Luna | RLS: owner read; server writes |
 | `notes` | The learner's notes on session steps, by run, step and idea | RLS: owner read; server writes |
 | `shares` | Snapshot cards shared by link, with a view count and `revoked_at` | RLS: owner read; public page reads by token on the server |
-
-## Venture
-
-A business simulation the learner plays alongside lessons (`/venture`). The learner runs a coffee roastery, design studio or food truck one month at a time.
-
-- **The numbers are code.** `src/lib/venture/engine.ts` simulates each month deterministically: demand from price elasticity, marketing (diminishing returns), reputation, season and word of mouth; capacity from people, equipment and morale; stock bought before it sells and spoiling after; revenue booked when earned but collected on the customer's terms; depreciation, loans and emergency overdrafts. Profit and cash diverge the way they do in real businesses.
-- **The story is Luna.** One `venture.month` call per month writes the accountant's review of last month and next month's event, preferring one that exercises an idea the learner has just studied. Each option's effects are structured and clamped to the business's size, so the model can't decide outcomes. Built-in events cover model outages.
-- **Tied to learning.** Months are earned by finishing sessions (2), reviews and practice (1), from 3 to start. Studying ideas unlocks tools in the game (unit margin, cash forecast, receivables, break-even, capacity). The company's summary is a context layer for the tutor, which can use it as a scenario.
-- **Saving.** One document per learner in `ventures`, written after every change with a revision check. The page loads the game as its own bundle behind a loading screen each time it opens, and the canvas pauses when hidden.
+| `tutor_messages` | The tutor chat thread, one per account (last 60 read back), shared by web and iPhone | RLS: owner read; server writes |
+| `private.push_subscriptions` | Web push subscriptions and iPhone APNs tokens (`apns:<token>`) | Server only |
 
 ## Gamification
 
-XP, levels, streaks, daily quests and badges are derived, never stored (`src/lib/gamify.ts`, `/api/progress`): answers from `learning_events` (effort counts; honest confidence earns a bonus), finished runs and Venture months. A streak counts planned learning days, so days without a planned session never break it. Quests are three a day, chosen deterministically by date.
+XP, levels, streaks, daily quests and badges are derived, never stored (`src/lib/gamify.ts`, `/api/progress`): answers from `learning_events` (effort counts; honest confidence earns a bonus) and finished runs. A streak counts planned learning days, so days without a planned session never break it. Quests are three a day, chosen deterministically by date.
 
 ## Scheduled work
 
-`/api/cron` runs every 15 minutes on Vercel Cron and is authenticated with `CRON_SECRET`. Each tick sends due push reminders (one per slot, deduplicated in the database), deletes expired food photos, and settles voice calls whose conductor vanished. Every step is idempotent.
+`/api/cron` runs every 15 minutes on Vercel Cron and is authenticated with `CRON_SECRET`. Each tick sends due push reminders (one per slot, deduplicated in the database), runs queued jobs, and settles voice calls whose conductor vanished. Every step is idempotent.
 
 Each tick also:
 
 - **Prepares the day's session** (`src/lib/server/prepare.ts`). From 75 minutes before the learning window, it creates the run Today would offer as Begin and writes its first step, so Begin opens onto content. The run is marked `prepared` and is hidden from "Continue" until the learner opens it, at which point its clock starts. A prepared run of the wrong length or kind (such as "Only 20 minutes") is abandoned and replaced.
-- **Writes one weekly insight** (`src/lib/server/insights.ts`). From Monday 6am local, each learner gets a read of the previous Monday–Sunday. Activity is measured in code (time, follow-through, answers, confidence, asks, practice, schedule, check-ins), then Astra grades eight areas against fixed anchors and writes patterns and behavioural observations. A week is claimed in the `insights` table before any model call, so overlapping ticks can't pay twice. An empty week needs no model call.
+- **Writes one weekly insight** (`src/lib/server/insights.ts`). From Monday 6am local, each learner gets a read of the previous Monday–Sunday. Activity is measured in code (time, follow-through, answers, confidence, asks, practice, schedule), then Astra grades eight areas against fixed anchors and writes patterns and behavioural observations. A week is claimed in the `insights` table before any model call, so overlapping ticks can't pay twice. An empty week needs no model call.
 
 ## Insights, confidence and rehearsals
 
@@ -129,13 +121,25 @@ Preferences are one synced record, `settings:prefs`, parsed by `prefsOf()` with 
 
 The device's time zone is recorded as `settings:device`, and `zoneOf()` (`src/lib/zone.ts`) prefers it over the plan's zone everywhere a local date or hour is needed. Every run has a clock (`src/lib/learning/duration.ts`) that advances by the time between interactions, capped at 12 minutes and stopped when the run finishes.
 
+## Tutor chat
+
+The tutor outside lessons keeps one thread per account in `tutor_messages`, so a conversation started on the web carries on in the iPhone app. A client sends only the new message with ids it chose (`/api/tutor`); the server saves it, reads the last 16 turns itself, streams the reply and saves it before the final event. A retry resends the same message id. Browsers that kept a thread locally before it synced move it onto the account once (`PUT /api/tutor`) if the account has none.
+
+## iPhone app
+
+`ios/` is a native SwiftUI app for the same accounts (see `ios/README.md`). It is a client of the same routes: it sends the Supabase access token as `Authorization: Bearer`, which `context()` verifies with the service client (a bearer request carries no cookies, so it skips the cross-site check). The workspace syncs through `/api/state` and `/api/actions` exactly as the browser does; records apply optimistically and queue offline, plan edits wait for the server.
+
+- **Passkeys** share the web's relying party through `/.well-known/apple-app-site-association` (`webcredentials`).
+- **Push** goes through APNs (`src/lib/server/apns.ts`, HTTP/2 with an ES256 provider token) next to web push, gated by the same per-kind switches.
+- **Parity** is a standing rule: see `AGENTS.md` and `docs/PARITY.md`.
+
 ## Design tokens
 
 `src/styles/tokens.css` is the source. `npx tsx scripts/tokens.ts` writes `design/tokens/fieldwork.tokens.json` and `design/tokens/FieldworkTokens.swift` (light/dark-aware SwiftUI colours, radii, sizes, motion and font names) for the native apps; a test fails if they fall out of date.
 
 ## Security
 
-- **Invite-only access:** sign-ups are off, sign-in is by magic link or passkey, and `*.vercel.app` redirects to the canonical domain.
-- **Mutations:** protected by a `Sec-Fetch-Site` / `Origin` check against the serving host (`src/lib/server/origin.ts`).
+- **Invite-only access:** sign-ups are off, sign-in is by magic link, emailed code or passkey, and `*.vercel.app` redirects to the canonical domain.
+- **Mutations:** cookie-authenticated requests are protected by a `Sec-Fetch-Site` / `Origin` check against the serving host (`src/lib/server/origin.ts`); the iPhone app's bearer-token requests carry no ambient credentials and skip it.
 - **Untrusted input:** imported plans, transcripts and learner text are wrapped as untrusted data in prompts.
 - **Visuals:** AI visuals are declarative specs (`src/lib/viz/schema.ts`), with formulas compiled by a safe expression parser. No model-written code ever runs.

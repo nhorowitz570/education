@@ -114,10 +114,6 @@ export const DEMO_PLAN: Plan = {
     prerequisite_ids: [],
     generation_instructions: 'Use sourced examples.',
   })),
-  growth: {
-    gym: { days: [0, 2, 4], start_local: '17:00', status: 'proposed' },
-    food: ['Protein at meals', 'Produce twice daily'],
-  },
   adaptation: { review_day_offsets: [2, 7, 21], review_cap_minutes: 10 },
   milestones: [
     { date: '2026-12-17', title: 'Cash briefing & delegation' },
@@ -171,7 +167,6 @@ export const EMPTY_TEMPLATE = {
         'Find topic-specific primary sources before teaching.',
     },
   ],
-  growth: {},
   adaptation: { recovery_minutes: 20, review_cap_minutes: 10 },
   milestones: [],
 };

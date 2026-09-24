@@ -5,13 +5,12 @@ import { api } from '@/lib/client/api';
 import type { RunView } from '@/lib/learning/run';
 import { useApp } from './provider';
 
-// Props contract used by the Life and settings screens that predate the new
+// Props contract used by the Import and Learn screens that predate the new
 // router. `go` maps the old route names to URLs; `start` opens a session run.
-export type Route = 'today' | 'learn' | 'growth' | 'progress' | 'import' | 'lesson' | 'voice' | 'settings';
+export type Route = 'today' | 'learn' | 'progress' | 'import' | 'lesson' | 'voice' | 'settings';
 const PATHS: Record<Route, string> = {
   today: '/',
   learn: '/learn',
-  growth: '/life',
   progress: '/mastery',
   import: '/import',
   lesson: '/',

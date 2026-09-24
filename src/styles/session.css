@@ -1054,8 +1054,8 @@
   color: var(--caution);
 }
 .combo-pop {
-  background: color-mix(in srgb, var(--life) 16%, transparent);
-  color: var(--life);
+  background: color-mix(in srgb, var(--coral) 16%, transparent);
+  color: var(--coral);
   animation-delay: 420ms;
 }
 @keyframes xp-pop {

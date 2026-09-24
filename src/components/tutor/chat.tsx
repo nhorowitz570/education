@@ -2,25 +2,25 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { stream } from '@/lib/client/api';
+import { api, stream } from '@/lib/client/api';
 import { useApp } from '@/components/app/provider';
 import { Blocks } from '@/components/session/blocks';
 import { Icon } from '@/components/icons';
 import { WRITING, type Writing } from '@/lib/learning/voice';
-import { plainOf, type ChatMessage, type TutorAction, type TutorReply } from '@/lib/tutor';
+import { type ChatMessage, type TutorAction, type TutorReply } from '@/lib/tutor';
 import { Aperture } from './aperture';
 import { useThread, writeThread } from './store';
 
 type Message = ChatMessage & { streaming?: boolean; error?: string };
 
-const STARTERS = ['What’s on today?', 'Quiz me on this week', 'Explain the last idea again', 'I’m low on energy today'];
+const STARTERS = ['What’s on today?', 'Quiz me on this week', 'Explain the last idea again', 'Give me a quick review'];
 
 const id = () => crypto.randomUUID();
 
-// Talking to the tutor outside a lesson. One thread per device, shared by
-// every place it's shown.
+// Talking to the tutor outside a lesson. One thread per account, shared by
+// every place it's shown and with the iPhone app.
 export function useTutor(page: string) {
-  const { user, setPrefs, w, today } = useApp();
+  const { user, setPrefs } = useApp();
   const thread = useThread(user.id);
   const busy = useRef(false);
 
@@ -32,43 +32,28 @@ export function useTutor(page: string) {
 
   const apply = useCallback(
     (actions: TutorAction[]) => {
-      for (const a of actions) {
-        if (a.type === 'set_writing' && a.writing) setPrefs('writing', a.writing);
-        if (a.type === 'checkin' && a.energy) {
-          const old = w.state.records.find((r) => r.id === 'checkin:' + today)?.data;
-          void w.record('checkin', 'checkin:' + today, {
-            date: today,
-            energy: Math.min(5, Math.max(1, Math.round(a.energy))),
-            mood: (a.mood || String(old?.mood || 'Okay')).slice(0, 40),
-            minutes: Number(old?.minutes || 60),
-          });
-        }
-      }
+      for (const a of actions) if (a.type === 'set_writing' && a.writing) setPrefs('writing', a.writing);
     },
-    [setPrefs, w, today],
+    [setPrefs],
   );
 
+  // Sends one message; the server keeps the thread and reads the recent
+  // turns itself. A retry resends the same message id.
   const send = useCallback(
-    async (text: string) => {
+    async (text: string, resend?: string) => {
       const said = text.trim();
       if (!said || busy.current) return;
       busy.current = true;
-      const mine: Message = { id: id(), role: 'user', text: said, at: new Date().toISOString() };
+      const mine: Message = { id: resend || id(), role: 'user', text: said, at: new Date().toISOString() };
       const reply: Message = { id: id(), role: 'tutor', blocks: [], streaming: true, at: new Date().toISOString() };
-      let history: Message[] = [];
       writeThread(user.id, (t) => {
-        history = [...(t.messages as Message[]).filter((m) => !m.streaming), mine];
-        return { messages: [...history, reply], pending: true };
+        const kept = (t.messages as Message[]).filter((m) => !m.streaming && m.id !== mine.id);
+        return { messages: [...kept, mine, reply], pending: true };
       });
-      const turns = history
-        .filter((m) => !m.error)
-        .slice(-16)
-        .map((m) => ({ role: m.role, text: (m.role === 'user' ? m.text || '' : plainOf(m.blocks)).slice(0, 4000) }))
-        .filter((t) => t.text);
       try {
         const done = await stream<Pick<TutorReply, 'blocks' | 'suggestions' | 'actions'>>(
           '/api/tutor',
-          { turns, page },
+          { id: mine.id, reply_id: reply.id, text: said, page },
           { onSnap: (d) => patch(reply.id, { blocks: ((d as { blocks?: TutorReply['blocks'] }).blocks || []).filter(Boolean) }) },
         );
         patch(reply.id, { blocks: done.blocks, suggestions: done.suggestions, actions: done.actions, streaming: false });
@@ -88,10 +73,13 @@ export function useTutor(page: string) {
     const lastUser = [...msgs].reverse().find((m) => m.role === 'user');
     if (!lastUser?.text) return;
     writeThread(user.id, (t) => ({ ...t, messages: t.messages.slice(0, t.messages.lastIndexOf(lastUser)) }));
-    void send(lastUser.text);
+    void send(lastUser.text, lastUser.id);
   }, [thread.messages, user.id, send]);
 
-  const clear = useCallback(() => writeThread(user.id, () => ({ messages: [], pending: false })), [user.id]);
+  const clear = useCallback(() => {
+    writeThread(user.id, () => ({ messages: [], pending: false }));
+    void api('/api/tutor', undefined, 'DELETE').catch(() => {});
+  }, [user.id]);
   return { messages: thread.messages as Message[], pending: thread.pending, send, retry, clear };
 }
 
@@ -165,7 +153,7 @@ export function TutorChat({ variant, page, onClose }: { variant: 'panel' | 'embe
           <div className="tutor-empty">
             <p className="tutor-hello">Ask me anything.</p>
             <p className="muted">
-              I know today’s plan, what you’ve covered this week and where you got stuck. You can also tell me to write differently, or how you’re feeling.
+              I know today’s plan, what you’ve covered this week and where you got stuck. You can also tell me to write differently.
             </p>
           </div>
         ) : (
@@ -276,10 +264,6 @@ function Actions({ actions, onClose }: { actions: TutorAction[]; onClose?: () =>
         ) : a.type === 'remember' ? (
           <span key={i} className="tutor-done">
             <Icon name="check" size={13} /> Saved to memory
-          </span>
-        ) : a.type === 'checkin' && a.energy ? (
-          <span key={i} className="tutor-done">
-            <Icon name="check" size={13} /> Checked in · energy {a.energy} of 5
           </span>
         ) : null,
       )}

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { answerXp, levelOf, progress, questsFor, streak, weeklyStreak, type Activity } from '@/lib/gamify';
 
-const base: Activity = { today: '2026-10-08', answers: [], runs: [], ventureMonths: [], requiredDays: [], learningDay: true, venture: false };
+const base: Activity = { today: '2026-10-08', answers: [], runs: [], requiredDays: [], learningDay: true };
 
 describe('gamification', () => {
   it('rewards effort and honest confidence', () => {
@@ -40,12 +40,11 @@ describe('gamification', () => {
     expect(pending.todayDone).toBe(false);
   });
   it('offers the same three quests all day, with today’s session first on learning days', () => {
-    const day = { answers: [], runs: [], ventureMonths: 0 };
+    const day = { answers: [], runs: [] };
     const a = questsFor('2026-10-08', true, day);
     expect(a).toEqual(questsFor('2026-10-08', true, day));
     expect(a[0].id).toBe('session');
     expect(a).toHaveLength(3);
-    expect(questsFor('2026-10-09', false, day, false).some((q) => q.id === 'venture')).toBe(false);
   });
   it('adds it all up, including quests', () => {
     const p = progress({
@@ -70,10 +69,8 @@ describe('weekly streak', () => {
     today,
     answers: dates.map((date) => ({ date, score: 1, kind: 'check' })),
     runs: [],
-    ventureMonths: [],
     requiredDays,
     learningDay: false,
-    venture: false,
     weekly: true,
   });
   it('counts weeks with two learning days, and a week away never breaks it', () => {

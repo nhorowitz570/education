@@ -39,12 +39,11 @@ const RELEASES: Release[] = [
   {
     version: '0.6',
     date: 'September 23, 2026',
-    title: 'Sessions that adapt as you go, and a company to run',
+    title: 'Sessions that adapt as you go',
     summary:
-      'Sessions now plan themselves one step at a time and fill the time you set aside. New ideas get taught before they get tested. And there’s Venture: a business you run alongside your lessons.',
+      'Sessions now plan themselves one step at a time and fill the time you set aside. New ideas get taught before they get tested.',
     feature: true,
     changes: [
-      ['New', 'Venture: run a pixel-art coffee roastery, design studio or food truck with real books, where profit and cash disagree just as they do in real life. Months are earned by learning.'],
       ['New', 'Before a new idea, one tap says how familiar it is. Brand-new ideas start with the big picture and a worked example, not a question.'],
       ['New', '“I don’t know yet” is an answer: the tutor teaches it instead of grading it.'],
       ['New', 'Wrap up any session early with a short recap of what you did.'],
@@ -101,7 +100,7 @@ const RELEASES: Release[] = [
     title: 'Private by default',
     summary: 'No passwords, no sign-up form. Accounts are added by hand, and signing in takes one tap.',
     changes: [
-      ['New', 'Sign in with an emailed link, or a six-digit code when you’re in the installed app.'],
+      ['New', 'Sign in with an emailed link, or an eight-digit code when you’re in the installed app.'],
       ['New', 'Passkeys: add one in Settings and sign in with Face ID or Touch ID next time.'],
       ['New', 'A public landing page, so there’s something to see before you sign in.'],
       ['Fixed', 'Saving from the live site no longer fails with a “different site” error.'],

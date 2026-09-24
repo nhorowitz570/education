@@ -57,6 +57,7 @@ export async function DELETE(r: Request) {
       );
     }
     // Remove private objects before deleting the auth owner. Keep deletion retryable.
+    // 'food' holds photos from the retired food log until their jobs delete them.
     for (const folder of ['imports', 'food']) {
       let more = true;
       while (more) {

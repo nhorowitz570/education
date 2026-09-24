@@ -23,7 +23,7 @@ public enum FW {
     public static let communication = Color.adaptive(light: .init(red: 0.6902, green: 0.4392, blue: 0.0824, opacity: 1), dark: .init(red: 0.9412, green: 0.7451, blue: 0.4745, opacity: 1))
     public static let judgment = Color.adaptive(light: .init(red: 0.3961, green: 0.3216, blue: 0.8627, opacity: 1), dark: .init(red: 0.698, green: 0.651, blue: 0.9608, opacity: 1))
     public static let review = Color.adaptive(light: .init(red: 0.1569, green: 0.4667, blue: 0.7529, opacity: 1), dark: .init(red: 0.549, green: 0.7843, blue: 0.9608, opacity: 1))
-    public static let life = Color.adaptive(light: .init(red: 0.8157, green: 0.3255, blue: 0.1843, opacity: 1), dark: .init(red: 0.9569, green: 0.5843, blue: 0.4784, opacity: 1))
+    public static let coral = Color.adaptive(light: .init(red: 0.8157, green: 0.3255, blue: 0.1843, opacity: 1), dark: .init(red: 0.9569, green: 0.5843, blue: 0.4784, opacity: 1))
     public static let positive = Color.adaptive(light: .init(red: 0.0745, green: 0.5294, blue: 0.3529, opacity: 1), dark: .init(red: 0.498, green: 0.8471, blue: 0.6824, opacity: 1))
     public static let negative = Color.adaptive(light: .init(red: 0.8235, green: 0.2627, blue: 0.1804, opacity: 1), dark: .init(red: 1, green: 0.5412, blue: 0.4588, opacity: 1))
     public static let caution = Color.adaptive(light: .init(red: 0.6902, green: 0.4392, blue: 0.0824, opacity: 1), dark: .init(red: 0.9412, green: 0.7451, blue: 0.4745, opacity: 1))

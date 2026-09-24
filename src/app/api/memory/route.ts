@@ -18,7 +18,7 @@ export async function GET(r: Request) {
   }
 }
 
-const kind = z.enum(['goal', 'interest', 'preference', 'background', 'knowledge', 'episode', 'style', 'life']);
+const kind = z.enum(['goal', 'interest', 'preference', 'background', 'knowledge', 'episode', 'style']);
 export async function POST(r: Request) {
   try {
     const { user } = await context(r);

@@ -30,7 +30,7 @@ import type { Style } from '@/lib/learning/style';
 const GROUPS: { title: string; kinds: Memory['kind'][] }[] = [
   { title: 'Goals', kinds: ['goal'] },
   { title: 'How you like to learn', kinds: ['preference', 'style'] },
-  { title: 'Background and interests', kinds: ['background', 'interest', 'knowledge', 'life'] },
+  { title: 'Background and interests', kinds: ['background', 'interest', 'knowledge'] },
   { title: 'Moments worth remembering', kinds: ['episode'] },
 ];
 type Usage = { total: number; byTier: Record<string, { calls: number; usd: number }>; cacheRate: number; models: Record<string, string> };

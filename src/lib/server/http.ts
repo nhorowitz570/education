@@ -16,10 +16,16 @@ export async function context(request?: Request) {
       'Connect Supabase to use your private account. The local preview remains available.',
       503,
     );
-  if (request && crossSite(request))
+  // The iPhone app sends its Supabase access token instead of cookies. A
+  // bearer request carries no ambient credentials, so it needs no CSRF check.
+  const bearer = request?.headers
+    .get('authorization')
+    ?.match(/^Bearer\s+(\S+)$/i)?.[1];
+  if (!bearer && request && crossSite(request))
     throw new HttpError('This request came from a different site.', 403);
-  const supabase = await serverClient();
-  const { data, error } = await supabase.auth.getUser();
+  const { data, error } = bearer
+    ? await adminClient().auth.getUser(bearer)
+    : await (await serverClient()).auth.getUser();
   if (error || !data.user) throw new HttpError('Sign in to continue.', 401);
   const expectedOwner = request?.headers.get('x-fieldwork-owner');
   if (expectedOwner && expectedOwner !== data.user.id)

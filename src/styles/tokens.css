@@ -23,7 +23,7 @@
   --communication: #f0be79;
   --judgment: #b2a6f5;
   --review: #8cc8f5;
-  --life: #f4957a;
+  --coral: #f4957a;
   --positive: #7fd8ae;
   --negative: #ff8a75;
   --caution: #f0be79;
@@ -86,7 +86,7 @@
     --communication: #b07015;
     --judgment: #6552dc;
     --review: #2877c0;
-    --life: #d0532f;
+    --coral: #d0532f;
     --positive: #13875a;
     --negative: #d2432e;
     --caution: #b07015;
@@ -117,7 +117,7 @@
   --communication: #b07015;
   --judgment: #6552dc;
   --review: #2877c0;
-  --life: #d0532f;
+  --coral: #d0532f;
   --positive: #13875a;
   --negative: #d2432e;
   --caution: #b07015;
@@ -144,7 +144,6 @@
 .t-communication { --c: var(--communication); }
 .t-judgment { --c: var(--judgment); }
 .t-review { --c: var(--review); }
-.t-life { --c: var(--life); }
 .t-general { --c: var(--text-2); }
 .t-explore { --c: var(--text-2); }
 

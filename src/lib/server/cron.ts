@@ -10,7 +10,8 @@ import { resolveStale } from './practice';
 
 type Job = { id: string; user_id: string; kind: string; attempts: number; payload: Record<string, string>; [k: string]: unknown };
 
-// Photos kept for 7 or 30 days are deleted by queued jobs.
+// Queued jobs delete the last private photos left from the retired food log;
+// the migration that retired it made them all due at once.
 export async function runJobs() {
   const db = adminClient();
   const { data, error } = await db.rpc('claim_fieldwork_jobs', { p_limit: 20 });

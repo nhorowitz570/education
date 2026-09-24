@@ -84,19 +84,6 @@
   color: var(--text);
   background: var(--surface-2);
 }
-.rail-item.secondary {
-  margin-top: 14px;
-  position: relative;
-}
-.rail-item.secondary::before {
-  content: '';
-  position: absolute;
-  top: -9px;
-  left: 18px;
-  right: 18px;
-  height: 1px;
-  background: var(--line);
-}
 .rail-you {
   margin-top: auto;
   display: grid;
@@ -175,10 +162,6 @@
   .rail-item[aria-current='page'] {
     background: var(--surface-2);
     box-shadow: var(--inner);
-  }
-  .rail-item.secondary::before {
-    left: 10px;
-    right: 10px;
   }
   .rail-you {
     display: flex;

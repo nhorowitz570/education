@@ -25,7 +25,6 @@ import { strength, type ConceptState } from '@/lib/learning/model';
 import { NEUTRAL, observe, styleLayer, type Signal, type Style } from '@/lib/learning/style';
 import { concepts, conceptsFor, describeState, dueConcepts, record, states } from './learner';
 import { consolidate, memoryLayer, recall } from './memory';
-import { ventureLayer } from './venture';
 import type { Attempt } from '@/lib/types';
 import { sessionById } from '@/lib/rolling';
 import { zoneOf } from '@/lib/zone';
@@ -496,9 +495,6 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
         .join('\n'),
     },
     { name: 'memories', content: memories || null },
-    // Lessons about money may use the learner's own Venture company as their
-    // scenario; anywhere else it would drag every idea into business.
-    { name: 'venture', content: row.kind !== 'practice' && moneyish(session?.subject, row.context.topic) ? await ventureLayer(userId) : null },
     { name: 'concept_states', content: conceptLines || null },
     {
       name: 'curriculum',
@@ -543,9 +539,6 @@ async function layers(userId: string, row: RunRow, beat: Beat, at: number): Prom
   ];
   return { layers: result, plan, session };
 }
-
-const moneyish = (subject?: string, topic?: string) =>
-  /financ|business|money|econom|invest|account|venture/i.test(`${subject || ''} ${topic || ''}`);
 
 const NOT_NAMES = new Set(['The', 'This', 'That', 'They', 'Their', 'There', 'When', 'After', 'Before', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday', 'January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']);
 async function recentNames(userId: string, exceptRun: string) {

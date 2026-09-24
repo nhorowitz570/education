@@ -10,7 +10,6 @@ const HUE: Record<string, string> = {
   communication: '#f3b862',
   judgment: '#a898ff',
   review: '#7cc4ff',
-  life: '#ff8f70',
   explore: '#a4a3a8',
 };
 const font = (file: string) => readFile(join(process.cwd(), 'assets/fonts', file));

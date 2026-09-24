@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { validRecord, validGymSettings } from './records';
+import { validRecord } from './records';
 import { dateSchema, timeSchema, planSchema, trackIdSchema } from './plan';
 import { applyEdit } from './rolling';
 import type { AppState, UserRecord, Attempt } from './types';
@@ -13,30 +13,13 @@ import {
 const record = z
   .object({
     id: z.string().min(1).max(180),
-    kind: z.enum([
-      'checkin',
-      'food',
-      'social',
-      'workout',
-      'reflection',
-      'memory',
-      'draft',
-      'settings',
-      'busy',
-      'body',
-      'external',
-    ]),
+    kind: z.enum(['memory', 'draft', 'settings', 'busy', 'external']),
     data: z
       .record(z.string().max(100), z.unknown())
       .refine((x) => JSON.stringify(x).length < 30000),
     updated_at: z.string().datetime(),
   })
-  .refine(
-    (r) =>
-      validRecord(r.kind, r.data) &&
-      (r.id !== 'settings:gym' || validGymSettings(r.data)),
-    'Invalid activity fields.',
-  );
+  .refine((r) => validRecord(r.kind, r.data), 'Invalid activity fields.');
 export const commandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('record'), eventId: z.string().uuid(), record }),
   z.object({

@@ -53,9 +53,6 @@ function week(scale: number): InsightMetrics {
       finished: true,
     })),
     concepts: { total: 40, touched: 8, levels: { new: 30, learning: 10 }, due: 3, new_misconceptions: Array.from({ length: scale }, () => long(80)) },
-    checkins: Array.from({ length: 7 }, (_, i) => ({ date: `2026-09-${14 + i}`, energy: 3, mood: 'Good' })),
-    reflections: Array.from({ length: scale }, () => long(200)),
-    workouts: 2,
     samples: Array.from({ length: 8 }, () => ({ step: 'attempt', text: long(90), verdict: 'solid', confidence: 'high', retried: false })),
     empty: false,
   };
@@ -64,7 +61,6 @@ function week(scale: number): InsightMetrics {
 describe('insight digest', () => {
   it('caps every free-text field and never sends the whole week', () => {
     const d = JSON.parse(digest(week(40)));
-    expect(d.reflections.length).toBeLessThanOrEqual(3);
     expect(d.practice.length).toBeLessThanOrEqual(6);
     expect(d.samples.length).toBeLessThanOrEqual(6);
     expect(d.asks.examples.length).toBeLessThanOrEqual(6);

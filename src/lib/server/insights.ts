@@ -250,15 +250,6 @@ export async function measure(userId: string, week: { start: string; end: string
     };
   }
 
-  const inWeek = (d?: unknown) => typeof d === 'string' && d >= week.start && d <= week.end;
-  const checkins = state.records
-    .filter((r) => r.kind === 'checkin' && inWeek(r.data.date))
-    .map((r) => ({ date: String(r.data.date), energy: Number(r.data.energy), mood: String(r.data.mood || '') }));
-  const reflections = state.records
-    .filter((r) => r.kind === 'reflection' && r.updated_at >= from && r.updated_at < to)
-    .map((r) => JSON.stringify(r.data).slice(0, 600));
-  const workouts = state.records.filter((r) => r.kind === 'workout' && inWeek(r.data.date) && r.data.complete).length;
-
   const daysActive = [...byDay.values()].filter((d) => d.minutes > 0 || d.answers > 0 || d.asks > 0).length;
   const minutes = Math.round([...byDay.values()].reduce((s, d) => s + d.minutes, 0));
   return {
@@ -286,9 +277,6 @@ export async function measure(userId: string, week: { start: string; end: string
     asks,
     practice,
     concepts: conceptSummary,
-    checkins,
-    reflections,
-    workouts,
     samples,
     empty: !runs.length && !events.length,
   };
@@ -325,7 +313,7 @@ const reportSchema = z.object({
     .describe('Exactly three learning habits the data shows.'),
   mind: z
     .array(z.object({ title: z.string().describe('At most six words.'), body: z.string().describe('One or two sentences.') }))
-    .describe('Two observations about motivation, how they meet difficulty, and energy. Behavioural, never clinical.'),
+    .describe('Two observations about motivation, how they meet difficulty, and rhythm. Behavioural, never clinical.'),
   moment: z
     .object({
       quote: z.string().describe('The learner’s own words, quoted exactly from the samples.'),

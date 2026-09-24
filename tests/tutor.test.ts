@@ -74,7 +74,7 @@ describe('tutor chat', () => {
         },
       ],
       suggestions: ['Quiz me'],
-      actions: [{ type: 'set_writing', writing: 'candid', href: null, label: null, content: null, energy: null, mood: null }],
+      actions: [{ type: 'set_writing', writing: 'candid', href: null, label: null, content: null }],
     });
     expect(reply.actions[0].writing).toBe('candid');
   });

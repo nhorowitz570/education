@@ -1,7 +1,6 @@
 // XP, levels, streaks, daily quests and badges. Everything here is derived
-// from what the learner actually did (answers, finished sessions, practice,
-// Venture months), so it can be recomputed at any time and never
-// double-counts. Pure: the same functions run on the server and in tests.
+// from what the learner actually did (answers, finished sessions, practice),
+// so it can be recomputed at any time and never double-counts. Pure: the same functions run on the server and in tests.
 
 import type { Beat, Confidence, Verdict } from './learning/run';
 
@@ -14,7 +13,6 @@ export const XP = {
   finish: { session: 40, return: 40, review: 20, rehearsal: 40, explore: 15, practice: 30 } as Record<string, number>,
   quest: 20,
   allQuests: 30,
-  ventureMonth: 10,
   badge: 50,
 };
 
@@ -56,10 +54,8 @@ export type Activity = {
   today: string; // local date
   answers: AnswerEvent[];
   runs: FinishedRun[];
-  ventureMonths: { date: string; profit: number }[];
   requiredDays: string[]; // dates with a planned, non-optional session
   learningDay: boolean; // today has a planned session
-  venture: boolean; // has a Venture company to play
   weekly?: boolean; // a rolling plan: the streak counts weeks, not days
 };
 
@@ -118,7 +114,7 @@ export function addDays(date: string, n: number) {
 
 export type Quest = { id: string; label: string; target: number; progress: number; done: boolean; xp: number };
 type QuestDef = { id: string; label: string; target: number; count: (day: DayActivity) => number };
-type DayActivity = { answers: AnswerEvent[]; runs: FinishedRun[]; ventureMonths: number };
+type DayActivity = { answers: AnswerEvent[]; runs: FinishedRun[] };
 
 const POOL: QuestDef[] = [
   { id: 'solid3', label: 'Get 3 solid answers', target: 3, count: (d) => d.answers.filter((e) => (e.score ?? 0) >= 0.75).length },
@@ -131,7 +127,6 @@ const POOL: QuestDef[] = [
   { id: 'review2', label: 'Bring back 2 fading ideas', target: 2, count: (d) => d.answers.filter((e) => e.kind === 'recall').length },
   { id: 'transfer', label: 'Use an idea in a new situation', target: 1, count: (d) => d.answers.filter((e) => e.kind === 'transfer' && (e.score ?? 0) >= 0.6).length },
   { id: 'practice', label: 'Practise a conversation out loud', target: 1, count: (d) => d.runs.filter((r) => r.kind === 'practice').length },
-  { id: 'venture', label: 'Run a month at your company', target: 1, count: (d) => d.ventureMonths },
   { id: 'answers6', label: 'Answer 6 questions', target: 6, count: (d) => d.answers.length },
 ];
 const SESSION: QuestDef = {
@@ -148,9 +143,9 @@ function seeded(date: string) {
   for (const c of date) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
   return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507)) >>> 0) / 4294967296;
 }
-export function questsFor(date: string, learningDay: boolean, day: DayActivity, venture = true): Quest[] {
+export function questsFor(date: string, learningDay: boolean, day: DayActivity): Quest[] {
   const rand = seeded(date);
-  const pool = POOL.filter((q) => venture || q.id !== 'venture').sort(() => rand() - 0.5);
+  const pool = [...POOL].sort(() => rand() - 0.5);
   const defs = [learningDay ? SESSION : ANY, ...pool.slice(0, 2)];
   return defs.map((q) => {
     const progress = Math.min(q.target, q.count(day));
@@ -179,7 +174,6 @@ function badges(a: Activity, s: { best: number }, level: number): Badge[] {
     b('calibrated-10', 'Knows what they know', '10 answers that were certain and correct', certainRight >= 10),
     b('honest', 'Honest start', 'Say “I don’t know yet” and learn it', a.answers.some((e) => e.unknown)),
     b('practice', 'Said it out loud', 'Finish a practice conversation', a.runs.some((r) => r.kind === 'practice')),
-    b('venture-profit', 'In the black', 'A profitable month at your company', a.ventureMonths.some((m) => m.profit > 0)),
     b('level-5', 'Apprentice', 'Reach level 5', level >= 5),
     b('level-10', 'Practitioner', 'Reach level 10', level >= 10),
   ];
@@ -191,12 +185,11 @@ export function progress(a: Activity) {
   const byDay = new Map<string, DayActivity>();
   const day = (d: string) => {
     let v = byDay.get(d);
-    if (!v) byDay.set(d, (v = { answers: [], runs: [], ventureMonths: 0 }));
+    if (!v) byDay.set(d, (v = { answers: [], runs: [] }));
     return v;
   };
   a.answers.forEach((e) => day(e.date).answers.push(e));
   a.runs.forEach((r) => day(r.date).runs.push(r));
-  a.ventureMonths.forEach((m) => day(m.date).ventureMonths++);
   const required = new Set(a.requiredDays);
 
   let xp = 0,
@@ -211,9 +204,8 @@ export function progress(a: Activity) {
     add(e.date, answerXp(verdict, e.confidence, e.unknown, score));
   }
   for (const r of a.runs) add(r.date, XP.finish[r.kind] || 0);
-  for (const m of a.ventureMonths) add(m.date, XP.ventureMonth);
   for (const [d, v] of byDay) {
-    const qs = questsFor(d, required.has(d), v, a.venture);
+    const qs = questsFor(d, required.has(d), v);
     const done = qs.filter((q) => q.done).length;
     add(d, done * XP.quest + (done === qs.length ? XP.allQuests : 0));
   }
@@ -229,7 +221,7 @@ export function progress(a: Activity) {
     todayXp,
     ...lv,
     streak: { ...s, unit: a.weekly ? ('week' as const) : ('day' as const) },
-    quests: questsFor(a.today, a.learningDay, day(a.today), a.venture),
+    quests: questsFor(a.today, a.learningDay, day(a.today)),
     badges: badges(a, s, lv.level),
   };
 }

@@ -134,7 +134,7 @@
         "app.fieldwork.light": "#2877c0"
       }
     },
-    "life": {
+    "coral": {
       "$type": "color",
       "$value": "#f4957a",
       "$extensions": {

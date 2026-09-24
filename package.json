@@ -9,7 +9,10 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "ios:project": "cd ios && xcodegen -q",
+    "ios:build": "cd ios && xcodegen -q && xcodebuild -project Fieldwork.xcodeproj -scheme Fieldwork -destination 'generic/platform=iOS Simulator' -derivedDataPath build -skipPackagePluginValidation build -quiet",
+    "ios:open": "cd ios && xcodegen -q && open Fieldwork.xcodeproj"
   },
   "dependencies": {
     "@fontsource/opendyslexic": "5.3.0",

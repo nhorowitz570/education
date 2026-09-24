@@ -1,4 +1,4 @@
-/* The Life, Import and settings screens keep their proven logic; these rules
+/* The Import, Learn and settings screens keep their proven logic; these rules
    map their markup onto the current design system. Scoped so the older class
    names cannot leak into new screens. */
 :is(.legacy, .legacy-settings, .sheet) h2 {
@@ -109,7 +109,7 @@
 }
 /* Former pastels become quiet tints of the subject hue. */
 :is(.legacy, .legacy-settings, .sheet) .peach {
-  background: color-mix(in srgb, var(--life) 11%, var(--surface));
+  background: color-mix(in srgb, var(--coral) 11%, var(--surface));
 }
 :is(.legacy, .legacy-settings, .sheet) .mint {
   background: color-mix(in srgb, var(--finance) 9%, var(--surface));
@@ -159,20 +159,17 @@
   justify-self: start;
 }
 
-/* Two-lane layout used by Life */
-.legacy .screen-grid,
-.life .screen-grid {
+/* Two-lane layout used by Import */
+.legacy .screen-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.6fr) minmax(260px, 1fr);
   gap: clamp(28px, 5vw, 64px);
   align-items: start;
 }
-.life .main-lane,
 .legacy .main-lane {
   display: grid;
   gap: 22px;
 }
-.life .context,
 .legacy .context {
   position: sticky;
   top: 24px;
@@ -180,93 +177,16 @@
   gap: 18px;
 }
 @media (max-width: 899px) {
-  .legacy .screen-grid,
-  .life .screen-grid {
+  .legacy .screen-grid {
     grid-template-columns: 1fr;
   }
-  .life .context,
   .legacy .context {
     position: static;
   }
 }
-.life .hero {
-  display: grid;
-  gap: 12px;
-  padding: 22px;
-  border-radius: var(--r-xl);
-  background: var(--raised);
-  box-shadow: var(--inner), 0 0 0 1px var(--line);
-}
-.life .hero h2 {
-  font-size: clamp(26px, 3vw, 34px);
-  margin-top: 4px;
-}
-.life .hero > p {
-  color: var(--text-2);
-}
-.life .hero .btn {
-  justify-self: start;
-  margin-top: 6px;
-  background: var(--accent);
-  color: var(--on-accent);
-}
-.life .growth-week {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-.life .growth-week button {
-  display: grid;
-  gap: 2px;
-  padding: 12px;
-  border-radius: var(--r);
-  background: var(--surface);
-  text-align: left;
-  transition: background var(--t-fast), box-shadow var(--t-fast);
-}
-.life .growth-week button[aria-pressed='true'] {
-  background: var(--surface-2);
-  box-shadow: inset 0 0 0 1.5px var(--life);
-}
-.life .growth-week span {
-  font-weight: 500;
-}
-.life .food-field {
-  display: grid;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--text-2);
-}
-.life .segmented,
 .sheet .segmented,
 .legacy-settings .segmented {
   justify-self: start;
-}
-.set-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 15px;
-}
-.set-table th {
-  text-align: left;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-3);
-  padding-bottom: 6px;
-}
-.set-table td {
-  padding: 6px 6px 6px 0;
-  border-top: 1px solid var(--line);
-}
-.set-table input {
-  min-height: 40px !important;
-}
-.rest-timer {
-  font-variant-numeric: tabular-nums;
-  font-stretch: 78%;
-  font-size: 40px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
 }
 
 /* Settings sections on the You page */

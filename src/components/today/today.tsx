@@ -234,24 +234,19 @@ export function Today() {
           )}
         </div>
       )}
-      <div className="tiles">
-        {tiles.map((s) => (
-          <button key={s.label} className="tile" onClick={() => void run(s)} disabled={!!busy} data-busy={busy === s.label || undefined}>
-            <span className={'row-glyph' + (s.kind === 'review' ? ' t-review' : '')}>
-              <Icon name={s.kind === 'practice' ? 'practice' : s.kind === 'review' ? 'refresh' : 'target'} size={18} />
-            </span>
-            <span className="tile-label">{s.kind === 'practice' ? 'Practise out loud' : s.label}</span>
-            <span className="tile-sub">{s.kind === 'practice' ? 'Debate, pitch, hard talks' : s.kind === 'review' ? `About ${s.minutes || 5} min` : '30-minute mock'}</span>
-          </button>
-        ))}
-        <Link href="/life" className="tile">
-          <span className="row-glyph t-life">
-            <Icon name="life" size={18} />
-          </span>
-          <span className="tile-label">Life</span>
-          <span className="tile-sub">Workout, food, check-in</span>
-        </Link>
-      </div>
+      {tiles.length > 0 && (
+        <div className="tiles">
+          {tiles.map((s) => (
+            <button key={s.label} className="tile" onClick={() => void run(s)} disabled={!!busy} data-busy={busy === s.label || undefined}>
+              <span className={'row-glyph' + (s.kind === 'review' ? ' t-review' : '')}>
+                <Icon name={s.kind === 'practice' ? 'practice' : s.kind === 'review' ? 'refresh' : 'target'} size={18} />
+              </span>
+              <span className="tile-label">{s.kind === 'practice' ? 'Practise out loud' : s.label}</span>
+              <span className="tile-sub">{s.kind === 'practice' ? 'Debate, pitch, hard talks' : s.kind === 'review' ? `About ${s.minutes || 5} min` : '30-minute mock'}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </section>
   );
 

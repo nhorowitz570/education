@@ -167,7 +167,6 @@ export const planSchema = z
       .min(1)
       .max(104),
     sessions: z.array(sessionSchema).max(1000),
-    growth: extensions,
     adaptation: extensions,
     milestones: z
       .array(z.object({ date: dateSchema, title: z.string().min(1).max(300) }))

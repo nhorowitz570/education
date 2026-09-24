@@ -1893,7 +1893,7 @@
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--caution), color-mix(in srgb, var(--caution) 60%, var(--life)));
+  background: linear-gradient(90deg, var(--caution), color-mix(in srgb, var(--caution) 60%, var(--coral)));
   transform-origin: left;
   transform: scaleX(var(--p, 0));
   transition: transform var(--t-slow) var(--ease);
@@ -1937,7 +1937,7 @@
   color: var(--text-3);
 }
 .streak.lit {
-  color: var(--life);
+  color: var(--coral);
 }
 .streak.lit b {
   color: var(--text);

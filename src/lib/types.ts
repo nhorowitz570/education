@@ -1,15 +1,9 @@
 import type { Plan } from './plan';
 export type RecordKind =
-  | 'checkin'
-  | 'food'
-  | 'social'
-  | 'workout'
-  | 'reflection'
   | 'memory'
   | 'draft'
   | 'settings'
   | 'busy'
-  | 'body'
   | 'external';
 export type UserRecord = {
   id: string;

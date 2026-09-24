@@ -7,6 +7,9 @@ import '@/app/entry.css';
 
 type Stage = 'email' | 'sent';
 const RESEND_SECONDS = 60;
+// Matches the project's email OTP length in Supabase Auth (also set in
+// supabase/config.toml). The iPhone app uses the same value.
+export const CODE_LENGTH = 8;
 export const PASSKEY_DEVICE = 'fieldwork-passkey-device';
 // Unknown addresses get the same response as known ones so the form cannot be
 // used to discover who has access.
@@ -66,7 +69,7 @@ export function Login({ linkError }: { linkError: boolean }) {
     setCooldown(RESEND_SECONDS);
   }
   async function verifyCode(value: string) {
-    if (value.length !== 6 || busy) return;
+    if (value.length !== CODE_LENGTH || busy) return;
     setBusy('code');
     setMessage('');
     const { error } = await browserClient().auth.verifyOtp({
@@ -175,7 +178,7 @@ export function Login({ linkError }: { linkError: boolean }) {
             <h1>Check your inbox</h1>
             <p className="login-lede">
               If <strong>{email.trim()}</strong> has access, a sign-in link is on
-              its way. On the installed app, enter the 6-digit code instead.
+              its way. On the installed app, enter the {CODE_LENGTH}-digit code instead.
             </p>
             <form
               className="login-form"
@@ -191,14 +194,14 @@ export function Login({ linkError }: { linkError: boolean }) {
                 className="code-input"
                 inputMode="numeric"
                 autoComplete="one-time-code"
-                pattern="[0-9]{6}"
-                maxLength={6}
-                placeholder="000000"
+                pattern={`[0-9]{${CODE_LENGTH}}`}
+                maxLength={CODE_LENGTH}
+                placeholder={'0'.repeat(CODE_LENGTH)}
                 value={code}
                 onChange={(e) => {
-                  const v = e.target.value.replace(/\D/g, '').slice(0, 6);
+                  const v = e.target.value.replace(/\D/g, '').slice(0, CODE_LENGTH);
                   setCode(v);
-                  if (v.length === 6) void verifyCode(v);
+                  if (v.length === CODE_LENGTH) void verifyCode(v);
                 }}
               />
             </form>

@@ -20,10 +20,8 @@ export const TASKS = {
   'run.summary': { tier: 'fast', effort: 'none', verbosity: 'low', maxOutput: 700 },
   'today.hook': { tier: 'fast', effort: 'none', verbosity: 'low', maxOutput: 200 },
   'insights.ask': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 900 },
-  'food.estimate': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 600 },
   'visual.repair': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 1500 },
   'plan.chapters': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 2500 },
-  'venture.month': { tier: 'fast', effort: 'low', verbosity: 'low', maxOutput: 2600 },
   // Sol: the tutor and most learner-facing intelligence.
   'tutor.beat': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 2500, escalate: 'reasoning' },
   'tutor.question': { tier: 'primary', effort: 'low', verbosity: 'low', maxOutput: 1800 },

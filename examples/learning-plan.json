@@ -2997,21 +2997,6 @@
       "generation_instructions": "Use completed work; do not claim mastery from attendance."
     }
   ],
-  "growth": {
-    "gym": {
-      "days": [
-        0,
-        2,
-        4
-      ],
-      "start_local": "17:00",
-      "status": "proposed; review before starting"
-    },
-    "food": [
-      "Protein at meals",
-      "Produce twice daily"
-    ]
-  },
   "adaptation": {
     "explanation_required": true,
     "undo_required": true,

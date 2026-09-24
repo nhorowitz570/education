@@ -48,28 +48,20 @@ describe('offline ownership and queue', () => {
     expect(await localGet('account-b', 'state')).toBeUndefined();
   });
 });
-describe('growth and scheduling', () => {
-  it('counts edited activities once and no empty workouts', () => {
+describe('activity records', () => {
+  it('counts edited activities once', () => {
     const state = structuredClone(emptyState);
     state.records = [1, 2].map((n) => ({
-      id: 'social:' + n,
-      kind: 'social',
+      id: 'voice:' + n,
+      kind: 'external',
       updated_at: new Date().toISOString(),
-      data: { date: '2026-09-28', attempted: true },
+      data: { date: '2026-09-28', kind: 'voice', completed: true },
     }));
     expect(practicePoints(state)).toBe(10);
-    state.records.push({
-      id: 'workout:empty',
-      kind: 'workout',
-      updated_at: new Date().toISOString(),
-      data: { date: '2026-09-28', complete: true, exercises: [{ sets: [] }] },
-    });
-    expect(practicePoints(state)).toBe(10);
   });
-  it('rejects invalid growth fields and nonfinite extension values', () => {
-    expect(validRecord('food', { protein: 9 })).toBe(false);
+  it('rejects invalid settings and nonfinite extension values', () => {
     expect(validRecord('settings', { morning: '25:30' })).toBe(false);
-    expect(validRecord('body', { kg: Infinity })).toBe(false);
+    expect(validRecord('external', { minutes: Infinity })).toBe(false);
   });
 });
 describe('model routing', () => {

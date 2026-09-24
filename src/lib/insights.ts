@@ -111,9 +111,6 @@ export type InsightMetrics = {
     finished: boolean;
   }[];
   concepts: { total: number; touched: number; levels: Record<string, number>; due: number; new_misconceptions: string[] };
-  checkins: { date: string; energy: number; mood: string }[];
-  reflections: string[];
-  workouts: number;
   samples: { step: string; text: string; verdict: string; confidence: string | null; retried: boolean }[];
   empty: boolean;
 };
@@ -184,18 +181,13 @@ export function digest(m: InsightMetrics) {
       criteria: p.criteria.slice(0, 5),
     })),
     concepts: { ...m.concepts, new_misconceptions: m.concepts.new_misconceptions.slice(0, 4).map((t) => clip(t, 160)) },
-    checkins: m.checkins.slice(-7),
-    reflections: m.reflections.slice(-3).map((r) => clip(r, 400)),
-    workouts: m.workouts,
     samples: m.samples.slice(0, 6).map((x) => ({ ...x, text: clip(x.text, 300) })),
   };
   const shed = [
-    () => (d.reflections = d.reflections.slice(-1)),
     () => (d.asks.examples = d.asks.examples.slice(0, 3)),
     () => (d.practice = d.practice.slice(-3)),
     () => (d.samples = d.samples.slice(0, 3)),
     () => {
-      d.reflections = [];
       d.asks.examples = [];
       d.samples = [];
       d.practice = d.practice.map((p) => ({ ...p, best: null, headline: null }));

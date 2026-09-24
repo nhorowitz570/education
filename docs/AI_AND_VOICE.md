@@ -6,7 +6,7 @@ Model IDs, prices and GPT-Live behaviour were verified against the live APIs on 
 
 | Tier | Model | Price per 1M tokens (in / cached / out) | Used for |
 | --- | --- | --- | --- |
-| fast | `gpt-6-luna` | $0.10 / $0.01 / $0.50 | Quick grading, memory extraction, summaries, food-photo estimates |
+| fast | `gpt-6-luna` | $0.10 / $0.01 / $0.50 | Quick grading, memory extraction, summaries |
 | primary | `gpt-6-sol` | $2 / $0.20 / $10 | Teaching beats, questions, tutor replies, deep grading, practice briefs, partners and feedback, Markdown import |
 | reasoning | `gpt-6-astra` | $10 / $1 / $50 | Curriculum mapping, diagnosing persistent misconceptions, and escalations |
 | voice | `gpt-live-1` | $0.05 per minute (15 s minimum) | Spoken practice |

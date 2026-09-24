@@ -6,16 +6,14 @@ import { writingSchema } from '@/lib/learning/voice';
 // the same blocks a lesson uses, plus a few small actions the app carries out
 // (never anything the learner didn't ask for).
 
-export const TUTOR_ROUTES = ['/', '/learn', '/practice', '/mastery', '/notebook', '/insights', '/life', '/you'] as const;
+export const TUTOR_ROUTES = ['/', '/learn', '/practice', '/mastery', '/notebook', '/insights', '/you'] as const;
 
 export const actionSchema = z.object({
-  type: z.enum(['set_writing', 'open', 'remember', 'checkin', 'start_today']),
+  type: z.enum(['set_writing', 'open', 'remember', 'start_today']),
   writing: writingSchema.nullable(),
   href: z.enum(TUTOR_ROUTES).nullable(),
   label: z.string().nullable().describe('Button text for open, ≤ 4 words.'),
   content: z.string().nullable().describe('remember: one short third-person sentence.'),
-  energy: z.number().int().nullable().describe('checkin: 1 (drained) to 5 (sharp).'),
-  mood: z.string().nullable().describe('checkin: one word.'),
 });
 export type TutorAction = z.infer<typeof actionSchema>;
 

@@ -11,7 +11,6 @@ import { Today } from '@/components/today/today';
 import { Learn } from '@/components/learn/learn';
 import { Mastery } from '@/components/mastery/mastery';
 import { Insights } from '@/components/insights/insights';
-import { Life } from '@/components/life/life';
 import { toRolling } from '@/lib/rolling';
 import type { AppConfig } from '@/lib/types';
 import { FIXTURES, RUN } from './fixtures';
@@ -124,8 +123,6 @@ export function Screen({ path }: { path: string[] }) {
       return <Mastery />;
     case 'insights':
       return <Insights />;
-    case 'life':
-      return <Life />;
     default:
       return <p className="page">Preview: /dev/preview/you, /notebook, /practice, /complete</p>;
   }

@@ -5,7 +5,7 @@ import { embed, generate } from '@/lib/ai/engine';
 
 export type Memory = {
   id: string;
-  kind: 'goal' | 'interest' | 'preference' | 'background' | 'knowledge' | 'episode' | 'style' | 'life';
+  kind: 'goal' | 'interest' | 'preference' | 'background' | 'knowledge' | 'episode' | 'style';
   content: string;
   concept_keys: string[];
   confidence: number;
@@ -111,7 +111,7 @@ const opSchema = z.object({
     z.object({
       op: z.enum(['add', 'reinforce', 'update', 'archive']),
       id: z.string().nullable().describe('Existing memory id for reinforce/update/archive.'),
-      kind: z.enum(['goal', 'interest', 'preference', 'background', 'knowledge', 'episode', 'style', 'life']),
+      kind: z.enum(['goal', 'interest', 'preference', 'background', 'knowledge', 'episode', 'style']),
       content: z.string().describe('One short third-person sentence.'),
       concept_keys: z.array(z.string()),
       confidence: z.number().describe('0–1: how sure this is true and durable.'),

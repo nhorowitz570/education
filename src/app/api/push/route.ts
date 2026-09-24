@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { context, body, fail, HttpError } from '@/lib/server/http';
 import { privatePut, privateDelete } from '@/lib/server/state';
+import { APNS_PREFIX } from '@/lib/server/push';
+import { apnsReady } from '@/lib/server/apns';
 const endpoint = z
   .string()
   .url()
@@ -26,10 +28,25 @@ export async function GET(r: Request) {
     return fail(e);
   }
 }
+// The iPhone app registers its APNs device token here.
+const apnsDevice = z.object({
+  apns: z.string().regex(/^[0-9a-f]{64,200}$/i),
+  sandbox: z.boolean(),
+});
 export async function POST(r: Request) {
   try {
     const { user } = await context(r),
-      v = z
+      input = await body<Record<string, unknown>>(r);
+    if ('apns' in input) {
+      const d = apnsDevice.parse(input);
+      await privatePut('push_subscriptions', {
+        user_id: user.id,
+        endpoint: APNS_PREFIX + d.apns.toLowerCase(),
+        subscription: { token: d.apns.toLowerCase(), sandbox: d.sandbox },
+      });
+      return NextResponse.json({ saved: true, delivering: apnsReady() });
+    }
+    const v = z
         .object({
           endpoint,
           keys: z.object({
@@ -38,7 +55,7 @@ export async function POST(r: Request) {
           }),
           expirationTime: z.number().nullable().optional(),
         })
-        .parse(await body(r));
+        .parse(input);
     await privatePut('push_subscriptions', {
       user_id: user.id,
       endpoint: v.endpoint,
@@ -49,10 +66,13 @@ export async function POST(r: Request) {
     return fail(e);
   }
 }
+// With ?apns=<token>, forgets one iPhone; otherwise every device.
 export async function DELETE(r: Request) {
   try {
-    const { user } = await context(r);
-    await privateDelete('push_subscriptions', user.id);
+    const { user } = await context(r),
+      token = new URL(r.url).searchParams.get('apns');
+    if (token) await privateDelete('push_subscriptions', user.id, APNS_PREFIX + token.toLowerCase());
+    else await privateDelete('push_subscriptions', user.id);
     return NextResponse.json({ deleted: true });
   } catch (e) {
     return fail(e);

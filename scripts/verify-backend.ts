@@ -126,7 +126,7 @@ try {
   });
   assert.ok(commit.error);
   pass('Ownership reassignment and privileged RPC access rejected');
-  const storagePath = `${a.id}/food/probe.jpg`,
+  const storagePath = `${a.id}/imports/probe.jpg`,
     file = new Uint8Array([255, 216, 255, 217]);
   const upload = await a.client.storage
     .from('fieldwork-private')
@@ -138,7 +138,7 @@ try {
   assert.ok(foreign.error);
   const foreignWrite = await b.client.storage
     .from('fieldwork-private')
-    .upload(`${a.id}/food/foreign.jpg`, file, { contentType: 'image/jpeg' });
+    .upload(`${a.id}/imports/foreign.jpg`, file, { contentType: 'image/jpeg' });
   assert.ok(foreignWrite.error);
   pass('Private Storage isolates both reads and writes');
   const started = await request(a, '/api/runs', { kind: 'session', sessionId: 'w01-monday' });
@@ -212,7 +212,7 @@ try {
   process.exitCode = 1;
 } finally {
   for (const id of users) {
-    for (const folder of ['imports', 'food']) {
+    for (const folder of ['imports']) {
       const { data } = await admin.storage
         .from('fieldwork-private')
         .list(`${id}/${folder}`);

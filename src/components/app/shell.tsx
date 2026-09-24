@@ -16,11 +16,8 @@ export const NAV = [
   { href: '/mastery', label: 'Mastery', icon: 'mastery' },
   // Wide screens only; phones reach it from Mastery, Today and each session's end.
   { href: '/notebook', label: 'Notebook', icon: 'notebook', rail: true },
-  { href: '/venture', label: 'Venture', icon: 'venture' },
   // Wide screens only; phones reach it from Mastery and Today.
   { href: '/insights', label: 'Insights', icon: 'insights', rail: true },
-  // Phones reach Life from Today, keeping the tab bar to five.
-  { href: '/life', label: 'Life', icon: 'life', rail: true },
 ] as const;
 
 const active = (path: string, href: string) => (href === '/' ? path === '/' : path.startsWith(href));
@@ -50,12 +47,7 @@ export function Shell({ children }: { children: ReactNode }) {
             </Link>
             <div className="rail-items">
               {NAV.map((n) => (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  className={'rail-item' + (n.href === '/life' ? ' secondary' : '')}
-                  aria-current={active(path, n.href) ? 'page' : undefined}
-                >
+                <Link key={n.href} href={n.href} className="rail-item" aria-current={active(path, n.href) ? 'page' : undefined}>
                   <Icon name={n.icon} size={21} />
                   <span>{n.label}</span>
                 </Link>

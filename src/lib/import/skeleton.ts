@@ -140,7 +140,6 @@ export function expand(s: Skeleton, fallback: { timezone?: string } = {}): { pla
       .map((x, i) => ({ id: `s${i + 1}`, title: x.title.slice(0, 300), url: x.url, use: x.use.slice(0, 6000) })),
     weeks: weekRows,
     sessions: sessions.slice(0, 1000),
-    growth: {},
     adaptation: {},
     milestones: s.milestones
       .filter((m) => ok(dateSchema, m.date) && m.date >= planStart && m.date <= planEnd && m.title.trim())
