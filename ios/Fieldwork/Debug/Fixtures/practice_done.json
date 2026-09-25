@@ -1,0 +1,158 @@
+{
+  "practice": {
+    "id": "a3f8d2c7-6e1b-4a95-8c3d-0b7e9f2a5d14",
+    "title": "Firm terms with a longtime client",
+    "status": "done",
+    "started_at": "2026-09-24T04:05:37.664127+00:00",
+    "practice": {
+      "mode": "conversation",
+      "difficulty": "realistic",
+      "minutes": 8,
+      "voice": "cedar",
+      "topic": "Ask my biggest client, who pays in 60+ days, to move to 30-day payment terms without damaging the relationship",
+      "brief": {
+        "title": "Firm terms with a longtime client",
+        "partner": {
+          "name": "Greg Sullivan",
+          "pronouns": "he/him",
+          "from": "Columbus, Ohio",
+          "role": "Owner of a regional HVAC company and your studio’s biggest client for four years",
+          "stance": "Pays when his own customers pay him, and thinks 60-day terms are normal between partners.",
+          "temperament": "Friendly and loyal, but bristles at anything that sounds like a lecture about money.",
+          "triggers": [
+            "Implying he’s a credit risk",
+            "Quoting “policy” at him instead of talking like a partner",
+            "Springing a late fee without warning"
+          ],
+          "delivery": "Warm, unhurried Midwestern cadence; jokes to deflect, then goes quiet when he’s annoyed."
+        },
+        "situation": "Greg’s company pays your studio about $9,000 a month, usually 55 to 70 days after you invoice. Payroll runs every two weeks, and last month you drew on your credit line to cover it. You’ve asked Greg for a quick call to move him to 30-day terms.",
+        "learner_role": "You own the video studio and handle client relationships.",
+        "learner_goal": "Leave with Greg agreeing to 30-day terms from next month, with the relationship intact.",
+        "opening": "Hey, good to hear from you! Everything okay? You sounded kind of serious in that email.",
+        "complications": [
+          "Greg mentions a competitor who offered him 60-day terms last spring.",
+          "He asks whether there’s a discount if he pays early."
+        ],
+        "success": [
+          "States the ask in the first minute",
+          "Explains the cash impact without blaming Greg",
+          "Acknowledges his constraints and the relationship",
+          "Ends with a specific start date and next step"
+        ],
+        "prep": [
+          "What are your first two sentences?",
+          "What could you offer if he pushes back, and what won’t you give up?",
+          "How will you check you understood his concern?"
+        ]
+      },
+      "channel": "voice",
+      "transcript": [
+        {
+          "role": "assistant",
+          "text": "Hey, good to hear from you! Everything okay? You sounded kind of serious in that email."
+        },
+        {
+          "role": "user",
+          "text": "Everything’s fine with the work, Greg, and I want to keep it that way. I’m calling because I need to move your account to 30-day payment terms, starting with the October invoices."
+        },
+        {
+          "role": "assistant",
+          "text": "Thirty days? Huh. We’ve been doing it this way for four years. Is something going on over there?"
+        },
+        {
+          "role": "user",
+          "text": "Nothing dramatic. We’ve grown, so payroll is bigger, and when invoices sit for 60 days I end up borrowing to cover it. You’re our biggest client, which is exactly why your timing matters so much."
+        },
+        {
+          "role": "assistant",
+          "text": "I get it, but my customers pay me late too. And honestly, a guy from Lumen Media offered us 60 days last spring. I stayed with you."
+        },
+        {
+          "role": "user",
+          "text": "I appreciate that, I really do. So it sounds like the real issue is that your cash comes in late too, and you don’t want to be squeezed in the middle."
+        },
+        {
+          "role": "assistant",
+          "text": "Yeah. That’s exactly it. If I pay you in 30 and my customers pay me in 60, I’m the bank."
+        },
+        {
+          "role": "user",
+          "text": "What if we split the difference on the timing of the work? I can invoice in two parts, half at kickoff and half at delivery, so each payment is smaller and lands closer to when your customers pay you."
+        },
+        {
+          "role": "assistant",
+          "text": "Hm. Would there be anything off if we paid early?"
+        },
+        {
+          "role": "user",
+          "text": "I can do one percent off if it’s paid within ten days. Can we start the new terms with the October 1 invoice, and I’ll send you a one-page summary tomorrow?"
+        }
+      ],
+      "concept": "skill-conversation",
+      "seconds": 468,
+      "feedback": {
+        "headline": "You made the ask early and kept Greg on side; the discount came too easily.",
+        "best": {
+          "quote": "So it sounds like the real issue is that your cash comes in late too, and you don’t want to be squeezed in the middle.",
+          "why": "It named Greg’s need, not his words, and it turned the call from a complaint into a shared problem."
+        },
+        "change": "Hold the early-payment discount until he’s agreed to 30 days. Offering it first gave away something you might not have needed to.",
+        "rewrite": {
+          "original": "I can do one percent off if it’s paid within ten days.",
+          "better": "Let’s lock in 30 days from October 1 first. If paying early would help you, I’m open to talking about a small discount after that."
+        },
+        "criteria": [
+          {
+            "name": "Clear ask up front",
+            "rating": "strong",
+            "note": "The terms and start date were in your second sentence."
+          },
+          {
+            "name": "Explaining the cash impact",
+            "rating": "strong",
+            "note": "Payroll and borrowing, without blaming Greg."
+          },
+          {
+            "name": "Listening under pressure",
+            "rating": "developing",
+            "note": "You reflected his need well once; the competitor comment went unanswered."
+          },
+          {
+            "name": "Protecting your position",
+            "rating": "focus",
+            "note": "The discount was offered before he had agreed to anything."
+          }
+        ],
+        "score": 0.74,
+        "notes": [
+          {
+            "line": 1,
+            "kind": "strength",
+            "note": "Reassurance, then the ask and the start date, in two sentences. Exactly the order that works."
+          },
+          {
+            "line": 3,
+            "kind": "strength",
+            "note": "“Your timing matters because you’re our biggest client” makes it about the relationship, not his behaviour."
+          },
+          {
+            "line": 5,
+            "kind": "moment",
+            "note": "The turning point: once you named his squeeze, he stopped defending and started solving."
+          },
+          {
+            "line": 7,
+            "kind": "change",
+            "note": "Splitting invoices is a good idea, but you skipped past the Lumen Media comment. A quick acknowledgement would have closed it."
+          },
+          {
+            "line": 9,
+            "kind": "change",
+            "note": "Get the yes on 30 days before trading anything for it."
+          }
+        ]
+      }
+    }
+  }
+}

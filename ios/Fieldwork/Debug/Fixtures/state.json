@@ -1,0 +1,644 @@
+{
+  "ownerId": "5b2f8c1e-7a4d-4c9b-9e21-3f6a0d8b7c42",
+  "state": {
+    "attempts": [
+      {
+        "id": "0c5e8a13-6f2b-4d97-b4a8-3e1f9c7d2b05",
+        "plan_id": "nathan-education-2026-2027",
+        "session_id": "w01-monday",
+        "objective_id": "Explain and apply: Profit versus cash",
+        "lesson_id": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+        "completed_at": "2026-09-21T17:49:31.604Z",
+        "date": "2026-09-21",
+        "reduced": false,
+        "assisted": false,
+        "reasoning": "Because profit is just a number on the report and cash is what’s actually in the bank. Jake made money in August but he’s spent most of it, so now he’s short for payroll.\n\nThe $4,000 deposit is cash but it isn’t profit yet because Emily hasn’t done the event. Once she caters it and pays $2,500 for food, the profit is about $1,500, and until then she’s holding money she still owes in work.",
+        "transfer": "The $4,000 deposit is cash but it isn’t profit yet because Emily hasn’t done the event. Once she caters it and pays $2,500 for food, the profit is about $1,500, and until then she’s holding money she still owes in work.",
+        "feedback": {
+          "strength": "Right. The gap is almost entirely unpaid invoices: earned in August, collected later.",
+          "gap": "You have the distinction, but the reason is off. Jake didn’t spend the profit; **$12,500 of it hasn’t arrived yet**. The fix for him is collections and payment terms, not cutting spending.",
+          "next": "",
+          "independent": true,
+          "correct": true,
+          "rubric": {
+            "issue": "",
+            "evidence": "",
+            "reasoning": "",
+            "uncertainty": ""
+          }
+        },
+        "points": 10
+      },
+      {
+        "id": "b8e3f1a2-4c7d-4e59-9a06-2d8b5f1c3e74",
+        "plan_id": "nathan-education-2026-2027",
+        "session_id": "w01-tuesday",
+        "objective_id": "Explain and apply: Listen, pause, state the point",
+        "lesson_id": "c41d7e06-9a2b-4f58-b3e7-6d1f0a8c2b95",
+        "completed_at": "2026-09-22T17:52:10.227Z",
+        "date": "2026-09-22",
+        "reduced": false,
+        "assisted": false,
+        "reasoning": "We’ll miss Friday’s launch by two days. The vendor changed their API on Tuesday and we need until Wednesday to test the fix. If we ship Friday without testing we risk breaking checkout over the weekend.",
+        "transfer": "Completed a guided session.",
+        "feedback": {
+          "strength": "Yes: answer, then reason, in one breath.",
+          "gap": "The pause earns its keep **before answering a pointed question**: it buys you a clean first sentence. Mid-point pauses read as losing the thread.",
+          "next": "",
+          "independent": false,
+          "correct": false,
+          "rubric": {
+            "issue": "",
+            "evidence": "",
+            "reasoning": "",
+            "uncertainty": ""
+          }
+        },
+        "points": 10
+      }
+    ],
+    "records": [
+      {
+        "id": "settings:device",
+        "kind": "settings",
+        "data": {
+          "timezone": "America/Los_Angeles"
+        },
+        "updated_at": "2026-09-15T16:02:41.905Z"
+      },
+      {
+        "id": "settings:prefs",
+        "kind": "settings",
+        "data": {
+          "session": {
+            "familiarity": true,
+            "confidence": true,
+            "dontKnow": true,
+            "breaks": 5
+          },
+          "voice": "cedar",
+          "writing": "balanced",
+          "game": {
+            "xp": true,
+            "streak": true,
+            "quests": true,
+            "pops": true
+          },
+          "reading": {
+            "size": "m",
+            "lessonFont": "serif",
+            "appFont": "sans",
+            "width": "normal",
+            "motion": "system"
+          },
+          "sound": false,
+          "notify": {
+            "morning": true,
+            "nudge": true,
+            "breaks": true,
+            "insights": true,
+            "week": true
+          }
+        },
+        "updated_at": "2026-09-19T18:20:03.117Z"
+      },
+      {
+        "id": "settings:reminders",
+        "kind": "settings",
+        "data": {
+          "enabled": true,
+          "travel": false,
+          "morning": "09:45",
+          "followup": "10:30",
+          "quietStart": "21:00",
+          "quietEnd": "08:00"
+        },
+        "updated_at": "2026-09-19T18:21:55.380Z"
+      },
+      {
+        "id": "settings:memory",
+        "kind": "settings",
+        "data": {
+          "seen_at": "2026-09-22T04:10:26.771Z"
+        },
+        "updated_at": "2026-09-22T04:10:26.771Z"
+      }
+    ],
+    "overrides": {},
+    "revisions": [],
+    "revision": 31,
+    "plan": {
+      "schema_version": "1.0",
+      "plan_id": "nathan-education-2026-2027",
+      "title": "Nathan education and growth",
+      "start_date": "2026-09-21",
+      "end_date": "2027-06-05",
+      "profile": {
+        "name": "Nathan",
+        "timezone": "America/Los_Angeles",
+        "goals": [
+          "Explain business financial health and cash risks",
+          "Handle challenging conversations clearly",
+          "Discuss politics and opposing views fairly",
+          "Evaluate evidence and personal biases"
+        ],
+        "preferences": {
+          "lesson_flow": "situation-explanation-attempt-feedback-transfer",
+          "activity_minutes": [
+            15,
+            25
+          ],
+          "feedback": "ask reasoning before addressing specific gap",
+          "calculations": "use AI/calculators; teach interpretation",
+          "text_lessons": true,
+          "voice_roleplay": true,
+          "politics": "right-of-center starting perspective, primary evidence, strong opposing argument",
+          "no_overdue_backlog": true,
+          "no_streak_reset": true,
+          "budget_usd_monthly": [
+            25,
+            75
+          ]
+        }
+      },
+      "schedule": {
+        "weekdays": [
+          0,
+          1,
+          2,
+          3,
+          4
+        ],
+        "start_local": "10:00",
+        "end_local": "12:00",
+        "timezone": "America/Los_Angeles",
+        "travel_window": {
+          "start": "2026-12-21",
+          "end": "2027-01-03",
+          "dates_confirmed": false
+        },
+        "weekly_review": "Friday 10:00, 30 minutes"
+      },
+      "sources": [
+        {
+          "id": "finance",
+          "title": "SEC: Beginners’ Guide to Financial Statements",
+          "url": "https://www.sec.gov/about/reports-publications/investorpubsbegfinstmtguide",
+          "use": "Statements and financial vocabulary; selected sections, not a full reading assignment."
+        },
+        {
+          "id": "filings",
+          "title": "Investor.gov: How to Read a 10-K",
+          "url": "https://www.investor.gov/introduction-investing/getting-started/researching-investments/how-read-10-k",
+          "use": "Company reports and checking a business claim against source documents."
+        },
+        {
+          "id": "negotiation",
+          "title": "Harvard Program on Negotiation: Negotiation Skills",
+          "url": "https://www.pon.harvard.edu/category/daily/negotiation-skills-daily/",
+          "use": "Choose a relevant public article for interests, alternatives, and negotiation practice."
+        },
+        {
+          "id": "constitution",
+          "title": "National Constitution Center: The Constitution",
+          "url": "https://constitutioncenter.org/the-constitution",
+          "use": "Constitutional text and differing interpretations."
+        },
+        {
+          "id": "primary",
+          "title": "National Archives: Constitution transcript",
+          "url": "https://www.archives.gov/founding-docs/constitution-transcript",
+          "use": "Primary constitutional source."
+        },
+        {
+          "id": "imprint",
+          "title": "Imprint course catalog",
+          "url": "https://www.imprintapp.com/courses",
+          "use": "Optional short visual supplement. Verify exact current course and price inside Imprint; no assumed progress API."
+        },
+        {
+          "id": "prageru",
+          "title": "PragerU",
+          "url": "https://www.prageru.com/",
+          "use": "Optional right-of-center opening perspective, paired with primary evidence and a serious opposing argument; not the answer key."
+        },
+        {
+          "id": "retrieval",
+          "title": "Retrieval Practice: Why it works",
+          "url": "https://www.retrievalpractice.org/why-it-works",
+          "use": "Rationale for recalling and applying ideas rather than only re-reading."
+        }
+      ],
+      "weeks": [
+        {
+          "id": "w2026-09-21",
+          "start_date": "2026-09-21",
+          "mode": "standard",
+          "topics": {
+            "monday": "Profit versus cash",
+            "tuesday": "Listen, pause, state the point",
+            "wednesday": "Read a simple income statement",
+            "thursday": "Federal versus state powers; claims versus evidence",
+            "friday": "Weekly review: connect cash, context and evidence"
+          },
+          "evidence": "Explain why a profitable company could run out of cash"
+        },
+        {
+          "id": "w2026-09-28",
+          "start_date": "2026-09-28",
+          "mode": "standard",
+          "topics": {
+            "monday": "Assets, liabilities, and equity",
+            "tuesday": "Give the right amount of context",
+            "wednesday": "Read a balance sheet alongside an income statement",
+            "thursday": "Congress, president, courts; facts versus values",
+            "friday": "Weekly review: explain a business in three statements"
+          },
+          "evidence": "Explain a business in three statements"
+        }
+      ],
+      "sessions": [
+        {
+          "id": "w01-monday",
+          "date": "2026-09-21",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "finance",
+          "title": "Profit versus cash",
+          "objective": "Explain and apply: Profit versus cash",
+          "evidence": "Explain why a profitable company could run out of cash",
+          "source_ids": [
+            "finance",
+            "filings"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+        },
+        {
+          "id": "w01-tuesday",
+          "date": "2026-09-22",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "communication",
+          "title": "Listen, pause, state the point",
+          "objective": "Explain and apply: Listen, pause, state the point",
+          "evidence": "Explain why a profitable company could run out of cash",
+          "source_ids": [
+            "negotiation"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+        },
+        {
+          "id": "w01-wednesday",
+          "date": "2026-09-23",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "finance",
+          "title": "Read a simple income statement",
+          "objective": "Explain and apply: Read a simple income statement",
+          "evidence": "Explain why a profitable company could run out of cash",
+          "source_ids": [
+            "finance",
+            "filings"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+        },
+        {
+          "id": "w01-thursday",
+          "date": "2026-09-24",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "judgment",
+          "title": "Federal versus state powers; claims versus evidence",
+          "objective": "Explain and apply: Federal versus state powers; claims versus evidence",
+          "evidence": "Explain why a profitable company could run out of cash",
+          "source_ids": [
+            "constitution",
+            "primary",
+            "prageru",
+            "imprint"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+        },
+        {
+          "id": "rev-01",
+          "date": "2026-09-25",
+          "start_local": "10:00",
+          "duration_minutes": 30,
+          "optional": false,
+          "subject": "review",
+          "title": "Weekly review: connect cash, context and evidence",
+          "objective": "Connect this week’s ideas: explain how profit, cash timing and a clear main point fit together, using one example of your own.",
+          "evidence": "A 150-word note that connects two of this week’s ideas",
+          "source_ids": [
+            "retrieval"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Retrieval first, then synthesis: ask the learner to connect the week’s ideas in their own words before showing any summary. Keep it to 30 minutes and end with one short piece of writing worth keeping."
+        },
+        {
+          "id": "w02-monday",
+          "date": "2026-09-28",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "finance",
+          "title": "Assets, liabilities, and equity",
+          "objective": "Explain and apply: Assets, liabilities, and equity",
+          "evidence": "Explain a business in three statements",
+          "source_ids": [
+            "finance",
+            "filings"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+          "why": "Builds on profit versus cash: now see where the cash and the debts sit."
+        },
+        {
+          "id": "w02-tuesday",
+          "date": "2026-09-29",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "communication",
+          "title": "Give the right amount of context",
+          "objective": "Explain and apply: Give the right amount of context",
+          "evidence": "Explain a business in three statements",
+          "source_ids": [
+            "negotiation"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+          "why": "Your Tuesday answers ran long; this trims context to what the listener needs."
+        },
+        {
+          "id": "w02-wednesday",
+          "date": "2026-09-30",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "finance",
+          "title": "Read a balance sheet alongside an income statement",
+          "objective": "Explain and apply: Read a balance sheet alongside an income statement",
+          "evidence": "Explain a business in three statements",
+          "source_ids": [
+            "finance",
+            "filings"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+          "why": "Pairs with Wednesday’s income statement so the two statements click together."
+        },
+        {
+          "id": "w02-thursday",
+          "date": "2026-10-01",
+          "start_local": "10:00",
+          "duration_minutes": 45,
+          "optional": false,
+          "subject": "judgment",
+          "title": "Congress, president, courts; facts versus values",
+          "objective": "Explain and apply: Congress, president, courts; facts versus values",
+          "evidence": "Explain a business in three statements",
+          "source_ids": [
+            "constitution",
+            "primary",
+            "prageru",
+            "imprint"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+          "why": "Claims versus evidence leads straight into separating facts from values."
+        },
+        {
+          "id": "rev-02",
+          "date": "2026-10-02",
+          "start_local": "10:00",
+          "duration_minutes": 30,
+          "optional": false,
+          "subject": "review",
+          "title": "Weekly review: explain a business in three statements",
+          "objective": "Explain how the income statement and balance sheet describe the same business from two angles, in plain words.",
+          "evidence": "A three-sentence explanation of one business you know",
+          "source_ids": [
+            "retrieval"
+          ],
+          "prerequisite_ids": [],
+          "generation_instructions": "Retrieval first, then synthesis: ask the learner to connect the week’s ideas in their own words before showing any summary. Keep it to 30 minutes and end with one short piece of writing worth keeping.",
+          "why": "A short synthesis while the three statements are fresh."
+        }
+      ],
+      "adaptation": {
+        "explanation_required": true,
+        "undo_required": true,
+        "recovery_minutes": 20,
+        "review_cap_minutes": 10,
+        "review_day_offsets": [
+          2,
+          7,
+          21
+        ],
+        "preserve_end_date": true
+      },
+      "milestones": [
+        {
+          "date": "2026-12-17",
+          "title": "Cash briefing and delegation"
+        },
+        {
+          "date": "2027-03-04",
+          "title": "Defend a decision"
+        },
+        {
+          "date": "2027-06-05",
+          "title": "Portfolio review"
+        }
+      ],
+      "horizon": {
+        "version": 1,
+        "rhythm": {
+          "days": {
+            "0": "finance",
+            "1": "communication",
+            "2": "finance",
+            "3": "judgment",
+            "4": "review"
+          },
+          "minutes": 45,
+          "start_local": "10:00"
+        },
+        "tracks": [
+          {
+            "id": "finance",
+            "title": "Finance",
+            "why": "Read a business the way a lender would: profit, cash, and the timing between them.",
+            "goals": [
+              "Explain business financial health and cash risks"
+            ],
+            "status": "active",
+            "backlog": [
+              {
+                "id": "w03-monday",
+                "title": "Operating, investing, financing cash flows",
+                "objective": "Explain and apply: Operating, investing, financing cash flows",
+                "evidence": "Trace a sale from agreement to cash",
+                "source_ids": [
+                  "finance",
+                  "filings"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              },
+              {
+                "id": "w03-wednesday",
+                "title": "Customer deposits, invoices, and cash timing",
+                "objective": "Explain and apply: Customer deposits, invoices, and cash timing",
+                "evidence": "Trace a sale from agreement to cash",
+                "source_ids": [
+                  "finance",
+                  "filings"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              },
+              {
+                "id": "w04-monday",
+                "title": "Fixed and variable costs",
+                "objective": "Explain and apply: Fixed and variable costs",
+                "evidence": "Create one usable delegation brief",
+                "source_ids": [
+                  "finance",
+                  "filings"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              },
+              {
+                "id": "w04-wednesday",
+                "title": "Read a break-even scenario using a calculator",
+                "objective": "Explain and apply: Read a break-even scenario using a calculator",
+                "evidence": "Create one usable delegation brief",
+                "source_ids": [
+                  "finance",
+                  "filings"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              }
+            ]
+          },
+          {
+            "id": "communication",
+            "title": "Communication",
+            "why": "Say the point first, listen for what the other person needs, and hold the thread when it gets hard.",
+            "goals": [
+              "Handle challenging conversations clearly"
+            ],
+            "status": "active",
+            "backlog": [
+              {
+                "id": "w03-tuesday",
+                "title": "Ask a follow-up based on what you heard",
+                "objective": "Explain and apply: Ask a follow-up based on what you heard",
+                "evidence": "Trace a sale from agreement to cash",
+                "source_ids": [
+                  "negotiation"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              },
+              {
+                "id": "w04-tuesday",
+                "title": "Delegate with outcome, owner, deadline, examples",
+                "objective": "Explain and apply: Delegate with outcome, owner, deadline, examples",
+                "evidence": "Create one usable delegation brief",
+                "source_ids": [
+                  "negotiation"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              }
+            ]
+          },
+          {
+            "id": "judgment",
+            "title": "Judgment",
+            "why": "Weigh claims against evidence, including the ones you already agree with.",
+            "goals": [
+              "Discuss politics and opposing views fairly",
+              "Evaluate evidence and personal biases"
+            ],
+            "status": "active",
+            "backlog": [
+              {
+                "id": "w03-thursday",
+                "title": "Founding compromises; correlation versus causation",
+                "objective": "Explain and apply: Founding compromises; correlation versus causation",
+                "evidence": "Trace a sale from agreement to cash",
+                "source_ids": [
+                  "constitution",
+                  "primary",
+                  "prageru",
+                  "imprint"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              },
+              {
+                "id": "w04-thursday",
+                "title": "Election mechanics; sample selection",
+                "objective": "Explain and apply: Election mechanics; sample selection",
+                "evidence": "Create one usable delegation brief",
+                "source_ids": [
+                  "constitution",
+                  "primary",
+                  "prageru",
+                  "imprint"
+                ],
+                "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+              }
+            ]
+          },
+          {
+            "id": "review",
+            "title": "Review",
+            "why": "One short session a week to connect the ideas and write something worth keeping for the June portfolio.",
+            "goals": [
+              "Build a portfolio of work worth reviewing in June"
+            ],
+            "status": "active",
+            "backlog": [
+              {
+                "id": "rev-03",
+                "title": "Monthly review: trace a sale from agreement to cash",
+                "objective": "Follow one sale from signed agreement to invoice to cash in the bank, naming where it shows up on each statement.",
+                "evidence": "A short written trace of one real or realistic sale",
+                "source_ids": [
+                  "retrieval"
+                ],
+                "generation_instructions": "Retrieval first, then synthesis: ask the learner to connect the week’s ideas in their own words before showing any summary. Keep it to 30 minutes and end with one short piece of writing worth keeping.",
+                "minutes": 30
+              }
+            ]
+          }
+        ],
+        "weeks": [
+          {
+            "start": "2026-09-21",
+            "status": "active",
+            "origin": "import",
+            "generated_at": "2026-09-19T18:12:40.512Z"
+          },
+          {
+            "status": "draft",
+            "origin": "ai",
+            "note": "Next week connects the two main statements and trims your answers to what the listener actually needs.",
+            "suggestion": null,
+            "generated_at": "2026-09-24T00:31:07.204Z",
+            "start": "2026-09-28"
+          }
+        ]
+      }
+    },
+    "planVersionId": "7d2a9c4e-1b6f-4e83-9a05-c3e8f1b7d240"
+  }
+}

@@ -13,10 +13,10 @@ struct PageHead<Trailing: View>: View {
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 Kicker(eyebrow)
                 Text(title)
-                    .font(.display(32))
+                    .font(.sans(32, .bold))
                     .foregroundStyle(FW.Palette.text)
                     .fixedSize(horizontal: false, vertical: true)
                 if let subtitle {
@@ -41,10 +41,10 @@ struct SectionHead: View {
     let title: String
     var trailing: String? = nil
     var body: some View {
-        HStack {
-            Kicker(title)
+        HStack(alignment: .firstTextBaseline) {
+            Text(title).font(.sans(20, .bold)).foregroundStyle(FW.Palette.text)
             Spacer()
-            if let trailing { Text(trailing).font(.mono(11)).foregroundStyle(FW.Palette.text3) }
+            if let trailing { Text(trailing).font(.sans(14, .medium)).foregroundStyle(FW.Palette.text3).monospacedDigit() }
         }
     }
 }
@@ -209,11 +209,13 @@ final class Toasts {
     }
     private(set) var items: [Item] = []
     private var actions: [UUID: () -> Void] = [:]
+    // Where the toasts are on screen; touches anywhere else pass through.
+    @ObservationIgnored var frame: CGRect = .zero
 
     func show(_ message: String, action: String? = nil, run: (() -> Void)? = nil) {
         let item = Item(message: message, action: action)
         if let run { actions[item.id] = run }
-        withAnimation(.spring(duration: 0.4)) {
+        withAnimation(Springs.bouncy) {
             items.append(item)
             if items.count > 2 { items.removeFirst() }
         }
@@ -229,35 +231,45 @@ final class Toasts {
     }
 
     func dismiss(_ id: UUID) {
-        withAnimation(.easeOut(duration: FW.Motion.base)) { items.removeAll { $0.id == id } }
+        withAnimation(Springs.smooth) { items.removeAll { $0.id == id } }
         actions[id] = nil
     }
 }
 
+// Toasts drop in from the top as a glass capsule, clear of the tab bar and
+// of anything being typed at the bottom of the screen.
 struct ToastLayer: View {
     @State private var toasts = Toasts.shared
     var body: some View {
         VStack(spacing: 8) {
             ForEach(toasts.items) { t in
-                HStack(spacing: 14) {
-                    Text(t.message).font(.sans(14)).foregroundStyle(FW.Palette.text)
+                HStack(spacing: 12) {
+                    Image(systemName: t.action == nil ? "checkmark.circle.fill" : "sparkles")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(t.action == nil ? FW.Palette.positive : FW.Palette.accent)
+                        .symbolEffect(.bounce, value: t.id)
+                    Text(t.message).font(.sans(14, .medium)).foregroundStyle(FW.Palette.text).lineLimit(2)
                     if let action = t.action {
                         Button(action) { toasts.run(t.id) }
-                            .font(.sans(14, .semibold))
+                            .font(.sans(14, .bold))
                             .foregroundStyle(FW.Palette.accent)
                     }
                 }
-                .padding(.vertical, 10)
-                .padding(.horizontal, 16)
-                .background(FW.Palette.surface3, in: .rect(cornerRadius: 16))
-                .shadow(color: .black.opacity(0.4), radius: 18, y: 10)
-                .transition(.move(edge: .bottom).combined(with: .opacity).combined(with: .scale(scale: 0.96)))
+                .padding(.vertical, 12)
+                .padding(.horizontal, 18)
+                .glassEffect(.regular, in: .capsule)
+                .shadow(color: .black.opacity(0.12), radius: 16, y: 8)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .top).combined(with: .scale(scale: 0.8, anchor: .top)).combined(with: .opacity),
+                    removal: .scale(scale: 0.9, anchor: .top).combined(with: .opacity)))
                 .onTapGesture { toasts.dismiss(t.id) }
+                .gesture(DragGesture(minimumDistance: 8).onEnded { v in if v.translation.height < 0 { toasts.dismiss(t.id) } })
             }
         }
-        .padding(.bottom, 90)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-        .allowsHitTesting(!toasts.items.isEmpty)
+        .padding(.horizontal, 16)
+        .padding(.top, 6)
+        .onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { toasts.frame = $0 }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 }
 
@@ -355,8 +367,9 @@ enum ToastWindow {
 
 private final class PassThroughWindow: UIWindow {
     override func hitTest(_ point: CGPoint, with event: UIEvent?) -> UIView? {
-        let hit = super.hitTest(point, with: event)
         // Only the toasts themselves take touches.
+        guard !Toasts.shared.items.isEmpty, Toasts.shared.frame.contains(point) else { return nil }
+        let hit = super.hitTest(point, with: event)
         return hit === rootViewController?.view ? nil : hit
     }
 }

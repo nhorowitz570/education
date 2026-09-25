@@ -13,27 +13,88 @@ func masteryReview(_ keys: [String]) async throws {
     _ = try await Runs.start(.init(kind: "review", concepts: keys))
 }
 
-// A label, a stat: big number over a small caption (web: .stat).
-struct MasteryStat: View {
-    let value: String
-    let label: String
-    var color: Color = FW.Palette.text
-    var size: CGFloat = 44
+// MARK: - Subjects
+
+// One ring per subject: average recall strength across its ideas, with how
+// many have been practised.
+struct MasterySubjects: View {
+    let concepts: [MasteryConcept]
+
+    private struct Subject: Identifiable {
+        let id: String
+        let strength: Double
+        let practised: Int
+        let total: Int
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value)
-                .font(.display(size))
-                .foregroundStyle(color)
-                .monospacedDigit()
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Text(label)
-                .font(.sans(13))
-                .foregroundStyle(FW.Palette.text3)
-                .fixedSize(horizontal: false, vertical: true)
+        var first: [String: Double] = [:]
+        for c in concepts { first[c.track] = min(first[c.track] ?? .infinity, c.position) }
+        let subjects: [Subject] = first.keys.sorted { (first[$0]!, $0) < (first[$1]!, $1) }.map { t in
+            let list = concepts.filter { $0.track == t }
+            return Subject(
+                id: t,
+                strength: list.isEmpty ? 0 : list.map(\.strength).reduce(0, +) / Double(list.count),
+                practised: list.filter { $0.level != "new" }.count,
+                total: list.count
+            )
         }
-        .accessibilityElement(children: .combine)
+        return VStack(alignment: .leading, spacing: 14) {
+            SectionHead(title: "Subjects")
+            Group {
+                if subjects.count <= 3 {
+                    HStack(alignment: .top, spacing: 12) {
+                        ForEach(subjects) { s in subject(s).frame(maxWidth: .infinity) }
+                    }
+                } else {
+                    ScrollView(.horizontal) {
+                        HStack(alignment: .top, spacing: 12) {
+                            ForEach(subjects) { s in subject(s).frame(width: 104) }
+                        }
+                    }
+                    .scrollIndicators(.hidden)
+                    .contentMargins(.horizontal, 16, for: .scrollContent)
+                    .padding(.horizontal, -16)
+                }
+            }
+            .padding(.vertical, 18)
+            .padding(.horizontal, subjects.count <= 3 ? 12 : 16)
+            .frame(maxWidth: .infinity)
+            .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
+        }
+    }
+
+    private func subject(_ s: Subject) -> some View {
+        let tint = trackColor(s.id)
+        return VStack(spacing: 10) {
+            ZStack {
+                NotebookRing(value: s.strength, color: tint, size: 76, line: 8, label: false)
+                VStack(spacing: 0) {
+                    Image(systemName: Glyph.track(s.id)).font(.system(size: 14, weight: .semibold)).foregroundStyle(tint)
+                    Text("\(Int((s.strength * 100).rounded()))%")
+                        .font(.rounded(16))
+                        .foregroundStyle(FW.Palette.text)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+            }
+            VStack(spacing: 2) {
+                Text(s.id.prefix(1).uppercased() + s.id.dropFirst())
+                    .font(.sans(14, .semibold))
+                    .foregroundStyle(FW.Palette.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text("\(s.practised) of \(s.total) practised")
+                    .font(.sans(12, .medium))
+                    .foregroundStyle(FW.Palette.text3)
+                    .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(s.id.capitalized): \(Int((s.strength * 100).rounded()))% average strength, \(s.practised) of \(s.total) ideas practised")
     }
 }
 
@@ -42,61 +103,77 @@ struct MasteryStat: View {
 struct MasteryShown: View {
     let concepts: [MasteryConcept]
     let onPick: (MasteryConcept) -> Void
+    @State private var all = false
 
     var body: some View {
         let shown = concepts.filter { $0.rank >= 2 }.sorted { $0.rank != $1.rank ? $0.rank > $1.rank : $0.strength > $1.strength }
         let learning = concepts.filter { $0.level == "learning" }.count
-        VStack(alignment: .leading, spacing: 8) {
-            Kicker("What you’ve shown")
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHead(title: "What you’ve shown", trailing: shown.isEmpty ? nil : "\(shown.count)")
             if shown.isEmpty {
-                Text(learning > 0
-                     ? "You’re learning \(learning) idea\(learning == 1 ? "" : "s"). Get a couple of solid answers on one and it shows up here."
-                     : "Nothing yet. Every idea you show you can use will be listed here, strongest first.")
-                    .font(.sans(15))
-                    .foregroundStyle(FW.Palette.text2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.vertical, 18)
+                HStack(spacing: 12) {
+                    IconBadge(systemName: learning > 0 ? "leaf" : "sparkles", color: FW.Palette.caution, size: 40)
+                    Text(learning > 0
+                         ? "Learning \(learning) idea\(learning == 1 ? "" : "s"). A couple of solid answers on one puts it here."
+                         : "Nothing yet. Ideas you can use show up here, strongest first.")
+                        .font(.sans(15))
+                        .foregroundStyle(FW.Palette.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
             } else {
-                VStack(spacing: 0) {
-                    ForEach(Array(shown.prefix(8).enumerated()), id: \.element.key) { i, c in
-                        Button { onPick(c) } label: {
-                            HStack(spacing: 14) {
-                                Dot(color: trackColor(c.track), lit: true)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text(c.title)
-                                        .font(.sans(15))
-                                        .foregroundStyle(FW.Palette.text)
-                                        .multilineTextAlignment(.leading)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                    Meter(value: c.strength, color: trackColor(c.track))
-                                        .frame(maxWidth: 220)
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                Text(levelLabel(c.level))
-                                    .font(.sans(13))
-                                    .foregroundStyle(FW.Palette.text3)
-                                    .lineLimit(1)
-                                    .fixedSize()
-                            }
-                            .padding(.vertical, 10)
-                            .frame(minHeight: 56)
-                            .contentShape(.rect)
-                        }
-                        .buttonStyle(.plain)
-                        .overlay(alignment: .top) { if i > 0 { Rule() } }
-                        .accessibilityLabel("\(c.title), \(levelLabel(c.level)), \(Int((c.strength * 100).rounded()))% strength")
+                GroupCard {
+                    ForEach(shown.prefix(all ? shown.count : 8)) { c in
+                        Button { onPick(c) } label: { MasteryConceptRow(concept: c) }
+                            .buttonStyle(.pressable(0.98))
+                            .accessibilityLabel("\(c.title), \(levelLabel(c.level)), \(Int((c.strength * 100).rounded()))% strength")
                     }
                 }
                 if shown.count > 8 {
-                    Text("and \(shown.count - 8) more on the map below.").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                    Button {
+                        withAnimation(Springs.smooth) { all.toggle() }
+                    } label: {
+                        Label(all ? "Show fewer" : "\(shown.count - 8) more", systemImage: all ? "chevron.up" : "chevron.down")
+                    }
+                    .buttonStyle(.fw(.secondary, small: true))
                 }
             }
         }
     }
 }
 
+// A concept: subject glyph, title over a strength meter, level pill.
+struct MasteryConceptRow: View {
+    let concept: MasteryConcept
+    var body: some View {
+        let c = concept
+        let tint = trackColor(c.track)
+        HStack(spacing: 14) {
+            IconBadge(systemName: Glyph.track(c.track), color: tint, size: 36)
+            VStack(alignment: .leading, spacing: 7) {
+                Text(c.title)
+                    .font(.sans(15, .medium))
+                    .foregroundStyle(FW.Palette.text)
+                    .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
+                Meter(value: c.strength, color: tint, height: 5)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            NotebookLevelPill(level: c.level)
+        }
+        .padding(.vertical, 12)
+        .frame(minHeight: 60)
+        .contentShape(.rect)
+    }
+}
+
 // MARK: - Your next challenge
 
+// The page's hero: one thing to do next, with a big button.
 struct MasteryNextChallenge: View {
     let concepts: [MasteryConcept]
     let now: Date
@@ -110,13 +187,23 @@ struct MasteryNextChallenge: View {
             .filter { $0.level != "new" && ($0.due.map { $0 <= now } ?? false) }
             .min { $0.recall < $1.recall }
         let pick = tricky ?? due
-        let tint = pick.map { trackColor($0.track) } ?? FW.Palette.text2
-        VStack(alignment: .leading, spacing: 10) {
-            Kicker("Your next challenge")
-            Text(pick.map { tricky != nil ? "Untangle “\($0.title)”" : "Bring back “\($0.title)”" } ?? "Today’s session")
-                .font(.sans(20, .semibold))
-                .foregroundStyle(FW.Palette.text)
-                .fixedSize(horizontal: false, vertical: true)
+        let tint = pick.map { trackColor($0.track) } ?? FW.Palette.review
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(spacing: 12) {
+                IconBadge(systemName: tricky != nil ? "bandage" : pick != nil ? "arrow.triangle.2.circlepath" : "sun.max", color: tint, size: 44, filled: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your next challenge").font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text2)
+                    Text(pick.map { tricky != nil ? "Untangle “\($0.title)”" : "Bring back “\($0.title)”" } ?? "Today’s session")
+                        .font(.sans(19, .bold))
+                        .foregroundStyle(FW.Palette.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+                if let pick, tricky == nil {
+                    NotebookRing(value: pick.recall, color: tint, size: 48, line: 5)
+                        .accessibilityLabel("Recall \(Int((pick.recall * 100).rounded())) percent")
+                }
+            }
             Text(detail(pick: pick, tricky: tricky))
                 .font(.sans(15))
                 .foregroundStyle(FW.Palette.text2)
@@ -126,26 +213,27 @@ struct MasteryNextChallenge: View {
             }
             Button { go(pick) } label: {
                 HStack(spacing: 8) {
-                    if busy { ProgressView().tint(FW.Palette.onAccent) }
+                    if busy { ProgressView().tint(FW.Palette.onAccent) } else { Image(systemName: pick != nil ? "play.fill" : "arrow.right") }
                     Text(pick != nil ? "Start a 5-minute review" : "Go to Today")
-                    if !busy { Image(systemName: "arrow.right") }
                 }
+                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.fw(.primary))
+            .buttonStyle(.fw(.primary, wide: true))
             .disabled(busy)
-            .padding(.top, 6)
         }
-        .padding(20)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(tint.opacity(0.07), in: .rect(cornerRadius: FW.Radius.lg))
-        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg).strokeBorder(tint.opacity(0.22)))
+        .background {
+            Aurora(colors: [tint, FW.Palette.review, tint], intensity: 0.3)
+                .clipShape(.rect(cornerRadius: FW.Radius.xl, style: .continuous))
+        }
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.xl, style: .continuous).strokeBorder(tint.opacity(0.22)))
     }
 
     private func detail(pick: MasteryConcept?, tricky: MasteryConcept?) -> String {
-        guard let pick else { return "Nothing is fading and nothing is tangled. The best next step is simply the next session." }
-        if let tricky { return "Still tricky: \(tricky.misconceptions[0]). A short, targeted review is the fastest fix." }
-        return "Recall is down to \(Int((pick.recall * 100).rounded()))%. Reviewing it now makes it last far longer."
+        guard let pick else { return "Nothing is fading or tangled. Next up: the next session." }
+        if let tricky { return "Still tricky: \(tricky.misconceptions[0].trimmingCharacters(in: CharacterSet(charactersIn: ". ")))." }
+        return "Recall is down to \(Int((pick.recall * 100).rounded()))%. A review now makes it last."
     }
 
     private func go(_ pick: MasteryConcept?) {
@@ -181,13 +269,16 @@ struct MasteryForecast: View {
         let solidNow = today.filter { $0.rank >= 3 }.count
         let solidThen = concepts.filter { $0.rank >= 3 }.count
         VStack(alignment: .leading, spacing: 14) {
-            VStack(alignment: .leading, spacing: 4) {
-                Kicker("If you don’t review")
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    IconBadge(systemName: "hourglass", color: FW.Palette.review, size: 30)
+                    Text("If you don’t review").font(.sans(17, .bold)).foregroundStyle(FW.Palette.text)
+                }
                 Text(line(i: i, slipping: slipping.count, drop: solidNow - solidThen))
-                    .font(.sans(16))
+                    .font(.sans(15))
                     .foregroundStyle(FW.Palette.text2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .contentTransition(.opacity)
+                    .contentTransition(.numericText())
                     .accessibilityAddTraits(.updatesFrequently)
             }
             if ahead > 0, !slipping.isEmpty {
@@ -199,17 +290,16 @@ struct MasteryForecast: View {
                 }
                 .buttonStyle(.fw(.primary, small: true))
                 .disabled(busy)
-                .transition(.opacity)
+                .transition(.opacity.combined(with: .scale(0.9, anchor: .leading)))
             }
             scrub(i)
             if let error { Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative) }
         }
-        .padding(.vertical, 18)
-        .padding(.horizontal, 20)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg).strokeBorder(FW.Palette.line))
-        .animation(.easeOut(duration: FW.Motion.base), value: ahead)
+        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
+        .animation(Springs.snappy, value: ahead)
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Forgetting forecast")
     }
@@ -218,7 +308,7 @@ struct MasteryForecast: View {
         func plain(_ s: String) -> AttributedString { AttributedString(s) }
         func bold(_ s: String) -> AttributedString {
             var a = AttributedString(s)
-            a.font = .sans(16, .semibold)
+            a.font = .sans(15, .semibold)
             a.foregroundColor = FW.Palette.text
             return a
         }
@@ -265,8 +355,8 @@ struct MasteryForecast: View {
                         ahead = a.days
                     } label: {
                         Text(a.label)
-                            .font(.sans(12, j == i ? .semibold : .regular))
-                            .foregroundStyle(j == i ? FW.Palette.text : FW.Palette.text3)
+                            .font(.sans(12, j == i ? .bold : .medium))
+                            .foregroundStyle(j == i ? FW.Palette.review : FW.Palette.text3)
                             .lineLimit(1)
                             .fixedSize()
                             .frame(minHeight: 28)
@@ -321,6 +411,7 @@ struct MasteryMap: View {
                     .overlay { GeometryReader { g in canvas(layout, scale: g.size.width / width) } }
                     .accessibilityElement(children: .contain)
                     .accessibilityLabel("Knowledge map of every concept in the plan")
+                Rule()
                 legend
             }
         }
@@ -382,7 +473,7 @@ struct MasteryMap: View {
             }
             ForEach(Array(l.tracks.enumerated()), id: \.element) { i, t in
                 Text(t.prefix(1).uppercased() + t.dropFirst())
-                    .font(.custom("InstrumentSans-Medium", fixedSize: 11.5))
+                    .font(.system(size: 11.5, weight: .semibold))
                     .foregroundStyle(FW.Palette.text3)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
@@ -514,6 +605,7 @@ struct MasteryMomentum: View {
                             .clipShape(.rect(cornerRadius: 6))
                             .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(now ? FW.Palette.line3 : .clear))
                             .scaleEffect(y: grown ? 1 : 0, anchor: .bottom)
+                            .animation(reduceMotion ? nil : Springs.gentle.delay(Double(i) * 0.04), value: grown)
                         }
                         .frame(maxWidth: .infinity)
                     }
@@ -529,7 +621,7 @@ struct MasteryMomentum: View {
         }
         .frame(height: 140)
         .onAppear {
-            if reduceMotion { grown = true } else { withAnimation(.easeOut(duration: 0.7)) { grown = true } }
+            if reduceMotion { grown = true } else { withAnimation(Springs.gentle.delay(0.1)) { grown = true } }
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Learning activity over the last eight weeks")
@@ -543,46 +635,61 @@ struct MasteryCalibration: View {
     let c: CalibrationCounts
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var grown = false
-    private let rows: [(key: String, label: String, opacity: Double)] = [("low", "Guessing", 0.55), ("medium", "Fairly sure", 0.78), ("high", "Certain", 1)]
+    private let rows: [(key: String, label: String, icon: String, opacity: Double)] = [
+        ("low", "Guessing", "questionmark", 0.5), ("medium", "Fairly sure", "hand.thumbsup", 0.75), ("high", "Certain", "checkmark.seal", 1),
+    ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Kicker("Knowing when you know")
-            HStack(alignment: .bottom, spacing: 14) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
-                    let p = c.pct(r.key)
-                    VStack(spacing: 6) {
-                        Text(p.map { "\($0)%" } ?? "–")
-                            .font(.sans(18, .medium))
-                            .foregroundStyle(FW.Palette.text)
-                            .monospacedDigit()
-                        GeometryReader { g in
-                            ZStack(alignment: .bottom) {
-                                RoundedRectangle(cornerRadius: 10).fill(FW.Palette.surface2)
-                                RoundedRectangle(cornerRadius: 10)
-                                    .fill(FW.Palette.review.opacity(r.opacity))
-                                    .frame(height: g.size.height * Double(p ?? 0) / 100)
-                                    .scaleEffect(y: grown ? 1 : 0, anchor: .bottom)
-                                    .animation(reduceMotion ? nil : .easeOut(duration: 0.9).delay(Double(i) * 0.12), value: grown)
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHead(title: "Knowing when you know", trailing: "\(c.total) rated")
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(alignment: .bottom, spacing: 14) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { i, r in
+                        let p = c.pct(r.key)
+                        VStack(spacing: 8) {
+                            Text(p.map { "\($0)%" } ?? "–")
+                                .font(.rounded(20))
+                                .foregroundStyle(FW.Palette.text)
+                                .monospacedDigit()
+                            GeometryReader { g in
+                                ZStack(alignment: .bottom) {
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous).fill(FW.Palette.surface2)
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .fill(FW.Palette.review.opacity(r.opacity))
+                                        .frame(height: g.size.height * Double(p ?? 0) / 100)
+                                        .scaleEffect(y: grown ? 1 : 0, anchor: .bottom)
+                                        .animation(reduceMotion ? nil : Springs.gentle.delay(Double(i) * 0.1), value: grown)
+                                }
+                                .frame(width: min(g.size.width, 48))
+                                .frame(maxWidth: .infinity)
                             }
-                            .frame(width: min(g.size.width, 44))
-                            .frame(maxWidth: .infinity)
+                            HStack(spacing: 4) {
+                                Image(systemName: r.icon).font(.system(size: 11, weight: .bold)).foregroundStyle(FW.Palette.review)
+                                Text(r.label).font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text)
+                            }
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            Text("\(c[r.key].n) answer\(c[r.key].n == 1 ? "" : "s")")
+                                .font(.sans(12, .medium)).foregroundStyle(FW.Palette.text3).monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
                         }
-                        Text(r.label).font(.sans(13, .medium)).foregroundStyle(FW.Palette.text).lineLimit(1).minimumScaleFactor(0.8)
-                        Text("\(c[r.key].n) answer\(c[r.key].n == 1 ? "" : "s")")
-                            .font(.sans(13)).foregroundStyle(FW.Palette.text3).monospacedDigit().lineLimit(1).minimumScaleFactor(0.8)
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                }
+                .frame(height: 190)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(rows.map { "\($0.label): \(c.pct($0.key).map(String.init) ?? "no") percent right" }.joined(separator: ", "))
+                Rule()
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: "lightbulb").font(.system(size: 14, weight: .semibold)).foregroundStyle(FW.Palette.caution)
+                    Text(read)
+                        .font(.sans(14))
+                        .foregroundStyle(FW.Palette.text2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(height: 180)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(rows.map { "\($0.label): \(c.pct($0.key).map(String.init) ?? "no") percent right" }.joined(separator: ", "))
-            Text(read)
-                .font(.sans(14))
-                .foregroundStyle(FW.Palette.text2)
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(.top, 4)
+            .padding(16)
+            .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
         }
         .onAppear { grown = true }
     }
@@ -600,18 +707,19 @@ struct MasteryCalibration: View {
 // MARK: - Portfolio
 
 // Everything produced, filed under the milestone it builds toward, with a
-// rehearsal for each milestone still ahead.
+// rehearsal for each milestone still ahead. Each milestone folds open.
 struct MasteryPortfolio: View {
     let milestones: [MasteryData.Milestone]
     @Environment(Store.self) private var store
     @State private var loader = Loader<PortfolioData>("/api/portfolio")
     @State private var busy = ""
     @State private var error: String?
+    @State private var open: Set<Int> = [0]
 
     var body: some View {
         Group {
             if let data = loader.value, data.count > 0 || !milestones.isEmpty {
-                content(data)
+                content(data).rise()
             }
         }
         .task { await loader.load() }
@@ -619,80 +727,107 @@ struct MasteryPortfolio: View {
 
     private func content(_ data: PortfolioData) -> some View {
         let today = store.today
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Kicker("Portfolio · \(data.count) piece\(data.count == 1 ? "" : "s")")
-                Spacer(minLength: 8)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .center, spacing: 12) {
+                SectionHead(title: "Portfolio", trailing: NotebookText.count(data.count, "piece"))
                 if data.count > 0 {
                     ShareLink(
                         item: MarkdownFile(name: "fieldwork-portfolio-\(today).md") { try await LibraryText.get("/api/portfolio?format=md") },
                         preview: SharePreview("Portfolio")
                     ) {
-                        Label("Export", systemImage: "square.and.arrow.up")
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 15, weight: .semibold))
+                            .frame(width: 36, height: 36)
+                            .background(FW.Palette.surface2, in: .circle)
                     }
-                    .buttonStyle(.fw(.secondary, small: true))
+                    .buttonStyle(.pressable(0.9))
+                    .foregroundStyle(FW.Palette.text)
+                    .accessibilityLabel("Export portfolio")
                 }
             }
             if let error { Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative).fixedSize(horizontal: false, vertical: true) }
-            VStack(alignment: .leading, spacing: 28) {
-                ForEach(Array(data.groups.enumerated()), id: \.offset) { _, g in group(g, today: today) }
+            VStack(spacing: 10) {
+                ForEach(Array(data.groups.enumerated()), id: \.offset) { i, g in group(g, index: i, today: today) }
             }
         }
     }
 
-    private func group(_ g: PortfolioData.Group, today: String) -> some View {
+    private func group(_ g: PortfolioData.Group, index: Int, today: String) -> some View {
         let upcoming = !g.date.isEmpty && g.date >= today
-        return VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                Dot(color: upcoming ? FW.Palette.text3 : FW.Palette.positive, lit: true)
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(g.title).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text).fixedSize(horizontal: false, vertical: true)
-                    if !g.date.isEmpty { Text(Dates.short(g.date)).font(.sans(13)).foregroundStyle(FW.Palette.text3) }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                if upcoming {
-                    Button { rehearse(g.date) } label: {
-                        HStack(spacing: 6) {
-                            if busy == g.date { ProgressView() } else { Image(systemName: "target") }
-                            Text("Rehearse")
-                        }
+        let isOpen = open.contains(index)
+        return VStack(alignment: .leading, spacing: 0) {
+            Button {
+                withAnimation(Springs.smooth) { if isOpen { open.remove(index) } else { open.insert(index) } }
+            } label: {
+                HStack(spacing: 12) {
+                    IconBadge(systemName: upcoming ? "flag" : "checkmark.seal.fill", color: upcoming ? FW.Palette.text2 : FW.Palette.positive, size: 36)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(g.title).font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text).multilineTextAlignment(.leading).fixedSize(horizontal: false, vertical: true)
+                        Text([g.date.isEmpty ? nil : Dates.short(g.date), NotebookText.count(g.items.count, "piece")].compactMap { $0 }.joined(separator: " · "))
+                            .font(.sans(13)).foregroundStyle(FW.Palette.text3).monospacedDigit()
                     }
-                    .buttonStyle(.fw(.secondary, small: true))
-                    .disabled(!busy.isEmpty)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(FW.Palette.text3)
+                        .rotationEffect(.degrees(isOpen ? 180 : 0))
+                        .frame(width: 24, height: 24)
+                        .background(FW.Palette.surface2, in: .circle)
                 }
+                .padding(14)
+                .contentShape(.rect)
             }
-            if g.items.isEmpty {
-                Text(upcoming ? "Nothing filed yet. Work you produce toward this lands here." : "No work filed here.")
-                    .font(.sans(14))
-                    .foregroundStyle(FW.Palette.text2)
-                    .padding(.leading, 20)
-                    .fixedSize(horizontal: false, vertical: true)
-            } else {
-                VStack(alignment: .leading, spacing: 18) {
-                    ForEach(Array(g.items.enumerated()), id: \.offset) { _, e in
-                        VStack(alignment: .leading, spacing: 6) {
+            .buttonStyle(.plain)
+            .sensoryFeedback(.selection, trigger: isOpen)
+            .accessibilityAddTraits(isOpen ? .isSelected : [])
+            if isOpen {
+                VStack(alignment: .leading, spacing: 14) {
+                    if upcoming {
+                        Button { rehearse(g.date) } label: {
                             HStack(spacing: 6) {
-                                if let v = e.verdict { Dot(color: verdictColor(v), size: 7) }
-                                Text("\(e.title) · \(Dates.short(e.date))")
-                                    .font(.sans(13))
-                                    .foregroundStyle(FW.Palette.text3)
-                                    .fixedSize(horizontal: false, vertical: true)
+                                if busy == g.date { ProgressView() } else { Image(systemName: "target") }
+                                Text("Rehearse")
                             }
-                            Text(e.text)
-                                .font(.serif(17))
-                                .foregroundStyle(FW.Palette.text)
-                                .lineSpacing(4)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .textSelection(.enabled)
                         }
-                        .padding(.top, 14)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .overlay(alignment: .top) { Rule() }
+                        .buttonStyle(.fw(.secondary, small: true))
+                        .disabled(!busy.isEmpty)
+                    }
+                    if g.items.isEmpty {
+                        Text(upcoming ? "Nothing filed yet. Work you produce toward this lands here." : "No work filed here.")
+                            .font(.sans(14))
+                            .foregroundStyle(FW.Palette.text3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } else {
+                        ForEach(Array(g.items.enumerated()), id: \.offset) { _, e in
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(spacing: 6) {
+                                    if let v = e.verdict { Dot(color: verdictColor(v), size: 7) }
+                                    Text("\(e.title) · \(Dates.short(e.date))")
+                                        .font(.sans(13, .medium))
+                                        .foregroundStyle(FW.Palette.text3)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                                Text(e.text)
+                                    .font(.serif(17))
+                                    .foregroundStyle(FW.Palette.text)
+                                    .lineSpacing(4)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                    .textSelection(.enabled)
+                            }
+                            .padding(.top, 12)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .overlay(alignment: .top) { Rule() }
+                        }
                     }
                 }
-                .padding(.leading, 20)
+                .padding(.horizontal, 14)
+                .padding(.bottom, 16)
+                .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
+        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
+        .clipShape(.rect(cornerRadius: FW.Radius.lg, style: .continuous))
     }
 
     private func rehearse(_ date: String) {
@@ -711,6 +846,7 @@ struct MasteryPortfolio: View {
 struct MasteryUnlock: Identifiable {
     let id: String
     let label: String
+    let icon: String
     let need: String
     let have: Int
     let target: Int
@@ -721,53 +857,40 @@ struct MasteryUnlocks: View {
     let locked: [MasteryUnlock]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Kicker("Unlocks as you learn")
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 10)], spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
+            SectionHead(title: "Unlocks as you learn")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 ForEach(locked) { u in
-                    VStack(alignment: .leading, spacing: 8) {
-                        Image(systemName: "key")
-                            .font(.system(size: 13))
-                            .foregroundStyle(FW.Palette.text3)
-                            .frame(width: 28, height: 28)
-                            .background(FW.Palette.surface2, in: .rect(cornerRadius: 9))
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack(alignment: .top) {
+                            IconBadge(systemName: u.icon, color: FW.Palette.text3, size: 34)
+                            Spacer(minLength: 4)
+                            Image(systemName: "lock.fill").font(.system(size: 12, weight: .semibold)).foregroundStyle(FW.Palette.text4)
+                        }
                         Text(u.label)
-                            .font(.sans(14, .medium))
+                            .font(.sans(14, .semibold))
                             .foregroundStyle(FW.Palette.text)
+                            .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
-                        Meter(value: min(1, Double(u.have) / Double(u.target)))
+                        Spacer(minLength: 0)
+                        Meter(value: min(1, Double(u.have) / Double(u.target)), color: FW.Palette.review, height: 5)
                         Text("\(u.have)/\(u.target) \(u.need)")
-                            .font(.sans(13))
+                            .font(.sans(12, .medium))
                             .foregroundStyle(FW.Palette.text3)
                             .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background {
-                        MasteryHatch()
-                            .stroke(FW.Palette.hatch, lineWidth: 1)
-                            .clipShape(.rect(cornerRadius: FW.Radius.base))
-                    }
-                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line2))
+                    .padding(14)
+                    .frame(maxWidth: .infinity, minHeight: 176, maxHeight: 176, alignment: .topLeading)
+                    .background(FW.Palette.raised.opacity(0.6), in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line2, style: StrokeStyle(lineWidth: 1, dash: [4, 4])))
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel("\(u.label): \(u.have) of \(u.target) \(u.need)")
                 }
             }
         }
         .accessibilityLabel("Views that unlock as you learn")
-    }
-}
-
-private struct MasteryHatch: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        var x = rect.minX - rect.height
-        while x < rect.maxX {
-            p.move(to: .init(x: x, y: rect.minY))
-            p.addLine(to: .init(x: x + rect.height, y: rect.maxY))
-            x += 7
-        }
-        return p
     }
 }
 
@@ -782,52 +905,74 @@ struct MasteryConceptSheet: View {
 
     var body: some View {
         let c = concept
+        let tint = trackColor(c.track)
         let prereqs = all.filter { c.prerequisites.contains($0.key) }
-        SheetScaffold(title: c.title, subtitle: "\(levelLabel(c.level)) · \(c.track)") {
+        SheetScaffold(title: c.title) {
+            HStack(spacing: 12) {
+                IconBadge(systemName: Glyph.track(c.track), color: tint, size: 48)
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(c.track.prefix(1).uppercased() + c.track.dropFirst()).font(.sans(14, .semibold)).foregroundStyle(tint)
+                    NotebookLevelPill(level: c.level)
+                }
+                Spacer(minLength: 8)
+                NotebookRing(value: c.strength, color: tint, size: 64, line: 7)
+            }
+            .rise(0)
             if !c.summary.isEmpty {
-                Text(c.summary).font(.serif(18)).foregroundStyle(FW.Palette.text).lineSpacing(5).fixedSize(horizontal: false, vertical: true)
+                Text(c.summary).font(.sans(17)).foregroundStyle(FW.Palette.text).lineSpacing(3).fixedSize(horizontal: false, vertical: true)
+                    .rise(1)
             }
-            FlowLayout(spacing: 24) {
-                MasteryStat(value: "\(Int((c.strength * 100).rounded()))", label: "strength", size: 34)
-                MasteryStat(value: "\(Int((c.recall * 100).rounded()))", label: "recall today", size: 34)
-                MasteryStat(value: "\(c.successes)", label: "successes", size: 34)
-                if c.lapses > 0 { MasteryStat(value: "\(c.lapses)", label: "forgotten", size: 34) }
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                StatTile(value: "\(Int((c.strength * 100).rounded()))%", label: "strength", icon: "chart.bar.fill", color: tint)
+                StatTile(value: "\(Int((c.recall * 100).rounded()))%", label: "recall today", icon: "brain", color: FW.Palette.review)
+                StatTile(value: "\(c.successes)", label: "successes", icon: "checkmark.circle.fill", color: FW.Palette.positive)
+                if c.lapses > 0 { StatTile(value: "\(c.lapses)", label: "forgotten", icon: "arrow.uturn.backward", color: FW.Palette.negative) }
             }
-            if !c.misconceptions.isEmpty { field("Still tricky", c.misconceptions.joined(separator: "; ")) }
-            if !prereqs.isEmpty { field("Builds on", prereqs.map(\.title).joined(separator: ", ")) }
-            if let seen = c.last_seen_at {
-                Text(lastSeen(seen))
-                    .font(.sans(13))
-                    .foregroundStyle(FW.Palette.text3)
-                    .fixedSize(horizontal: false, vertical: true)
+            .rise(2)
+            if !c.misconceptions.isEmpty || !prereqs.isEmpty || c.last_seen_at != nil {
+                VStack(alignment: .leading, spacing: 14) {
+                    if !c.misconceptions.isEmpty { field("Still tricky", c.misconceptions.joined(separator: "; "), icon: "exclamationmark.triangle", color: FW.Palette.caution) }
+                    if !prereqs.isEmpty { field("Builds on", prereqs.map(\.title).joined(separator: ", "), icon: "arrow.triangle.branch", color: FW.Palette.judgment) }
+                    if let seen = c.last_seen_at { field("Last practised", lastSeen(seen), icon: "clock", color: FW.Palette.text2) }
+                }
+                .padding(16)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+                .rise(3)
             }
             if let error { Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative).fixedSize(horizontal: false, vertical: true) }
             if c.level != "new" {
                 Button { review() } label: {
                     HStack(spacing: 8) {
-                        if busy { ProgressView().tint(FW.Palette.onAccent) }
+                        if busy { ProgressView().tint(FW.Palette.onAccent) } else { Image(systemName: "arrow.triangle.2.circlepath") }
                         Text("Review this now")
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.fw(.primary))
+                .buttonStyle(.fw(.primary, wide: true))
                 .disabled(busy)
+                .rise(4)
             }
         }
         .presentationDetents([.medium, .large])
     }
 
-    private func field(_ label: String, _ text: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label).font(.sans(13, .medium)).foregroundStyle(FW.Palette.text3)
-            Text(text).font(.sans(15)).foregroundStyle(FW.Palette.text).fixedSize(horizontal: false, vertical: true)
+    private func field(_ label: String, _ text: String, icon: String, color: Color) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            IconBadge(systemName: icon, color: color, size: 30)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label).font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text3)
+                Text(text).font(.sans(15)).foregroundStyle(FW.Palette.text).fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .accessibilityElement(children: .combine)
     }
 
     private func lastSeen(_ seen: String) -> String {
         let when = Dates.weekdayShort(String(seen.prefix(10)))
-        guard let due = concept.due_at else { return "Last practised \(when)" }
+        guard let due = concept.due_at else { return when }
         let now = (Stamp.parse(due) ?? .distantFuture) <= .now
-        return "Last practised \(when) · review \(now ? "now" : Dates.weekdayShort(String(due.prefix(10))))"
+        return "\(when) · review \(now ? "now" : Dates.weekdayShort(String(due.prefix(10))))"
     }
 
     // The session opens full screen from the app's root, so the sheet goes

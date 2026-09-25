@@ -1,0 +1,1713 @@
+{
+  "plan": {
+    "schema_version": "1.0",
+    "plan_id": "nathan-education-2026-2027",
+    "title": "Nathan education and growth",
+    "start_date": "2026-09-28",
+    "end_date": "2027-06-05",
+    "profile": {
+      "name": "Nathan",
+      "timezone": "America/Los_Angeles",
+      "goals": [
+        "Explain business financial health and cash risks",
+        "Handle challenging conversations clearly",
+        "Discuss politics and opposing views fairly",
+        "Evaluate evidence and personal biases"
+      ],
+      "preferences": {
+        "lesson_flow": "situation-explanation-attempt-feedback-transfer",
+        "activity_minutes": [
+          15,
+          25
+        ],
+        "feedback": "ask reasoning before addressing specific gap",
+        "calculations": "use AI/calculators; teach interpretation",
+        "text_lessons": true,
+        "voice_roleplay": true,
+        "politics": "right-of-center starting perspective, primary evidence, strong opposing argument",
+        "no_overdue_backlog": true,
+        "no_streak_reset": true,
+        "budget_usd_monthly": [
+          25,
+          75
+        ]
+      }
+    },
+    "schedule": {
+      "weekdays": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "start_local": "10:00",
+      "end_local": "12:00",
+      "timezone": "America/Los_Angeles",
+      "travel_window": {
+        "start": "2026-12-21",
+        "end": "2027-01-03",
+        "dates_confirmed": false
+      },
+      "weekly_review": "Thursday 11:45, within session",
+      "friday": "open"
+    },
+    "sources": [
+      {
+        "id": "finance",
+        "title": "SEC: Beginners’ Guide to Financial Statements",
+        "url": "https://www.sec.gov/about/reports-publications/investorpubsbegfinstmtguide",
+        "use": "Statements and financial vocabulary; selected sections, not a full reading assignment."
+      },
+      {
+        "id": "filings",
+        "title": "Investor.gov: How to Read a 10-K",
+        "url": "https://www.investor.gov/introduction-investing/getting-started/researching-investments/how-read-10-k",
+        "use": "Company reports and checking a business claim against source documents."
+      },
+      {
+        "id": "negotiation",
+        "title": "Harvard Program on Negotiation: Negotiation Skills",
+        "url": "https://www.pon.harvard.edu/category/daily/negotiation-skills-daily/",
+        "use": "Choose a relevant public article for interests, alternatives, and negotiation practice."
+      },
+      {
+        "id": "constitution",
+        "title": "National Constitution Center: The Constitution",
+        "url": "https://constitutioncenter.org/the-constitution",
+        "use": "Constitutional text and differing interpretations."
+      },
+      {
+        "id": "primary",
+        "title": "National Archives: Constitution transcript",
+        "url": "https://www.archives.gov/founding-docs/constitution-transcript",
+        "use": "Primary constitutional source."
+      },
+      {
+        "id": "imprint",
+        "title": "Imprint course catalog",
+        "url": "https://www.imprintapp.com/courses",
+        "use": "Optional short visual supplement. Verify exact current course and price inside Imprint; no assumed progress API."
+      },
+      {
+        "id": "prageru",
+        "title": "PragerU",
+        "url": "https://www.prageru.com/",
+        "use": "Optional right-of-center opening perspective, paired with primary evidence and a serious opposing argument; not the answer key."
+      },
+      {
+        "id": "retrieval",
+        "title": "Retrieval Practice: Why it works",
+        "url": "https://www.retrievalpractice.org/why-it-works",
+        "use": "Rationale for recalling and applying ideas rather than only re-reading."
+      }
+    ],
+    "weeks": [
+      {
+        "id": "w2026-09-28",
+        "start_date": "2026-09-28",
+        "mode": "standard",
+        "topics": {
+          "monday": "Profit versus cash",
+          "tuesday": "Listen, pause, state the point",
+          "wednesday": "Read a simple income statement",
+          "thursday": "Federal versus state powers; claims versus evidence"
+        },
+        "evidence": "Explain why a profitable company could run out of cash"
+      }
+    ],
+    "sessions": [
+      {
+        "id": "w01-monday",
+        "date": "2026-09-28",
+        "start_local": "10:00",
+        "duration_minutes": 60,
+        "optional": false,
+        "subject": "finance",
+        "title": "Profit versus cash",
+        "objective": "Explain and apply: Profit versus cash",
+        "evidence": "Explain why a profitable company could run out of cash",
+        "source_ids": [
+          "finance",
+          "filings"
+        ],
+        "prerequisite_ids": [],
+        "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+      },
+      {
+        "id": "w01-tuesday",
+        "date": "2026-09-29",
+        "start_local": "10:00",
+        "duration_minutes": 60,
+        "optional": false,
+        "subject": "communication",
+        "title": "Listen, pause, state the point",
+        "objective": "Explain and apply: Listen, pause, state the point",
+        "evidence": "Explain why a profitable company could run out of cash",
+        "source_ids": [
+          "negotiation"
+        ],
+        "prerequisite_ids": [],
+        "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+      },
+      {
+        "id": "w01-wednesday",
+        "date": "2026-09-30",
+        "start_local": "10:00",
+        "duration_minutes": 60,
+        "optional": false,
+        "subject": "finance",
+        "title": "Read a simple income statement",
+        "objective": "Explain and apply: Read a simple income statement",
+        "evidence": "Explain why a profitable company could run out of cash",
+        "source_ids": [
+          "finance",
+          "filings"
+        ],
+        "prerequisite_ids": [],
+        "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+      },
+      {
+        "id": "w01-thursday",
+        "date": "2026-10-01",
+        "start_local": "10:00",
+        "duration_minutes": 60,
+        "optional": false,
+        "subject": "judgment",
+        "title": "Federal versus state powers; claims versus evidence",
+        "objective": "Explain and apply: Federal versus state powers; claims versus evidence",
+        "evidence": "Explain why a profitable company could run out of cash",
+        "source_ids": [
+          "constitution",
+          "primary",
+          "prageru",
+          "imprint"
+        ],
+        "prerequisite_ids": [],
+        "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+      }
+    ],
+    "adaptation": {
+      "explanation_required": true,
+      "undo_required": true,
+      "recovery_minutes": 20,
+      "review_cap_minutes": 10,
+      "review_day_offsets": [
+        2,
+        7,
+        21
+      ],
+      "preserve_end_date": true
+    },
+    "milestones": [
+      {
+        "date": "2026-12-17",
+        "title": "Cash briefing and delegation"
+      },
+      {
+        "date": "2027-03-04",
+        "title": "Defend a decision"
+      },
+      {
+        "date": "2027-06-05",
+        "title": "Portfolio review"
+      }
+    ],
+    "horizon": {
+      "version": 1,
+      "rhythm": {
+        "days": {
+          "0": "finance",
+          "1": "communication",
+          "2": "finance",
+          "3": "judgment"
+        },
+        "minutes": 120,
+        "start_local": "10:00"
+      },
+      "tracks": [
+        {
+          "id": "finance",
+          "title": "Finance",
+          "why": "",
+          "goals": [
+            "Explain business financial health and cash risks"
+          ],
+          "status": "active",
+          "backlog": [
+            {
+              "id": "w02-monday",
+              "title": "Assets, liabilities, and equity",
+              "objective": "Explain and apply: Assets, liabilities, and equity",
+              "evidence": "Explain a business in three statements",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+              "minutes": 60
+            },
+            {
+              "id": "w02-wednesday",
+              "title": "Read a balance sheet alongside an income statement",
+              "objective": "Explain and apply: Read a balance sheet alongside an income statement",
+              "evidence": "Explain a business in three statements",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+              "minutes": 60
+            },
+            {
+              "id": "w03-monday",
+              "title": "Operating, investing, financing cash flows",
+              "objective": "Explain and apply: Operating, investing, financing cash flows",
+              "evidence": "Trace a sale from agreement to cash",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w03-wednesday",
+              "title": "Customer deposits, invoices, and cash timing",
+              "objective": "Explain and apply: Customer deposits, invoices, and cash timing",
+              "evidence": "Trace a sale from agreement to cash",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w04-monday",
+              "title": "Fixed and variable costs",
+              "objective": "Explain and apply: Fixed and variable costs",
+              "evidence": "Create one usable delegation brief",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w04-wednesday",
+              "title": "Read a break-even scenario using a calculator",
+              "objective": "Explain and apply: Read a break-even scenario using a calculator",
+              "evidence": "Create one usable delegation brief",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w05-monday",
+              "title": "Pricing, contribution margin, and capacity",
+              "objective": "Explain and apply: Pricing, contribution margin, and capacity",
+              "evidence": "Defend a price and name your assumptions",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w05-wednesday",
+              "title": "Compare two offers and their delivery costs",
+              "objective": "Explain and apply: Compare two offers and their delivery costs",
+              "evidence": "Defend a price and name your assumptions",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w06-monday",
+              "title": "Budget versus actual",
+              "objective": "Explain and apply: Budget versus actual",
+              "evidence": "Update a belief and explain why",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w06-wednesday",
+              "title": "Explain a financial variance without excuses",
+              "objective": "Explain and apply: Explain a financial variance without excuses",
+              "evidence": "Update a belief and explain why",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w07-monday",
+              "title": "Build a cash forecast with AI",
+              "objective": "Explain and apply: Build a cash forecast with AI",
+              "evidence": "Produce a simple 13-week cash forecast",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w07-wednesday",
+              "title": "Find missing assumptions in the forecast",
+              "objective": "Explain and apply: Find missing assumptions in the forecast",
+              "evidence": "Produce a simple 13-week cash forecast",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w08-monday",
+              "title": "Revenue quality and concentration risk",
+              "objective": "Explain and apply: Revenue quality and concentration risk",
+              "evidence": "Deliver a short cash-risk briefing",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w08-wednesday",
+              "title": "Diagnose a customer's late payment",
+              "objective": "Explain and apply: Diagnose a customer's late payment",
+              "evidence": "Deliver a short cash-risk briefing",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w10-monday",
+              "title": "Unit economics and customer acquisition costs",
+              "objective": "Explain and apply: Unit economics and customer acquisition costs",
+              "evidence": "Explain when growth loses money",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w10-wednesday",
+              "title": "Compare acquisition scenarios without treating forecasts as facts",
+              "objective": "Explain and apply: Compare acquisition scenarios without treating forecasts as facts",
+              "evidence": "Explain when growth loses money",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w11-monday",
+              "title": "Scope, payment milestones, and deal economics",
+              "objective": "Explain and apply: Scope, payment milestones, and deal economics",
+              "evidence": "Prepare and role-play a negotiation",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w11-wednesday",
+              "title": "Compare a discount with a scope reduction",
+              "objective": "Explain and apply: Compare a discount with a scope reduction",
+              "evidence": "Prepare and role-play a negotiation",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w12-monday",
+              "title": "First-term financial case",
+              "objective": "Explain and apply: First-term financial case",
+              "evidence": "Milestone 1: cash briefing plus delegation brief",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w12-wednesday",
+              "title": "Repair one weakness from the financial case",
+              "objective": "Explain and apply: Repair one weakness from the financial case",
+              "evidence": "Milestone 1: cash briefing plus delegation brief",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w15-monday",
+              "title": "Return: revisit cash-flow reasoning",
+              "objective": "Explain and apply: Return: revisit cash-flow reasoning",
+              "evidence": "Restart with a 20-minute first session",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+              "minutes": 20
+            },
+            {
+              "id": "w15-wednesday",
+              "title": "Choose the next useful financial decision",
+              "objective": "Explain and apply: Choose the next useful financial decision",
+              "evidence": "Restart with a 20-minute first session",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w16-monday",
+              "title": "Ownership and cap tables",
+              "objective": "Explain and apply: Ownership and cap tables",
+              "evidence": "Explain an ownership scenario without jargon",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w16-wednesday",
+              "title": "Model dilution using tools and explain the result",
+              "objective": "Explain and apply: Model dilution using tools and explain the result",
+              "evidence": "Explain an ownership scenario without jargon",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w17-monday",
+              "title": "Valuation versus price",
+              "objective": "Explain and apply: Valuation versus price",
+              "evidence": "Write a short valuation assumptions memo",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w17-wednesday",
+              "title": "Compare valuation assumptions and downside cases",
+              "objective": "Explain and apply: Compare valuation assumptions and downside cases",
+              "evidence": "Write a short valuation assumptions memo",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w18-monday",
+              "title": "Debt versus equity versus bootstrapping",
+              "objective": "Explain and apply: Debt versus equity versus bootstrapping",
+              "evidence": "Defend a funding choice in a fictional case",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w18-wednesday",
+              "title": "Compare funding options against control and cash needs",
+              "objective": "Explain and apply: Compare funding options against control and cash needs",
+              "evidence": "Defend a funding choice in a fictional case",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w19-monday",
+              "title": "Investor incentives and financing terms",
+              "objective": "Explain and apply: Investor incentives and financing terms",
+              "evidence": "Prepare five useful diligence questions",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w19-wednesday",
+              "title": "Identify economic implications and questions for counsel",
+              "objective": "Explain and apply: Identify economic implications and questions for counsel",
+              "evidence": "Prepare five useful diligence questions",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w20-monday",
+              "title": "Hiring affordability and fully loaded costs",
+              "objective": "Explain and apply: Hiring affordability and fully loaded costs",
+              "evidence": "Build a hiring decision brief",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w20-wednesday",
+              "title": "Compare contractor, employee, and automation scenarios",
+              "objective": "Explain and apply: Compare contractor, employee, and automation scenarios",
+              "evidence": "Build a hiring decision brief",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w21-monday",
+              "title": "Forecast scenarios and cash reserves",
+              "objective": "Explain and apply: Forecast scenarios and cash reserves",
+              "evidence": "State the cash buffer assumptions you would test",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w21-wednesday",
+              "title": "Stress-test a late-paying customer scenario",
+              "objective": "Explain and apply: Stress-test a late-paying customer scenario",
+              "evidence": "State the cash buffer assumptions you would test",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w22-monday",
+              "title": "Read a public-company filing excerpt",
+              "objective": "Explain and apply: Read a public-company filing excerpt",
+              "evidence": "Explain three findings and two uncertainties",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w22-wednesday",
+              "title": "Trace a claim to a statement or footnote",
+              "objective": "Explain and apply: Trace a claim to a statement or footnote",
+              "evidence": "Explain three findings and two uncertainties",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w23-monday",
+              "title": "Milestone 2 financial case",
+              "objective": "Explain and apply: Milestone 2 financial case",
+              "evidence": "Milestone 2: defend a decision under questions",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w23-wednesday",
+              "title": "Targeted repair and transfer to a different venture",
+              "objective": "Explain and apply: Targeted repair and transfer to a different venture",
+              "evidence": "Milestone 2: defend a decision under questions",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w24-monday",
+              "title": "Capital allocation and opportunity cost",
+              "objective": "Explain and apply: Capital allocation and opportunity cost",
+              "evidence": "Make a resource-allocation recommendation",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w24-wednesday",
+              "title": "Choose between competing uses of limited cash",
+              "objective": "Explain and apply: Choose between competing uses of limited cash",
+              "evidence": "Make a resource-allocation recommendation",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w25-monday",
+              "title": "Recurring revenue, churn, and retention",
+              "objective": "Explain and apply: Recurring revenue, churn, and retention",
+              "evidence": "Explain what a dashboard hides",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w25-wednesday",
+              "title": "Audit an AI-generated dashboard for misleading metrics",
+              "objective": "Explain and apply: Audit an AI-generated dashboard for misleading metrics",
+              "evidence": "Explain what a dashboard hides",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w26-monday",
+              "title": "Sponsorship economics and capacity",
+              "objective": "Explain and apply: Sponsorship economics and capacity",
+              "evidence": "Draft and rehearse a usable sponsor or client offer",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w26-wednesday",
+              "title": "Compare sponsorship packages and fulfillment costs",
+              "objective": "Explain and apply: Compare sponsorship packages and fulfillment costs",
+              "evidence": "Draft and rehearse a usable sponsor or client offer",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w27-monday",
+              "title": "Margin sensitivity and operational bottlenecks",
+              "objective": "Explain and apply: Margin sensitivity and operational bottlenecks",
+              "evidence": "Improve one real handoff or process",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w27-wednesday",
+              "title": "Find the highest-impact operational assumption",
+              "objective": "Explain and apply: Find the highest-impact operational assumption",
+              "evidence": "Improve one real handoff or process",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w28-monday",
+              "title": "Optionality and decisions with incomplete information",
+              "objective": "Explain and apply: Optionality and decisions with incomplete information",
+              "evidence": "Create a decision memo with reversal criteria",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w28-wednesday",
+              "title": "Choose what evidence would reverse a business decision",
+              "objective": "Explain and apply: Choose what evidence would reverse a business decision",
+              "evidence": "Create a decision memo with reversal criteria",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w29-monday",
+              "title": "Business model comparison",
+              "objective": "Explain and apply: Business model comparison",
+              "evidence": "Give a concise comparison and recommendation",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w29-wednesday",
+              "title": "Compare cash timing across two ventures",
+              "objective": "Explain and apply: Compare cash timing across two ventures",
+              "evidence": "Give a concise comparison and recommendation",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w30-monday",
+              "title": "Review finance gaps through a fresh case",
+              "objective": "Explain and apply: Review finance gaps through a fresh case",
+              "evidence": "Show transfer rather than memorized answers",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w30-wednesday",
+              "title": "Apply an earlier skill to a new context",
+              "objective": "Explain and apply: Apply an earlier skill to a new context",
+              "evidence": "Show transfer rather than memorized answers",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w31-monday",
+              "title": "Capstone: choose a real or realistic business decision",
+              "objective": "Explain and apply: Capstone: choose a real or realistic business decision",
+              "evidence": "Approve your capstone question and evidence list",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w31-wednesday",
+              "title": "Gather inputs and label estimates",
+              "objective": "Explain and apply: Gather inputs and label estimates",
+              "evidence": "Approve your capstone question and evidence list",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w32-monday",
+              "title": "Capstone: financial diagnosis",
+              "objective": "Explain and apply: Capstone: financial diagnosis",
+              "evidence": "Produce a one-page financial briefing",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w32-wednesday",
+              "title": "Test assumptions and cash timing",
+              "objective": "Explain and apply: Test assumptions and cash timing",
+              "evidence": "Produce a one-page financial briefing",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w33-monday",
+              "title": "Capstone: pricing or funding recommendation",
+              "objective": "Explain and apply: Capstone: pricing or funding recommendation",
+              "evidence": "Produce a defensible decision memo",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w33-wednesday",
+              "title": "Stress-test recommendation with a downside case",
+              "objective": "Explain and apply: Stress-test recommendation with a downside case",
+              "evidence": "Produce a defensible decision memo",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w34-monday",
+              "title": "Capstone: delegation and execution",
+              "objective": "Explain and apply: Capstone: delegation and execution",
+              "evidence": "Produce a delegation brief and revised argument",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w34-wednesday",
+              "title": "Revise only demonstrated weaknesses",
+              "objective": "Explain and apply: Revise only demonstrated weaknesses",
+              "evidence": "Produce a delegation brief and revised argument",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w35-monday",
+              "title": "Final finance transfer scenario",
+              "objective": "Explain and apply: Final finance transfer scenario",
+              "evidence": "Demonstrate four June outcomes",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w35-wednesday",
+              "title": "Close the strongest remaining gap",
+              "objective": "Explain and apply: Close the strongest remaining gap",
+              "evidence": "Demonstrate four June outcomes",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w36-wednesday",
+              "title": "Choose a sustainable summer learning rhythm",
+              "objective": "Explain and apply: Choose a sustainable summer learning rhythm",
+              "evidence": "June 5: review evidence of progress and choose what continues",
+              "source_ids": [
+                "finance",
+                "filings"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            }
+          ]
+        },
+        {
+          "id": "communication",
+          "title": "Communication",
+          "why": "",
+          "goals": [
+            "Handle challenging conversations clearly"
+          ],
+          "status": "active",
+          "backlog": [
+            {
+              "id": "w02-tuesday",
+              "title": "Give the right amount of context",
+              "objective": "Explain and apply: Give the right amount of context",
+              "evidence": "Explain a business in three statements",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+              "minutes": 60
+            },
+            {
+              "id": "w03-tuesday",
+              "title": "Ask a follow-up based on what you heard",
+              "objective": "Explain and apply: Ask a follow-up based on what you heard",
+              "evidence": "Trace a sale from agreement to cash",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w04-tuesday",
+              "title": "Delegate with outcome, owner, deadline, examples",
+              "objective": "Explain and apply: Delegate with outcome, owner, deadline, examples",
+              "evidence": "Create one usable delegation brief",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w05-tuesday",
+              "title": "Give a 60-second proposal, then answer questions",
+              "objective": "Explain and apply: Give a 60-second proposal, then answer questions",
+              "evidence": "Defend a price and name your assumptions",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w06-tuesday",
+              "title": "Disagree without losing the thread",
+              "objective": "Explain and apply: Disagree without losing the thread",
+              "evidence": "Update a belief and explain why",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w07-tuesday",
+              "title": "Clarify ambiguous instructions through teach-back",
+              "objective": "Explain and apply: Clarify ambiguous instructions through teach-back",
+              "evidence": "Produce a simple 13-week cash forecast",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w08-tuesday",
+              "title": "Give useful feedback on a missed deliverable",
+              "objective": "Explain and apply: Give useful feedback on a missed deliverable",
+              "evidence": "Deliver a short cash-risk briefing",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w10-tuesday",
+              "title": "Discover the other person's actual need",
+              "objective": "Explain and apply: Discover the other person's actual need",
+              "evidence": "Explain when growth loses money",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w11-tuesday",
+              "title": "Negotiate interests, alternatives, and a walk-away point",
+              "objective": "Explain and apply: Negotiate interests, alternatives, and a walk-away point",
+              "evidence": "Prepare and role-play a negotiation",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w12-tuesday",
+              "title": "Delegate a small project and check understanding",
+              "objective": "Explain and apply: Delegate a small project and check understanding",
+              "evidence": "Milestone 1: cash briefing plus delegation brief",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w15-tuesday",
+              "title": "Return: one low-pressure role-play",
+              "objective": "Explain and apply: Return: one low-pressure role-play",
+              "evidence": "Restart with a 20-minute first session",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w16-tuesday",
+              "title": "Explain a complicated idea with one example",
+              "objective": "Explain and apply: Explain a complicated idea with one example",
+              "evidence": "Explain an ownership scenario without jargon",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w17-tuesday",
+              "title": "Ask questions before defending a position",
+              "objective": "Explain and apply: Ask questions before defending a position",
+              "evidence": "Write a short valuation assumptions memo",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w18-tuesday",
+              "title": "Prepare a clear funding conversation",
+              "objective": "Explain and apply: Prepare a clear funding conversation",
+              "evidence": "Defend a funding choice in a fictional case",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w19-tuesday",
+              "title": "Answer an unexpected objection after a pause",
+              "objective": "Explain and apply: Answer an unexpected objection after a pause",
+              "evidence": "Prepare five useful diligence questions",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w20-tuesday",
+              "title": "Delegate responsibility with clear decision boundaries",
+              "objective": "Explain and apply: Delegate responsibility with clear decision boundaries",
+              "evidence": "Build a hiring decision brief",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w21-tuesday",
+              "title": "Run a 10-minute check-in that ends in decisions",
+              "objective": "Explain and apply: Run a 10-minute check-in that ends in decisions",
+              "evidence": "State the cash buffer assumptions you would test",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w22-tuesday",
+              "title": "Give an executive update: decision, evidence, next step",
+              "objective": "Explain and apply: Give an executive update: decision, evidence, next step",
+              "evidence": "Explain three findings and two uncertainties",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w23-tuesday",
+              "title": "Milestone 2 negotiation and delegation role-play",
+              "objective": "Explain and apply: Milestone 2 negotiation and delegation role-play",
+              "evidence": "Milestone 2: defend a decision under questions",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w24-tuesday",
+              "title": "Discuss a missed commitment without a personal attack",
+              "objective": "Explain and apply: Discuss a missed commitment without a personal attack",
+              "evidence": "Make a resource-allocation recommendation",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w25-tuesday",
+              "title": "Ask discovery questions and summarize the answer",
+              "objective": "Explain and apply: Ask discovery questions and summarize the answer",
+              "evidence": "Explain what a dashboard hides",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w26-tuesday",
+              "title": "Pitch value using the listener's priorities",
+              "objective": "Explain and apply: Pitch value using the listener's priorities",
+              "evidence": "Draft and rehearse a usable sponsor or client offer",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w27-tuesday",
+              "title": "Hand off a process with examples and escalation rules",
+              "objective": "Explain and apply: Hand off a process with examples and escalation rules",
+              "evidence": "Improve one real handoff or process",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w28-tuesday",
+              "title": "Negotiate scope and boundaries calmly",
+              "objective": "Explain and apply: Negotiate scope and boundaries calmly",
+              "evidence": "Create a decision memo with reversal criteria",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w29-tuesday",
+              "title": "Handle a skeptical question without overexplaining",
+              "objective": "Explain and apply: Handle a skeptical question without overexplaining",
+              "evidence": "Give a concise comparison and recommendation",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w30-tuesday",
+              "title": "Lead a disagreement toward a concrete next step",
+              "objective": "Explain and apply: Lead a disagreement toward a concrete next step",
+              "evidence": "Show transfer rather than memorized answers",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w31-tuesday",
+              "title": "Capstone: identify audience and likely objections",
+              "objective": "Explain and apply: Capstone: identify audience and likely objections",
+              "evidence": "Approve your capstone question and evidence list",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w32-tuesday",
+              "title": "Capstone: practice explaining the diagnosis",
+              "objective": "Explain and apply: Capstone: practice explaining the diagnosis",
+              "evidence": "Produce a one-page financial briefing",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w33-tuesday",
+              "title": "Capstone: negotiation rehearsal",
+              "objective": "Explain and apply: Capstone: negotiation rehearsal",
+              "evidence": "Produce a defensible decision memo",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w34-tuesday",
+              "title": "Capstone: difficult follow-up conversation",
+              "objective": "Explain and apply: Capstone: difficult follow-up conversation",
+              "evidence": "Produce a delegation brief and revised argument",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w35-tuesday",
+              "title": "Final role-play with an unfamiliar objection",
+              "objective": "Explain and apply: Final role-play with an unfamiliar objection",
+              "evidence": "Demonstrate four June outcomes",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w36-tuesday",
+              "title": "Repeat baseline conversation for comparison",
+              "objective": "Explain and apply: Repeat baseline conversation for comparison",
+              "evidence": "June 5: review evidence of progress and choose what continues",
+              "source_ids": [
+                "negotiation"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            }
+          ]
+        },
+        {
+          "id": "judgment",
+          "title": "Judgment",
+          "why": "",
+          "goals": [
+            "Discuss politics and opposing views fairly",
+            "Evaluate evidence and personal biases"
+          ],
+          "status": "active",
+          "backlog": [
+            {
+              "id": "w02-thursday",
+              "title": "Congress, president, courts; facts versus values",
+              "objective": "Explain and apply: Congress, president, courts; facts versus values",
+              "evidence": "Explain a business in three statements",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation.",
+              "minutes": 60
+            },
+            {
+              "id": "w03-thursday",
+              "title": "Founding compromises; correlation versus causation",
+              "objective": "Explain and apply: Founding compromises; correlation versus causation",
+              "evidence": "Trace a sale from agreement to cash",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w04-thursday",
+              "title": "Election mechanics; sample selection",
+              "objective": "Explain and apply: Election mechanics; sample selection",
+              "evidence": "Create one usable delegation brief",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w05-thursday",
+              "title": "Polling uncertainty; make a cautious prediction",
+              "objective": "Explain and apply: Polling uncertainty; make a cautious prediction",
+              "evidence": "Defend a price and name your assumptions",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w06-thursday",
+              "title": "Review election evidence after results; outcome bias",
+              "objective": "Explain and apply: Review election evidence after results; outcome bias",
+              "evidence": "Update a belief and explain why",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w07-thursday",
+              "title": "Civil War and Reconstruction; incentives and context",
+              "objective": "Explain and apply: Civil War and Reconstruction; incentives and context",
+              "evidence": "Produce a simple 13-week cash forecast",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w08-thursday",
+              "title": "Progressive Era and New Deal; strongest opposing case",
+              "objective": "Explain and apply: Progressive Era and New Deal; strongest opposing case",
+              "evidence": "Deliver a short cash-risk briefing",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w10-thursday",
+              "title": "Civil rights and institutional change; denominators",
+              "objective": "Explain and apply: Civil rights and institutional change; denominators",
+              "evidence": "Explain when growth loses money",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w11-thursday",
+              "title": "Modern conservatism; charitable disagreement",
+              "objective": "Explain and apply: Modern conservatism; charitable disagreement",
+              "evidence": "Prepare and role-play a negotiation",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w12-thursday",
+              "title": "Explain a political disagreement fairly",
+              "objective": "Explain and apply: Explain a political disagreement fairly",
+              "evidence": "Milestone 1: cash briefing plus delegation brief",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w15-thursday",
+              "title": "Attention, friction, and implementation intentions",
+              "objective": "Explain and apply: Attention, friction, and implementation intentions",
+              "evidence": "Restart with a 20-minute first session",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w16-thursday",
+              "title": "Confirmation bias and identity-protective reasoning",
+              "objective": "Explain and apply: Confirmation bias and identity-protective reasoning",
+              "evidence": "Explain an ownership scenario without jargon",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w17-thursday",
+              "title": "Risk, uncertainty, and base rates",
+              "objective": "Explain and apply: Risk, uncertainty, and base rates",
+              "evidence": "Write a short valuation assumptions memo",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w18-thursday",
+              "title": "Federal budget institutions; trade-offs",
+              "objective": "Explain and apply: Federal budget institutions; trade-offs",
+              "evidence": "Defend a funding choice in a fictional case",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w19-thursday",
+              "title": "Social insurance and taxes; factual versus moral disputes",
+              "objective": "Explain and apply: Social insurance and taxes; factual versus moral disputes",
+              "evidence": "Prepare five useful diligence questions",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w20-thursday",
+              "title": "Motivation and autonomy; avoiding mind-reading",
+              "objective": "Explain and apply: Motivation and autonomy; avoiding mind-reading",
+              "evidence": "Build a hiring decision brief",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w21-thursday",
+              "title": "Housing and local government; causal stories",
+              "objective": "Explain and apply: Housing and local government; causal stories",
+              "evidence": "State the cash buffer assumptions you would test",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w22-thursday",
+              "title": "Evaluate a study: comparison groups and confounding",
+              "objective": "Explain and apply: Evaluate a study: comparison groups and confounding",
+              "evidence": "Explain three findings and two uncertainties",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w23-thursday",
+              "title": "Steelman a policy you disagree with",
+              "objective": "Explain and apply: Steelman a policy you disagree with",
+              "evidence": "Milestone 2: defend a decision under questions",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w24-thursday",
+              "title": "Sunk costs and loss aversion",
+              "objective": "Explain and apply: Sunk costs and loss aversion",
+              "evidence": "Make a resource-allocation recommendation",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w25-thursday",
+              "title": "Relative versus absolute risk; chart scales",
+              "objective": "Explain and apply: Relative versus absolute risk; chart scales",
+              "evidence": "Explain what a dashboard hides",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w26-thursday",
+              "title": "Media incentives and source tracing",
+              "objective": "Explain and apply: Media incentives and source tracing",
+              "evidence": "Draft and rehearse a usable sponsor or client offer",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w27-thursday",
+              "title": "Foreign policy institutions; competing explanations",
+              "objective": "Explain and apply: Foreign policy institutions; competing explanations",
+              "evidence": "Improve one real handoff or process",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w28-thursday",
+              "title": "Trade and incentives; strongest objections",
+              "objective": "Explain and apply: Trade and incentives; strongest objections",
+              "evidence": "Create a decision memo with reversal criteria",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w29-thursday",
+              "title": "Healthcare policy; distinguish evidence and priorities",
+              "objective": "Explain and apply: Healthcare policy; distinguish evidence and priorities",
+              "evidence": "Give a concise comparison and recommendation",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w30-thursday",
+              "title": "Immigration policy; check empirical claims",
+              "objective": "Explain and apply: Immigration policy; check empirical claims",
+              "evidence": "Show transfer rather than memorized answers",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w31-thursday",
+              "title": "Choose a policy issue and map competing arguments",
+              "objective": "Explain and apply: Choose a policy issue and map competing arguments",
+              "evidence": "Approve your capstone question and evidence list",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w32-thursday",
+              "title": "Check sources and counterevidence",
+              "objective": "Explain and apply: Check sources and counterevidence",
+              "evidence": "Produce a one-page financial briefing",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w33-thursday",
+              "title": "Explain both sides and a belief-changing fact",
+              "objective": "Explain and apply: Explain both sides and a belief-changing fact",
+              "evidence": "Produce a defensible decision memo",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w34-thursday",
+              "title": "Complete a concise policy brief",
+              "objective": "Explain and apply: Complete a concise policy brief",
+              "evidence": "Produce a delegation brief and revised argument",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w35-thursday",
+              "title": "Final evidence-checking and political discussion",
+              "objective": "Explain and apply: Final evidence-checking and political discussion",
+              "evidence": "Demonstrate four June outcomes",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            },
+            {
+              "id": "w36-thursday",
+              "title": "Portfolio review and reflection",
+              "objective": "Explain and apply: Portfolio review and reflection",
+              "evidence": "June 5: review evidence of progress and choose what continues",
+              "source_ids": [
+                "constitution",
+                "primary",
+                "prageru",
+                "imprint"
+              ],
+              "generation_instructions": "Generate sourced short activities; ask for reasoning; use a changed scenario to check transfer. Week topics are the sequence; detect missing conceptual prerequisites before generation."
+            }
+          ]
+        }
+      ],
+      "weeks": [
+        {
+          "start": "2026-09-28",
+          "status": "draft",
+          "origin": "import",
+          "generated_at": "2026-09-24T16:45:03.218Z"
+        }
+      ]
+    }
+  },
+  "diff": {
+    "added": 0,
+    "changed": 4,
+    "removed": 6
+  },
+  "uncertain": []
+}

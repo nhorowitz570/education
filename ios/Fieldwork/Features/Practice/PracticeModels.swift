@@ -103,6 +103,19 @@ enum PracticeMode: String, CaseIterable, Identifiable, Sendable {
         case .free: "Describe the conversation you want to rehearse."
         }
     }
+    // A few words for the format tiles.
+    var caption: String {
+        switch self {
+        case .debate: "Argue a side"
+        case .conversation: "Say the hard thing"
+        case .negotiation: "Get to a deal"
+        case .pitch: "Sell an idea"
+        case .delegation: "Hand off work"
+        case .interview: "Handle follow-ups"
+        case .explain: "Teach an idea"
+        case .free: "Your own scenario"
+        }
+    }
     static func label(_ raw: String) -> String { PracticeMode(rawValue: raw)?.label ?? raw.capitalized }
 }
 

@@ -1,8 +1,9 @@
 import SwiftUI
 
-// You (src/components/you/you.tsx): every setting, grouped by what it
-// changes, each showing its current value. Anything with more than one
-// choice opens its own sheet; Memory opens as its own screen.
+// You (src/components/you/you.tsx): who you are and how far you've come at
+// the top, then every setting in grouped cards, each showing its current
+// value. Anything with more than one choice opens its own sheet; Memory opens
+// as its own screen.
 struct YouView: View {
     @Environment(Store.self) private var store
     @Environment(Auth.self) private var auth
@@ -11,39 +12,30 @@ struct YouView: View {
     @AppStorage("fw.theme") private var theme: Theme = .system
     @State private var memory = Loader<MemListResponse>("/api/memory")
     @State private var usage = Loader<YouUsage>("/api/usage")
+    @State private var progress = Loader<Progress>("/api/progress")
     @State private var open: Sheet?
     @State private var signingOut = false
+    @State private var confirmSignOut = false
+    @State private var exporting = false
 
     enum Sheet: String, Identifiable {
-        case style, writing, voice, rhythm, plan, notify, reading, game, signin, usage, data
+        case style, writing, voice, sessions, rhythm, plan, notify, reading, game, signin, usage, progress, delete
         var id: String { rawValue }
     }
 
     var body: some View {
         let plan = store.decodedPlan
         ScrollView {
-            VStack(alignment: .leading, spacing: 28) {
-                header(plan)
-                tutor
-                sessions
-                rhythm(plan)
-                notifications
-                look
-                account
-                Button {
-                    Task { await signOut() }
-                } label: {
-                    HStack(spacing: 8) {
-                        if signingOut { ProgressView().controlSize(.small) } else { Image(systemName: "rectangle.portrait.and.arrow.right").font(.system(size: 15)) }
-                        Text("Sign out")
-                    }
-                }
-                .buttonStyle(.fw(.secondary))
-                .disabled(signingOut)
-                .padding(.top, 8)
+            VStack(spacing: 28) {
+                header(plan).rise(0)
+                stats(plan).rise(1)
+                section("Learning", 2) { learning }
+                section("Schedule", 3) { schedule(plan) }
+                section("App", 4) { app }
+                section("Account", 5) { account }
             }
             .padding(.horizontal, FW.Size.gutter)
-            .padding(.top, 20)
+            .padding(.top, 12)
             .padding(.bottom, 48)
         }
         .screenBackground()
@@ -51,12 +43,17 @@ struct YouView: View {
         .refreshable { await reload() }
         .onAppear { Task { await reload() } }
         .sheet(item: $open) { sheet(for: $0, plan: plan) }
+        .confirmationDialog("Sign out of Fieldwork?", isPresented: $confirmSignOut, titleVisibility: .visible) {
+            Button("Sign out", role: .destructive) { Task { await signOut() } }
+            Button("Cancel", role: .cancel) {}
+        }
     }
 
     private func reload() async {
         async let a: Void = memory.load()
         async let b: Void = usage.load()
-        _ = await (a, b)
+        async let c: Void = progress.load()
+        _ = await (a, b, c)
     }
 
     private func signOut() async {
@@ -67,163 +64,255 @@ struct YouView: View {
         signingOut = false
     }
 
+    private func exportAll() async {
+        guard !exporting else { return }
+        withAnimation(Springs.snappy) { exporting = true }
+        await YouExport.all()
+        withAnimation(Springs.snappy) { exporting = false }
+    }
+
     // MARK: Header
 
     private func header(_ plan: Plan?) -> some View {
         let name = plan?.profile.name.trimmingCharacters(in: .whitespaces) ?? ""
         let initial = String((name.isEmpty ? (auth.email ?? "Y") : name).prefix(1)).uppercased()
-        return HStack(spacing: 16) {
-            Text(initial)
-                .font(.sans(22, .semibold))
-                .foregroundStyle(FW.Palette.text)
-                .frame(width: 56, height: 56)
-                .background(FW.Palette.surface2, in: .circle)
-                .overlay(Circle().strokeBorder(FW.Palette.line2, lineWidth: 1))
-                .accessibilityHidden(true)
-            VStack(alignment: .leading, spacing: 4) {
+        let p = store.prefs.game.xp ? progress.value : nil
+        return VStack(spacing: p == nil ? 14 : 20) {
+            YouAvatar(initial: initial, fraction: p?.fraction, level: p?.level)
+            VStack(spacing: 4) {
                 Text(name.isEmpty ? "Your space" : name)
                     .font(.display(32))
                     .foregroundStyle(FW.Palette.text)
+                    .multilineTextAlignment(.center)
                     .lineLimit(2)
                     .minimumScaleFactor(0.75)
                     .accessibilityAddTraits(.isHeader)
                 if let email = auth.email {
                     Text(email)
-                        .font(.sans(13))
+                        .font(.sans(14))
                         .foregroundStyle(FW.Palette.text3)
                         .lineLimit(1)
                         .truncationMode(.middle)
                 }
             }
-            Spacer(minLength: 0)
         }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 12)
     }
 
-    // MARK: Your tutor
+    // A row of numbers: XP and streak when those are switched on, then what
+    // the tutor remembers and the week's rhythm to fill the row.
+    private func stats(_ plan: Plan?) -> some View {
+        let game = store.prefs.game
+        let p = progress.value
+        let saved = memory.value?.memories.count
+        var items: [YouStat] = []
+        if game.xp {
+            items.append(.init(id: "xp", value: p.map { "\($0.xp)" } ?? "–", label: p.map { "XP · level \($0.level)" } ?? "XP",
+                               icon: "bolt.fill", color: FW.Palette.caution) { if p != nil { open = .progress } })
+        }
+        if game.streak {
+            items.append(.init(id: "streak", value: p.map { "\($0.streak.current)" } ?? "–",
+                               label: p?.streak.unit == "week" ? "Week streak" : "Day streak",
+                               icon: "flame.fill", color: FW.Palette.coral) { if p != nil { open = .progress } })
+        }
+        items.append(.init(id: "memory", value: saved.map { "\($0)" } ?? "–", label: saved == 1 ? "Memory" : "Memories",
+                           icon: "brain.head.profile", color: FW.Palette.review) { router.push(.memory, on: .you) })
+        if let rolling = plan?.isRolling == true ? plan : nil {
+            items.append(.init(id: "days", value: "\(rolling.slots.count)", label: "Days a week",
+                               icon: "calendar", color: FW.Palette.finance) { open = .rhythm })
+        } else if let quests = p?.quests, game.quests {
+            items.append(.init(id: "quests", value: "\(quests.filter(\.done).count)/\(quests.count)", label: "Quests today",
+                               icon: "checklist", color: FW.Palette.finance) { open = .progress })
+        }
+        return HStack(spacing: 10) {
+            ForEach(items.prefix(3)) { s in
+                Button(action: s.action) {
+                    StatTile(value: s.value, label: s.label, icon: s.icon, color: s.color)
+                }
+                .buttonStyle(.pressable)
+            }
+        }
+        .animation(Springs.snappy, value: items.map(\.value))
+    }
 
-    private var tutor: some View {
+    private func section<C: View>(_ title: String, _ index: Int, @ViewBuilder content: @escaping () -> C) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Kicker(title)
+                .padding(.leading, 4)
+                .accessibilityAddTraits(.isHeader)
+            GroupCard(content: content)
+                .clipShape(.rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .rise(index)
+    }
+
+    // MARK: Learning
+
+    @ViewBuilder
+    private var learning: some View {
         let list = memory.value?.memories
         let seen = memorySeenAt(store)
         let fresh = (list ?? []).filter { memoryIsNew($0, since: seen) }.count
         let tentative = (list ?? []).filter { $0.status == "candidate" }.count
-        let pinned = (list ?? []).filter(\.pinned).count
-        let style = memory.value?.style
-        let learned = (style?.observations ?? 0) > 0
+        let learned = (memory.value?.style?.observations ?? 0) > 0
         let writing = Writing.all.first { $0.id == store.prefs.writing }?.label ?? "Balanced"
         let voice = Voice.all.first { $0.id == store.prefs.voice }?.label ?? "Cedar"
-        return YouGroup(title: "Your tutor", note: "What it knows about you and how it teaches. Used in every session.") {
-            YouRow(
-                icon: "brain", title: "Memory",
-                detail: "Your goals, background and preferences.\(pinned > 0 ? " \(pinned) pinned." : "")",
-                value: list.map { $0.isEmpty ? "Empty" : "\($0.count) saved" } ?? (memory.error == nil ? "…" : nil),
-                badge: fresh > 0 ? YouBadge(text: "\(fresh) new", quiet: false) : tentative > 0 ? YouBadge(text: "\(tentative) to confirm", quiet: true) : nil
-            ) { router.push(.memory, on: .you) }
-            YouRow(
-                icon: "sparkles", title: "Teaching style", detail: "How it explains, learned from what you do.",
-                value: memory.value == nil && memory.error == nil ? "…" : learned ? "Learning" : "Not yet"
-            ) { open = .style }
-            YouRow(icon: "textformat", title: "Writing style", detail: "How it talks to you: tone, length, and whether it swears.", value: writing) { open = .writing }
-            YouRow(icon: "waveform", title: "Practice voice", detail: "Your partner in practice conversations.", value: voice) { open = .voice }
-        }
-    }
+        let loading = memory.value == nil && memory.error == nil
 
-    // MARK: Sessions
-
-    private var sessions: some View {
-        let s = store.prefs.session
-        return YouGroup(title: "Sessions", note: "How each lesson runs. Applies from the next session you start.") {
-            YouControlRow(title: "Familiarity check", detail: "Before a new idea, asks how familiar it is so it can skip what you know.") {
-                Toggle("Familiarity check", isOn: Binding(get: { s.familiarity }, set: { v in store.setPrefs { $0.session.familiarity = v } })).labelsHidden()
-            }
-            YouControlRow(title: "Confidence rating", detail: "Say how sure you are when you answer. It sharpens what the tutor reviews.") {
-                Toggle("Confidence rating", isOn: Binding(get: { s.confidence }, set: { v in store.setPrefs { $0.session.confidence = v } })).labelsHidden()
-            }
-            YouControlRow(title: "“I don’t know yet”", detail: "A way to be taught instead of guessing at a question.") {
-                Toggle("I don’t know yet", isOn: Binding(get: { s.dontKnow }, set: { v in store.setPrefs { $0.session.dontKnow = v } })).labelsHidden()
-            }
-            YouStackedRow(title: "Breaks", detail: "A pause about every 50 minutes in sessions of an hour or more.") {
-                Segmented(options: [(0, "Off"), (5, "5 min"), (10, "10 min")],
-                          selection: Binding(get: { store.prefs.session.breaks }, set: { v in store.setPrefs { $0.session.breaks = v } }))
+        Button { router.push(.memory, on: .you) } label: {
+            GroupRow(icon: "brain.head.profile", title: "Memory", color: FW.Palette.review) {
+                YouTrail(
+                    value: list.map { $0.isEmpty ? "Empty" : "\($0.count) saved" } ?? (loading ? "…" : nil),
+                    badge: fresh > 0 ? "\(fresh) new" : tentative > 0 ? "\(tentative) to check" : nil,
+                    quiet: fresh == 0
+                )
             }
         }
+        .buttonStyle(YouRowStyle())
+        Button { open = .style } label: {
+            GroupRow(icon: "sparkles", title: "Teaching style", color: FW.Palette.judgment, value: loading ? "…" : learned ? "Learning" : "Not yet")
+        }
+        .buttonStyle(YouRowStyle())
+        Button { open = .writing } label: {
+            GroupRow(icon: "text.bubble.fill", title: "Writing style", color: FW.Palette.coral, value: writing)
+        }
+        .buttonStyle(YouRowStyle())
+        Button { open = .voice } label: {
+            GroupRow(icon: "waveform", title: "Practice voice", color: FW.Palette.finance, value: voice)
+        }
+        .buttonStyle(YouRowStyle())
     }
 
-    // MARK: Your rhythm
+    // MARK: Schedule
 
-    private func rhythm(_ plan: Plan?) -> some View {
+    @ViewBuilder
+    private func schedule(_ plan: Plan?) -> some View {
         let rolling = plan?.isRolling == true ? plan : nil
-        let noPlan = plan == nil ? "Import a plan first" : rolling == nil ? "Set by your fixed plan" : nil
         let h = rolling?.horizon
-        return YouGroup(title: "Your rhythm", note: "The shape of your week, filled in from your plan. Changes apply from the next week drafted.") {
-            YouRow(
-                icon: "calendar", title: "Learning days",
-                detail: rolling?.rhythmSummary ?? noPlan,
-                value: rolling.map { "\($0.slots.count) a week" },
-                disabled: rolling == nil
-            ) { open = .rhythm }
-            YouRow(
-                icon: "clock", title: "Session length and start",
-                detail: rolling != nil ? "Reminders and the session written ahead of time use the start." : noPlan,
-                value: h.map { "\($0.rhythm.minutes) min · \(PlanDate.clock($0.rhythm.start_local))" },
-                disabled: rolling == nil
-            ) { open = .rhythm }
-            YouRow(icon: "book", title: "Your plan", detail: plan?.title ?? "Import a plan to begin", value: plan == nil ? "None" : nil) { open = .plan }
+        let s = store.prefs.session
+        let aids = [s.familiarity, s.confidence, s.dontKnow].filter { $0 }.count
+
+        Button { open = .sessions } label: {
+            GroupRow(icon: "book.pages.fill", title: "Sessions", color: FW.Palette.communication,
+                     value: aids == 3 ? "All on" : "\(aids) of 3")
         }
+        .buttonStyle(YouRowStyle())
+        Button { open = .rhythm } label: {
+            GroupRow(
+                icon: "calendar", title: "Rhythm",
+                caption: rolling == nil ? (plan == nil ? "Import a plan first" : "Set by your fixed plan") : nil,
+                color: FW.Palette.finance,
+                value: h.map { "\(rolling?.slots.count ?? 0) days · \($0.rhythm.minutes) min" },
+                chevron: rolling != nil
+            )
+        }
+        .buttonStyle(YouRowStyle())
+        .disabled(rolling == nil)
+        .opacity(rolling == nil ? 0.55 : 1)
+        Button { open = .plan } label: {
+            GroupRow(icon: "map.fill", title: "Your plan", caption: plan?.title, color: FW.Palette.review, value: plan == nil ? "None" : nil)
+        }
+        .buttonStyle(YouRowStyle())
     }
 
-    // MARK: Notifications
+    // MARK: App
 
-    private var notifications: some View {
-        let r = YouReminders(store.record("settings:reminders")?["data"])
-        return YouGroup(title: "Notifications", note: "A preview, one nudge, and a few moments worth knowing about.") {
-            YouRow(
-                icon: "bell", title: "Notifications",
-                detail: r.on ? "Preview at \(PlanDate.clock(r.morning)) on learning days" : "Nothing is sent to this device",
-                value: youNotifySummary(r.on, store.prefs)
-            ) { open = .notify }
-        }
-    }
-
-    // MARK: Look & feel
-
-    private var look: some View {
+    @ViewBuilder
+    private var app: some View {
         let prefs = store.prefs
-        return YouGroup(title: "Look & feel") {
-            YouStackedRow(icon: theme == .light ? "sun.max" : "moon", title: "Appearance") {
-                Segmented(options: [(Theme.system, "Auto"), (.dark, "Dark"), (.light, "Light")], selection: $theme)
-            }
-            YouRow(icon: "textformat.size", title: "Reading", detail: "Fonts for lessons and the app, text size, line length.", value: youFontSummary(prefs.reading)) { open = .reading }
-            YouStackedRow(icon: "wind", title: "Motion", detail: "Animations and transitions.") {
-                Segmented(options: [("system", "Auto"), ("reduce", "Less"), ("full", "Full")],
-                          selection: Binding(get: { store.prefs.reading.motion }, set: { v in store.setPrefs { $0.reading.motion = v } }))
-            }
-            YouControlRow(icon: "speaker.wave.2", title: "Sound", detail: "Soft tones for good answers and a finished session.") {
-                Toggle("Sound", isOn: Binding(get: { store.prefs.sound }, set: { v in
-                    store.setPrefs { $0.sound = v }
-                    Feedback.shared.soundOn = v
-                    if v { Feedback.shared.play(.solid) }
-                }))
-                .labelsHidden()
-            }
-            YouRow(icon: "star", title: "Game elements", detail: "XP, levels, streaks and quests.", value: youGameSummary(prefs)) { open = .game }
+        let r = YouReminders(store.record("settings:reminders")?["data"])
+
+        Button { open = .notify } label: {
+            GroupRow(icon: "bell.badge.fill", title: "Notifications",
+                     caption: r.on ? "Preview at \(PlanDate.clock(r.morning))" : nil,
+                     color: FW.Palette.coral, value: youNotifySummary(r.on, prefs))
         }
+        .buttonStyle(YouRowStyle())
+        Menu {
+            Picker("Appearance", selection: $theme) {
+                Label("Automatic", systemImage: "circle.lefthalf.filled").tag(Theme.system)
+                Label("Dark", systemImage: "moon.fill").tag(Theme.dark)
+                Label("Light", systemImage: "sun.max.fill").tag(Theme.light)
+            }
+        } label: {
+            GroupRow(icon: theme == .light ? "sun.max.fill" : theme == .dark ? "moon.fill" : "circle.lefthalf.filled",
+                     title: "Appearance", color: FW.Palette.judgment) {
+                YouMenuValue(text: theme == .system ? "Auto" : theme.label)
+            }
+        }
+        .buttonStyle(YouRowStyle())
+        Button { open = .reading } label: {
+            GroupRow(icon: "textformat.size", title: "Reading", color: FW.Palette.communication) {
+                YouTrail(value: youFontSummary(prefs.reading), badge: nil)
+            }
+        }
+        .buttonStyle(YouRowStyle())
+        Menu {
+            Picker("Motion", selection: Binding(get: { store.prefs.reading.motion }, set: { v in store.setPrefs { $0.reading.motion = v } })) {
+                Text("Automatic").tag("system")
+                Text("Less").tag("reduce")
+                Text("Full").tag("full")
+            }
+        } label: {
+            GroupRow(icon: "wind", title: "Motion", color: FW.Palette.review) {
+                YouMenuValue(text: ["system": "Auto", "reduce": "Less", "full": "Full"][prefs.reading.motion] ?? "Auto")
+            }
+        }
+        .buttonStyle(YouRowStyle())
+        GroupRow(icon: prefs.sound ? "speaker.wave.2.fill" : "speaker.slash.fill", title: "Sound", color: FW.Palette.finance) {
+            Toggle("Sound", isOn: Binding(get: { store.prefs.sound }, set: { v in
+                store.setPrefs { $0.sound = v }
+                Feedback.shared.soundOn = v
+                if v { Feedback.shared.play(.solid) }
+            }))
+            .labelsHidden()
+        }
+        Button { open = .game } label: {
+            GroupRow(icon: "star.fill", title: "Game elements", color: FW.Palette.caution, value: youGameSummary(prefs))
+        }
+        .buttonStyle(YouRowStyle())
     }
 
-    // MARK: Account & data
+    // MARK: Account
 
+    @ViewBuilder
     private var account: some View {
         let u = usage.value
-        return YouGroup(title: "Account & data") {
-            YouRow(icon: "key", title: "Sign-in", detail: "Passkeys for this account, or a link by email.") { open = .signin }
-            YouRow(
-                icon: "sparkles", title: "AI cost this month",
-                detail: u.map { "\($0.calls) calls across lessons, practice and memory" } ?? (usage.error == nil ? "Loading…" : nil),
-                value: u.map { youDollars($0.total) },
-                disabled: u == nil,
-                showsDisabled: false
-            ) { open = .usage }
-            YouRow(icon: "arrow.down.to.line", title: "Data & privacy", detail: "Export everything, or delete your account.") { open = .data }
+
+        Button { open = .signin } label: {
+            GroupRow(icon: "person.badge.key.fill", title: "Sign-in", color: FW.Palette.review, value: "Passkeys")
         }
+        .buttonStyle(YouRowStyle())
+        Button { open = .usage } label: {
+            GroupRow(icon: "dollarsign.circle.fill", title: "AI cost this month", color: FW.Palette.finance,
+                     value: u.map { youDollars($0.total) } ?? (usage.error == nil ? "…" : nil), chevron: u != nil)
+        }
+        .buttonStyle(YouRowStyle())
+        .disabled(u == nil)
+        Button { Task { await exportAll() } } label: {
+            GroupRow(icon: "square.and.arrow.up.fill", title: "Export my data", color: FW.Palette.judgment) {
+                if exporting {
+                    ProgressView().controlSize(.small).transition(.opacity.combined(with: .scale(0.8)))
+                } else {
+                    Image(systemName: "arrow.down.to.line").font(.system(size: 14, weight: .semibold)).foregroundStyle(FW.Palette.text4)
+                }
+            }
+        }
+        .buttonStyle(YouRowStyle())
+        .disabled(exporting)
+        Button { open = .delete } label: {
+            GroupRow(icon: "trash.fill", title: "Delete account", color: FW.Palette.negative, value: nil)
+        }
+        .buttonStyle(YouRowStyle())
+        Button { confirmSignOut = true } label: {
+            GroupRow(icon: "rectangle.portrait.and.arrow.right", title: "Sign out", color: FW.Palette.text2) {
+                if signingOut { ProgressView().controlSize(.small) }
+            }
+        }
+        .buttonStyle(YouRowStyle())
+        .disabled(signingOut)
     }
 
     // MARK: Sheets
@@ -232,178 +321,150 @@ struct YouView: View {
     private func sheet(for s: Sheet, plan: Plan?) -> some View {
         switch s {
         case .style: YouStyleSheet(style: memory.value?.style).presentationDetents([.medium, .large])
-        case .writing: YouWritingSheet()
-        case .voice: YouVoiceSheet()
+        case .writing: YouWritingSheet().presentationDetents([.large])
+        case .voice: YouVoiceSheet().presentationDetents([.medium, .large])
+        case .sessions: YouSessionsSheet().presentationDetents([.medium, .large])
         case .rhythm:
             if let plan, plan.isRolling { PlanRhythmSheet(plan: plan) }
         case .plan: YouPlanSheet().presentationDetents([.medium])
-        case .notify: YouNotificationsSheet(reminders: YouReminders(store.record("settings:reminders")?["data"]))
-        case .reading: YouReadingSheet()
+        case .notify: YouNotificationsSheet(reminders: YouReminders(store.record("settings:reminders")?["data"])).presentationDetents([.large])
+        case .reading: YouReadingSheet().presentationDetents([.large])
         case .game: YouGameSheet().presentationDetents([.medium, .large])
         case .signin: YouSignInSheet(email: auth.email).presentationDetents([.medium, .large])
         case .usage:
-            if let u = usage.value { YouUsageSheet(usage: u).presentationDetents([.medium]) }
-        case .data: YouDataSheet().presentationDetents([.medium])
+            if let u = usage.value { YouUsageSheet(usage: u).presentationDetents([.medium, .large]) }
+        case .progress:
+            if let p = progress.value { ProgressSheet(progress: p) }
+        case .delete: YouDeleteAccountSheet().presentationDetents([.medium, .large])
         }
     }
 }
 
-// MARK: - Rows
+// MARK: - Pieces
 
-// A group of settings: a name, one line on what it changes, and its rows
-// with hairlines between them (web: SettingsGroup).
-struct YouGroup<Content: View>: View {
-    let title: String
-    var note: String? = nil
-    @ViewBuilder var content: () -> Content
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            VStack(alignment: .leading, spacing: 3) {
-                Kicker(title).accessibilityAddTraits(.isHeader)
-                if let note {
-                    Text(note).font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
-            .padding(.bottom, 4)
-            VStack(spacing: 0) {
-                Group(subviews: content()) { rows in
-                    ForEach(rows.indices, id: \.self) { i in
-                        if i > 0 { Rule() }
-                        rows[i]
-                    }
-                }
-            }
-        }
-    }
-}
-
-struct YouBadge {
-    let text: String
-    let quiet: Bool
-}
-
-// A leading glyph in the web's rounded square.
-private struct YouGlyph: View {
+private struct YouStat: Identifiable {
+    let id: String
+    let value: String
+    let label: String
     let icon: String
-    var body: some View {
-        Image(systemName: icon)
-            .font(.system(size: 15))
-            .foregroundStyle(FW.Palette.text2)
-            .frame(width: 36, height: 36)
-            .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.sm))
-            .accessibilityHidden(true)
-    }
+    let color: Color
+    let action: () -> Void
 }
 
-private struct YouTitle: View {
-    let title: String
-    let detail: String?
+// The initial in a warm disc, ringed by progress to the next level when XP
+// is on. The ring draws itself in the first time it's seen.
+private struct YouAvatar: View {
+    let initial: String
+    let fraction: Double?
+    let level: Int?
+    @State private var shown: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text)
-                .fixedSize(horizontal: false, vertical: true)
-            if let detail {
-                Text(detail).font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                    .lineSpacing(2)
-                    .fixedSize(horizontal: false, vertical: true)
+        ZStack {
+            if fraction != nil {
+                Circle().stroke(FW.Palette.surface2, lineWidth: 5)
+                Circle()
+                    .trim(from: 0, to: shown)
+                    .stroke(
+                        AngularGradient(colors: [FW.Palette.caution, FW.Palette.coral, FW.Palette.caution], center: .center),
+                        style: StrokeStyle(lineWidth: 5, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+            }
+            Text(initial)
+                .font(.rounded(38))
+                .foregroundStyle(FW.Palette.bg)
+                .frame(width: 84, height: 84)
+                .background(
+                    LinearGradient(colors: [FW.Palette.coral, FW.Palette.caution], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: .circle
+                )
+        }
+        .frame(width: 102, height: 102)
+        .overlay(alignment: .bottom) {
+            if let level {
+                Text("Level \(level)")
+                    .font(.sans(12, .bold))
+                    .foregroundStyle(FW.Palette.text)
+                    .padding(.horizontal, 9)
+                    .frame(height: 22)
+                    .background(FW.Palette.raised, in: .capsule)
+                    .overlay(Capsule().strokeBorder(FW.Palette.line2, lineWidth: 1))
+                    .offset(y: 8)
+                    .contentTransition(.numericText())
+                    .transition(.scale(0.6).combined(with: .opacity))
             }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(Springs.bouncy, value: level)
+        .onAppear { animate(to: fraction) }
+        .onChange(of: fraction) { _, f in animate(to: f) }
+        .accessibilityElement()
+        .accessibilityLabel(level.map { "Level \($0)" } ?? "Profile")
+    }
+
+    private func animate(to f: Double?) {
+        guard let f else { return }
+        let target = min(max(f, 0.02), 1)
+        if reduceMotion { shown = target; return }
+        withAnimation(.easeOut(duration: 1.1).delay(0.25)) { shown = target }
     }
 }
 
-// A row that opens something (web: IndexRow with onClick): glyph, title and
-// detail, an optional badge and value, and a chevron.
-struct YouRow: View {
-    var icon: String? = nil
-    let title: String
-    var detail: String? = nil
-    var value: String? = nil
-    var badge: YouBadge? = nil
-    var disabled = false
-    // A row that just isn't ready yet (still loading) keeps full contrast.
-    var showsDisabled = true
-    var action: () -> Void
+// A row's value with an optional count badge beside it, and a chevron.
+private struct YouTrail: View {
+    let value: String?
+    let badge: String?
+    var quiet = false
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: 14) {
-                if let icon { YouGlyph(icon: icon) }
-                YouTitle(title: title, detail: detail)
-                if let badge {
-                    Text(badge.text)
-                        .font(.sans(12, .semibold))
-                        .lineLimit(1)
-                        .fixedSize()
-                        .padding(.horizontal, 8)
-                        .frame(minHeight: 22)
-                        .foregroundStyle(badge.quiet ? FW.Palette.text2 : FW.Palette.review)
-                        .background(badge.quiet ? FW.Palette.surface2 : FW.Palette.review.opacity(0.18), in: .capsule)
-                }
-                if let value {
-                    Text(value)
-                        .font(.sans(14))
-                        .monospacedDigit()
-                        .foregroundStyle(FW.Palette.text2)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .frame(maxWidth: 150, alignment: .trailing)
-                }
-                if !disabled {
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundStyle(FW.Palette.text3)
-                        .accessibilityHidden(true)
-                }
+        HStack(spacing: 8) {
+            if let badge {
+                Text(badge)
+                    .font(.sans(12, .semibold))
+                    .lineLimit(1)
+                    .fixedSize()
+                    .padding(.horizontal, 8)
+                    .frame(height: 22)
+                    .foregroundStyle(quiet ? FW.Palette.text2 : FW.Palette.review)
+                    .background(quiet ? FW.Palette.surface2 : FW.Palette.review.opacity(0.16), in: .capsule)
+                    .transition(.scale(0.7).combined(with: .opacity))
             }
-            .padding(.vertical, 10)
-            .frame(minHeight: 56)
+            if let value {
+                Text(value).font(.sans(15)).foregroundStyle(FW.Palette.text3)
+                    .lineLimit(1).truncationMode(.tail)
+                    .frame(maxWidth: 170, alignment: .trailing)
+                    .contentTransition(.numericText())
+            }
+            Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(FW.Palette.text4)
+        }
+        .animation(Springs.snappy, value: badge)
+    }
+}
+
+// The current choice of an inline menu, with the up-down glyph iOS uses.
+private struct YouMenuValue: View {
+    let text: String
+    var body: some View {
+        HStack(spacing: 5) {
+            Text(text).font(.sans(15)).foregroundStyle(FW.Palette.text3).contentTransition(.interpolate)
+            Image(systemName: "chevron.up.chevron.down").font(.system(size: 12, weight: .semibold)).foregroundStyle(FW.Palette.text4)
+        }
+    }
+}
+
+// Rows inside a card light up edge to edge while pressed, like Settings.
+private struct YouRowStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var enabled
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background {
+                Rectangle()
+                    .fill(FW.Palette.surface2)
+                    .padding(.horizontal, -14)
+                    .opacity(configuration.isPressed ? 1 : 0)
+            }
+            .animation(configuration.isPressed ? nil : .easeOut(duration: 0.25), value: configuration.isPressed)
             .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .disabled(disabled)
-        .opacity(disabled && showsDisabled ? 0.55 : 1)
-    }
-}
-
-// A row with a control on the right (switches).
-private struct YouControlRow<Control: View>: View {
-    var icon: String? = nil
-    let title: String
-    var detail: String? = nil
-    @ViewBuilder var control: () -> Control
-
-    var body: some View {
-        HStack(spacing: 14) {
-            if let icon { YouGlyph(icon: icon) }
-            YouTitle(title: title, detail: detail)
-            control()
-        }
-        .padding(.vertical, 10)
-        .frame(minHeight: 56)
-    }
-}
-
-// A row whose control is too wide for one line and sits beneath its label
-// (web: .index-row:has(> .segmented) on narrow screens).
-private struct YouStackedRow<Control: View>: View {
-    var icon: String? = nil
-    let title: String
-    var detail: String? = nil
-    @ViewBuilder var control: () -> Control
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 14) {
-                if let icon { YouGlyph(icon: icon) }
-                YouTitle(title: title, detail: detail)
-            }
-            control()
-                .padding(.leading, icon == nil ? 0 : 50)
-        }
-        .padding(.vertical, 12)
-        .frame(minHeight: 56)
     }
 }

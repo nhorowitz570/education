@@ -22,89 +22,150 @@ struct NotebookShareSheet: View {
     private var url: URL? { token.map { Config.site.appending(path: "c/\($0)") } }
 
     var body: some View {
-        SheetScaffold(title: "Share this idea", subtitle: "A card anyone with the link can see. It’s a snapshot: later sessions don’t change it.") {
-            VStack(spacing: 0) {
-                option(
-                    "Include your explanation",
-                    detail: entry.words.isEmpty ? "You haven’t explained this one yet." : "Your best answer about this idea, word for word.",
-                    isOn: $words
-                )
-                .disabled(entry.words.isEmpty || busy)
-                Rule()
-                option("Show your first name", detail: "Otherwise the card is anonymous.", isOn: $name)
+        SheetScaffold(title: "Share this idea", subtitle: "Anyone with the link sees a snapshot of this card.") {
+            preview
+            GroupCard {
+                option("Include your explanation", icon: "quote.bubble", color: FW.Palette.review,
+                       detail: entry.words.isEmpty ? "You haven’t explained this one yet." : "Your best answer, word for word.",
+                       isOn: $words)
+                    .disabled(entry.words.isEmpty || busy)
+                option("Show your first name", icon: "person.crop.circle", color: FW.Palette.judgment,
+                       detail: "Otherwise the card is anonymous.", isOn: $name)
                     .disabled(busy)
             }
-            if let url {
-                linked(url)
-            } else {
-                Button { make() } label: {
-                    HStack(spacing: 8) {
-                        if busy { ProgressView().tint(FW.Palette.onAccent) } else { Image(systemName: "link") }
-                        Text("Create link")
+            Group {
+                if let url {
+                    linked(url)
+                        .transition(.blurReplace)
+                } else {
+                    Button { make() } label: {
+                        HStack(spacing: 8) {
+                            if busy { ProgressView().tint(FW.Palette.onAccent) } else { Image(systemName: "link") }
+                            Text("Create link")
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .buttonStyle(.fw(.primary, wide: true))
+                    .disabled(busy)
+                    .transition(.blurReplace)
                 }
-                .buttonStyle(.fw(.primary, wide: true))
-                .disabled(busy)
             }
         }
         // The app's toasts sit under sheets; show this sheet's own on top.
         .presentationDetents([.medium, .large])
+        .sensoryFeedback(.success, trigger: token) { old, new in old == nil && new != nil }
     }
 
-    private func option(_ title: String, detail: String, isOn: Binding<Bool>) -> some View {
+    // A small picture of the card as it will be shared; it follows the
+    // toggles above.
+    private var preview: some View {
+        let tint = notebookTint(entry.track)
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                IconBadge(systemName: notebookGlyph(entry.track), color: tint, size: 28)
+                Text(entry.trackTitle).font(.sans(13, .semibold)).foregroundStyle(tint)
+                Spacer(minLength: 0)
+                Text("Fieldwork").font(.sans(12, .semibold)).foregroundStyle(FW.Palette.text3)
+            }
+            Text(entry.title)
+                .font(.sans(20, .bold))
+                .foregroundStyle(FW.Palette.text)
+                .fixedSize(horizontal: false, vertical: true)
+            if words, let w = entry.words.first {
+                Text("“\(NotebookText.clip(w.text, 140))”")
+                    .font(.serif(15, italic: true))
+                    .foregroundStyle(FW.Palette.text2)
+                    .lineLimit(3)
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else if !entry.summary.isEmpty {
+                Text(entry.summary)
+                    .font(.sans(14))
+                    .foregroundStyle(FW.Palette.text2)
+                    .lineLimit(2)
+                    .transition(.opacity)
+            }
+            if name {
+                Label("Your first name", systemImage: "person.fill")
+                    .font(.sans(12, .medium))
+                    .foregroundStyle(FW.Palette.text3)
+                    .transition(.opacity.combined(with: .scale(0.9, anchor: .leading)))
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous)
+                .fill(LinearGradient(colors: [tint.opacity(0.16), tint.opacity(0.03)], startPoint: .topLeading, endPoint: .bottomTrailing))
+                .background(FW.Palette.bg, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        }
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(tint.opacity(0.2)))
+        .animation(Springs.smooth, value: words)
+        .animation(Springs.smooth, value: name)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Preview of the shared card")
+    }
+
+    private func option(_ title: String, icon: String, color: Color, detail: String, isOn: Binding<Bool>) -> some View {
         Toggle(isOn: isOn) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text)
-                Text(detail).font(.sans(13)).foregroundStyle(FW.Palette.text3).fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 14) {
+                IconBadge(systemName: icon, color: color, size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title).font(.sans(16, .medium)).foregroundStyle(FW.Palette.text)
+                    Text(detail).font(.sans(13)).foregroundStyle(FW.Palette.text3).fixedSize(horizontal: false, vertical: true)
+                }
             }
         }
         .tint(FW.Palette.positive)
-        .padding(.vertical, 12)
+        .padding(.vertical, 11)
         .frame(minHeight: 60)
     }
 
     @ViewBuilder
     private func linked(_ url: URL) -> some View {
-        HStack(spacing: 8) {
-            Text(url.absoluteString)
-                .font(.sans(14))
-                .foregroundStyle(FW.Palette.text)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .textSelection(.enabled)
-                .padding(.horizontal, 14)
-                .frame(maxWidth: .infinity, minHeight: 46, alignment: .leading)
-                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line))
-                .accessibilityLabel("Share link")
-                .accessibilityValue(url.absoluteString)
-            Button("Copy") {
-                UIPasteboard.general.string = url.absoluteString
-                Feedback.shared.play(.tap)
-                Toasts.shared.show("Link copied.")
+        VStack(spacing: 14) {
+            HStack(spacing: 8) {
+                Image(systemName: "link").font(.system(size: 14, weight: .semibold)).foregroundStyle(FW.Palette.positive)
+                Text(url.absoluteString)
+                    .font(.sans(14))
+                    .foregroundStyle(FW.Palette.text)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityLabel("Share link")
+                    .accessibilityValue(url.absoluteString)
+                Button("Copy") {
+                    UIPasteboard.general.string = url.absoluteString
+                    Feedback.shared.play(.tap)
+                    Toasts.shared.show("Link copied.")
+                }
+                .buttonStyle(.fw(.primary, small: true))
             }
-            .buttonStyle(.fw(.primary))
-        }
-        VStack(spacing: 8) {
-            Button { openURL(url) } label: {
-                Label("Open the card", systemImage: "arrow.up.right").frame(maxWidth: .infinity)
+            .padding(.leading, 14)
+            .padding(.trailing, 6)
+            .frame(minHeight: 50)
+            .background(FW.Palette.surface, in: .capsule)
+            .overlay(Capsule().strokeBorder(FW.Palette.line))
+            GroupCard {
+                Button { openURL(url) } label: {
+                    GroupRow(icon: "arrow.up.right", title: "Open the card", color: FW.Palette.review)
+                }
+                .buttonStyle(.pressable(0.98))
+                ShareLink(item: RemoteImageFile(url: url.appending(path: "image"), name: fileName), preview: SharePreview(entry.title)) {
+                    GroupRow(icon: "photo", title: "Share as image", color: FW.Palette.judgment)
+                }
+                .buttonStyle(.pressable(0.98))
+                Button { make() } label: {
+                    GroupRow(icon: "arrow.clockwise", title: "Update with these choices", color: FW.Palette.positive, chevron: false)
+                }
+                .buttonStyle(.pressable(0.98))
+                .disabled(busy)
+                Button { stop() } label: {
+                    GroupRow(icon: "xmark", title: "Turn off the link", color: FW.Palette.negative, chevron: false)
+                }
+                .buttonStyle(.pressable(0.98))
+                .disabled(busy)
             }
-            .buttonStyle(.fw(.secondary, wide: true))
-            ShareLink(item: RemoteImageFile(url: url.appending(path: "image"), name: fileName), preview: SharePreview(entry.title)) {
-                Label("Share as image", systemImage: "photo").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.fw(.secondary, wide: true))
-            Button { make() } label: {
-                Label("Update with these choices", systemImage: "arrow.clockwise").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.fw(.secondary, wide: true))
-            .disabled(busy)
-            Button { stop() } label: {
-                Label("Turn off the link", systemImage: "xmark").frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.fw(.danger, wide: true))
-            .disabled(busy)
         }
     }
 
@@ -121,7 +182,7 @@ struct NotebookShareSheet: View {
             do {
                 let body: [String: JSON] = ["key": .string(entry.key), "words": .bool(words), "name": .bool(name)]
                 let r: Made = try await API.post("/api/shares", body)
-                withAnimation(.easeOut(duration: FW.Motion.base)) { token = r.token }
+                withAnimation(Springs.smooth) { token = r.token }
                 await NotebookModel.shared.load(owner: store.owner)
             } catch {
                 Toasts.shared.show(error.localizedDescription)
@@ -135,7 +196,7 @@ struct NotebookShareSheet: View {
         Task {
             do {
                 try await API.delete("/api/shares", ["key": entry.key])
-                withAnimation(.easeOut(duration: FW.Motion.base)) { token = nil }
+                withAnimation(Springs.smooth) { token = nil }
                 await NotebookModel.shared.load(owner: store.owner)
                 Toasts.shared.show("The link no longer works.")
             } catch {

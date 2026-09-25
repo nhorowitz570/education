@@ -1,0 +1,104 @@
+{
+  "xp": 735,
+  "todayXp": 0,
+  "level": 4,
+  "floor": 600,
+  "next": 1000,
+  "into": 135,
+  "span": 400,
+  "rank": "Novice",
+  "streak": {
+    "current": 2,
+    "best": 2,
+    "todayDone": false,
+    "unit": "week"
+  },
+  "quests": [
+    {
+      "id": "session",
+      "label": "Finish today’s session",
+      "target": 1,
+      "progress": 0,
+      "done": false,
+      "xp": 20
+    },
+    {
+      "id": "calibrated2",
+      "label": "Call it right twice: certain and correct",
+      "target": 2,
+      "progress": 0,
+      "done": false,
+      "xp": 20
+    },
+    {
+      "id": "solid3",
+      "label": "Get 3 solid answers",
+      "target": 3,
+      "progress": 0,
+      "done": false,
+      "xp": 20
+    }
+  ],
+  "badges": [
+    {
+      "id": "first-session",
+      "label": "First light",
+      "detail": "Finish your first session",
+      "earned": true
+    },
+    {
+      "id": "ten-sessions",
+      "label": "Regular",
+      "detail": "Finish 10 sessions",
+      "earned": false
+    },
+    {
+      "id": "streak-5",
+      "label": "On a roll",
+      "detail": "3 weeks in a row",
+      "earned": true
+    },
+    {
+      "id": "streak-20",
+      "label": "Unbroken",
+      "detail": "8 weeks in a row",
+      "earned": false
+    },
+    {
+      "id": "solid-25",
+      "label": "Sharp",
+      "detail": "25 solid answers",
+      "earned": false
+    },
+    {
+      "id": "calibrated-10",
+      "label": "Knows what they know",
+      "detail": "10 answers that were certain and correct",
+      "earned": false
+    },
+    {
+      "id": "honest",
+      "label": "Honest start",
+      "detail": "Say “I don’t know yet” and learn it",
+      "earned": true
+    },
+    {
+      "id": "practice",
+      "label": "Said it out loud",
+      "detail": "Finish a practice conversation",
+      "earned": true
+    },
+    {
+      "id": "level-5",
+      "label": "Apprentice",
+      "detail": "Reach level 5",
+      "earned": false
+    },
+    {
+      "id": "level-10",
+      "label": "Practitioner",
+      "detail": "Reach level 10",
+      "earned": false
+    }
+  ]
+}

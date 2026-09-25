@@ -1,0 +1,40 @@
+{
+  "practices": [
+    {
+      "id": "a3f8d2c7-6e1b-4a95-8c3d-0b7e9f2a5d14",
+      "title": "Firm terms with a longtime client",
+      "status": "active",
+      "started_at": "2026-09-24T04:05:37.664127+00:00",
+      "mode": "conversation",
+      "score": null,
+      "headline": null
+    },
+    {
+      "id": "9b4e1c7a-2f5d-4e83-a1b6-8d0c3f7e2a59",
+      "title": "Feedback on a missed deliverable",
+      "status": "done",
+      "started_at": "2026-09-23T02:40:15.338311+00:00",
+      "mode": "conversation",
+      "score": 0.71,
+      "headline": "You named the problem clearly, but let Katie steer the fix instead of agreeing on one."
+    },
+    {
+      "id": "6c1a9e4f-8b3d-4f27-9e5a-2d7b0c1f8e63",
+      "title": "Does rent control help renters?",
+      "status": "done",
+      "started_at": "2026-09-19T01:52:40.271488+00:00",
+      "mode": "debate",
+      "score": 0.64,
+      "headline": "Strong on supply effects, but you conceded the tenant-stability point without answering it."
+    },
+    {
+      "id": "f2e7b0d5-3a9c-4d16-b8f4-5e1a6c9d0b72",
+      "title": "Explain the 401(k) match",
+      "status": "done",
+      "started_at": "2026-09-17T02:31:05.772727+00:00",
+      "mode": "explain",
+      "score": 0.58,
+      "headline": "Accurate, but you started with vesting rules before saying why the match is free money."
+    }
+  ]
+}

@@ -1,0 +1,3 @@
+DEBUG-only demo fixtures: each `<route>.json` is the exact JSON body the server returns for that route (`/` → `_`), served by `Debug/Demo.swift` when the app launches with `-demo`, so every screen renders in the simulator without signing in.
+They must match the server contracts in `docs/API.md` and `src/app/api/**/route.ts` (field names, nesting, types, nullability) and share one timeline: "today" is Thursday 2026-09-24 in America/Los_Angeles, and run, practice, concept and session ids line up across files.
+Regenerate them whenever a route's contract changes; never ship them in a release build.

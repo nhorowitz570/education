@@ -1,0 +1,408 @@
+{
+  "entries": [
+    {
+      "key": "reflective-listening",
+      "title": "Listen for the need",
+      "track": "communication",
+      "trackTitle": "Communication",
+      "summary": "Say back what the other person needs, not just the words they used, so they can correct you before you solve the wrong problem.",
+      "offPlan": false,
+      "strength": 0.3656998143392241,
+      "level": "learning",
+      "due_at": "2026-09-24T22:02:52.871Z",
+      "first_seen": "2026-09-22T17:42:26.735Z",
+      "last_seen": "2026-09-24T03:13:55.271Z",
+      "explanation": "Reflective listening means saying back **what the person needs**, not the words they used. It shows you heard the problem underneath, and it lets them correct you before you solve the wrong thing.",
+      "visual": null,
+      "words": [
+        {
+          "text": "So what I’m hearing is that the invoices keep coming in wrong and you’re frustrated about it.",
+          "verdict": "missed",
+          "step": "recall",
+          "run": "1a6f3d28-7c4e-4b95-8d21-9e0b5c3a7f64",
+          "at": "2026-09-24T03:13:55.271Z"
+        }
+      ],
+      "asks": [],
+      "notes": [],
+      "sources": [
+        {
+          "run": "1a6f3d28-7c4e-4b95-8d21-9e0b5c3a7f64",
+          "title": "Review",
+          "kind": "review",
+          "at": "2026-09-24T03:10:08.412200+00:00"
+        },
+        {
+          "run": "c41d7e06-9a2b-4f58-b3e7-6d1f0a8c2b95",
+          "title": "Listen, pause, state the point",
+          "kind": "session",
+          "at": "2026-09-22T17:05:26.803711+00:00"
+        }
+      ],
+      "misconceptions": [
+        "Treats reflecting as repeating the other person’s words, rather than naming what they need."
+      ],
+      "shared": null
+    },
+    {
+      "key": "income-statement-layers",
+      "title": "The layers of an income statement",
+      "track": "finance",
+      "trackTitle": "Finance",
+      "summary": "How revenue becomes net income, one deduction at a time: direct costs, running costs, then interest and tax.",
+      "offPlan": false,
+      "strength": 0.5125006833789166,
+      "level": "learning",
+      "due_at": "2026-09-26T02:08:09.387Z",
+      "first_seen": "2026-09-23T17:04:11.206800+00:00",
+      "last_seen": "2026-09-23T17:15:21.387Z",
+      "explanation": "An income statement reads **top to bottom**, and each line answers a different question. Here is Jake’s studio in August:\n\n- **Revenue**: what the studio earned delivering work ($52,000).\n- **Gross profit**: revenue minus the *direct* cost of delivering it: freelance editors and gear rental ($36,500).\n- **Operating income**: gross profit minus the cost of *running* the studio: salaries, rent, software ($16,300).\n- **Net income**: what’s left after interest and tax ($14,000): the profit you met on Monday.\n\nGross profit asks “is the work priced well?” Operating income asks “does the business pay for itself?”",
+      "visual": {
+        "type": "waterfall",
+        "title": "Carter Creative, August: from revenue to net income",
+        "unit": "$",
+        "start": {
+          "label": "Revenue",
+          "value": 52000
+        },
+        "steps": [
+          {
+            "label": "Freelance editors & gear rental",
+            "delta": -15500
+          },
+          {
+            "label": "Salaries & rent",
+            "delta": -17800
+          },
+          {
+            "label": "Software & insurance",
+            "delta": -2400
+          },
+          {
+            "label": "Loan interest",
+            "delta": -600
+          },
+          {
+            "label": "Income tax (est.)",
+            "delta": -1700
+          }
+        ],
+        "end_label": "Net income",
+        "takeaway": "The biggest bite comes from running the studio, not from doing the work."
+      },
+      "words": [],
+      "asks": [
+        {
+          "question": "Where does my own salary go if I run the studio and also edit?",
+          "quote": "the cost of running the studio: salaries, rent, software",
+          "answer": "Split it by what you’re doing. Hours you spend editing client work are a **direct cost**, like a freelancer’s. Hours spent selling, managing and doing the books are **operating expenses**. Most small studios keep it simple and put the owner’s whole salary in operating expenses, which makes gross margin look a little better than it is.",
+          "run": "e7a2b5c8-1d3f-4a69-8b0e-4c7d2f9a6e31",
+          "at": "2026-09-23T17:08:12.645Z"
+        }
+      ],
+      "notes": [
+        {
+          "id": "8c3a6e1f-0b5d-4f72-a9e8-2d4c7b1e5f96",
+          "text": "Two different questions, two different fixes: prices vs. overhead.",
+          "quote": "Gross profit asks “is the work priced well?” Operating income asks “does the business pay for itself?”",
+          "run": "e7a2b5c8-1d3f-4a69-8b0e-4c7d2f9a6e31",
+          "beat": "orient-muecs9na16-k2m9",
+          "concept": "income-statement-layers",
+          "at": "2026-09-23T17:09:44.918688+00:00"
+        }
+      ],
+      "sources": [
+        {
+          "run": "e7a2b5c8-1d3f-4a69-8b0e-4c7d2f9a6e31",
+          "title": "Read a simple income statement",
+          "kind": "session",
+          "at": "2026-09-23T17:04:11.206800+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    },
+    {
+      "key": "gross-vs-operating-margin",
+      "title": "Gross versus operating margin",
+      "track": "finance",
+      "trackTitle": "Finance",
+      "summary": "Gross margin shows whether the work is priced well; operating margin shows whether the business pays for itself after overhead.",
+      "offPlan": false,
+      "strength": 0,
+      "level": "new",
+      "due_at": null,
+      "first_seen": "2026-09-23T17:04:11.206800+00:00",
+      "last_seen": "2026-09-23T17:04:11.206800+00:00",
+      "explanation": null,
+      "visual": {
+        "type": "bar",
+        "title": "August revenue by client (hatched: invoiced, not yet paid)",
+        "unit": "$",
+        "bars": [
+          {
+            "label": "Harbor Dental Group",
+            "value": 20000,
+            "tone": "accent",
+            "pending": 8000,
+            "note": "Pays in about 60 days"
+          },
+          {
+            "label": "Brightline Solar",
+            "value": 15500,
+            "tone": "default",
+            "pending": null,
+            "note": "Paid on delivery"
+          },
+          {
+            "label": "Folsom Parks & Rec",
+            "value": 10500,
+            "tone": "default",
+            "pending": 4500,
+            "note": "Pays quarterly"
+          },
+          {
+            "label": "Small jobs",
+            "value": 6000,
+            "tone": "muted",
+            "pending": null,
+            "note": null
+          }
+        ],
+        "takeaway": "Margins are worked out on all $52,000, even though $12,500 of it hasn’t arrived."
+      },
+      "words": [],
+      "asks": [],
+      "notes": [
+        {
+          "id": "e2b7f4a9-6c1d-4e38-8f05-3a9d2c7b1e60",
+          "text": "Ask Jake what his operating margin was last year before the new hire.",
+          "quote": null,
+          "run": "e7a2b5c8-1d3f-4a69-8b0e-4c7d2f9a6e31",
+          "beat": "worked-mued60b819-h3pe",
+          "concept": "gross-vs-operating-margin",
+          "at": "2026-09-23T17:16:21.702127+00:00"
+        }
+      ],
+      "sources": [
+        {
+          "run": "e7a2b5c8-1d3f-4a69-8b0e-4c7d2f9a6e31",
+          "title": "Read a simple income statement",
+          "kind": "session",
+          "at": "2026-09-23T17:04:11.206800+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    },
+    {
+      "key": "bottom-line-first",
+      "title": "State the point first",
+      "track": "communication",
+      "trackTitle": "Communication",
+      "summary": "Lead with the answer, then the reason, then what you need, so a busy listener gets the part they asked for in the first sentence.",
+      "offPlan": false,
+      "strength": 0.7830278086070986,
+      "level": "practiced",
+      "due_at": "2026-09-25T14:13:16.670Z",
+      "first_seen": "2026-09-22T17:05:26.803711+00:00",
+      "last_seen": "2026-09-22T17:52:10.227111+00:00",
+      "explanation": "Lead with the **answer**, then the reason, then what you need. Busy listeners decide in the first sentence whether to keep listening; background first makes them wait for the part they asked for.",
+      "visual": null,
+      "words": [
+        {
+          "text": "We’ll miss Friday’s launch by two days. The vendor changed their API on Tuesday and we need until Wednesday to test the fix. If we ship Friday without testing we risk breaking checkout over the weekend.",
+          "verdict": "solid",
+          "step": "attempt",
+          "run": "c41d7e06-9a2b-4f58-b3e7-6d1f0a8c2b95",
+          "at": "2026-09-22T17:23:47.390Z"
+        }
+      ],
+      "asks": [],
+      "notes": [],
+      "sources": [
+        {
+          "run": "c41d7e06-9a2b-4f58-b3e7-6d1f0a8c2b95",
+          "title": "Listen, pause, state the point",
+          "kind": "session",
+          "at": "2026-09-22T17:05:26.803711+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    },
+    {
+      "key": "strategic-pause",
+      "title": "The deliberate pause",
+      "track": "communication",
+      "trackTitle": "Communication",
+      "summary": "A short pause before answering a pointed question signals thought, not evasion, and keeps you from filling silence with background.",
+      "offPlan": false,
+      "strength": 0.2824735760039594,
+      "level": "learning",
+      "due_at": "2026-09-23T07:55:14.208Z",
+      "first_seen": "2026-09-22T17:05:26.803711+00:00",
+      "last_seen": "2026-09-22T17:52:10.227111+00:00",
+      "explanation": "A two-second pause after a hard question signals you’re thinking, not dodging, and it stops you filling silence with background.",
+      "visual": null,
+      "words": [],
+      "asks": [],
+      "notes": [],
+      "sources": [
+        {
+          "run": "c41d7e06-9a2b-4f58-b3e7-6d1f0a8c2b95",
+          "title": "Listen, pause, state the point",
+          "kind": "session",
+          "at": "2026-09-22T17:05:26.803711+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    },
+    {
+      "key": "profit-vs-cash",
+      "title": "Profit versus cash",
+      "track": "finance",
+      "trackTitle": "Finance",
+      "summary": "Profit is earned over a period; cash is what’s in the account now. They drift apart whenever money arrives or leaves at a different time from when work is counted.",
+      "offPlan": false,
+      "strength": 0.7832888503684449,
+      "level": "practiced",
+      "due_at": "2026-09-24T18:13:04.157Z",
+      "first_seen": "2026-09-21T17:03:12.418288+00:00",
+      "last_seen": "2026-09-21T17:49:31.604088+00:00",
+      "explanation": "**Profit** is a scoreboard for a period: revenue earned minus the expenses of earning it. **Cash** is what is in the account right now. The two drift apart whenever money arrives or leaves at a different time from when the work is counted.\n\nOf the $52,000 Jake earned in August, clients have paid $39,500. The other **$12,500 is a receivable**: it counts as revenue, so it’s in the profit, but it can’t pay anyone yet.\n\nA profitable business runs out of cash when it is paid later than it pays.",
+      "visual": null,
+      "words": [
+        {
+          "text": "The $4,000 deposit is cash but it isn’t profit yet because Emily hasn’t done the event. Once she caters it and pays $2,500 for food, the profit is about $1,500, and until then she’s holding money she still owes in work.",
+          "verdict": "solid",
+          "step": "transfer",
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "at": "2026-09-21T17:28:30.941Z"
+        },
+        {
+          "text": "Because profit is just a number on the report and cash is what’s actually in the bank. Jake made money in August but he’s spent most of it, so now he’s short for payroll.",
+          "verdict": "partial",
+          "step": "attempt",
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "at": "2026-09-21T17:21:44.118Z"
+        }
+      ],
+      "asks": [
+        {
+          "question": "Give me one concrete example.",
+          "answer": "Say Jake films a $6,000 wedding-venue promo in August and invoices on August 31 with 30-day terms. August’s profit includes the $6,000. The cash arrives around October 1, after two payrolls have already gone out.",
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "at": "2026-09-21T17:11:02.334Z"
+        }
+      ],
+      "notes": [
+        {
+          "id": "5f0d2b8e-3a71-4c96-b2e4-9d8a1c6f7e03",
+          "text": "Profit is the scoreboard, cash is the oxygen. Check receivables before celebrating a big month.",
+          "quote": null,
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "beat": "explain-mubhuo0y1e-e3xq",
+          "concept": "profit-vs-cash",
+          "at": "2026-09-21T17:12:30.227911+00:00"
+        }
+      ],
+      "sources": [
+        {
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "title": "Profit versus cash",
+          "kind": "session",
+          "at": "2026-09-21T17:03:12.418288+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    },
+    {
+      "key": "revenue-timing",
+      "title": "When revenue counts",
+      "track": "finance",
+      "trackTitle": "Finance",
+      "summary": "Revenue belongs to the period the work is delivered, not when it is invoiced or paid. Invoices create receivables; payments turn them into cash.",
+      "offPlan": false,
+      "strength": 0.3728321901153226,
+      "level": "learning",
+      "due_at": "2026-09-22T17:44:05.630Z",
+      "first_seen": "2026-09-21T17:03:12.418288+00:00",
+      "last_seen": "2026-09-21T17:49:31.604088+00:00",
+      "explanation": "Revenue is recognized when it’s **earned**: when the work is delivered, not when the invoice goes out or the money lands. That’s the accrual idea behind every income statement.\n\nThree dates matter: **delivered** (revenue), **invoiced** (a receivable appears), **paid** (cash arrives).",
+      "visual": null,
+      "words": [],
+      "asks": [
+        {
+          "question": "So if Jake sends the invoice on Aug 30 but finishes the edit Sept 5, which month gets the revenue?",
+          "quote": "Revenue is recognized when it’s earned",
+          "answer": "September. Sending an invoice early doesn’t earn anything; the work does. Until September 5 that $6,000 is closer to a deposit than to revenue.",
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "at": "2026-09-21T17:36:48.502Z"
+        }
+      ],
+      "notes": [],
+      "sources": [
+        {
+          "run": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+          "title": "Profit versus cash",
+          "kind": "session",
+          "at": "2026-09-21T17:03:12.418288+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    },
+    {
+      "key": "trip:2d9e6f13-5c8a-4b71-9f02-7a3e1c4b8d56",
+      "title": "How do stock buybacks actually help shareholders?",
+      "track": "explore",
+      "trackTitle": "Side trips",
+      "summary": "",
+      "offPlan": true,
+      "strength": 0,
+      "level": "new",
+      "due_at": null,
+      "first_seen": "2026-09-19T01:31:44.090327+00:00",
+      "last_seen": "2026-09-19T01:46:02.733927+00:00",
+      "explanation": "A buyback is a company using its cash to purchase its own shares. Fewer shares means each remaining share owns a bigger slice of future profits, so **earnings per share rise** even if profit doesn’t.\n\nWhether that helps depends on price: buying back stock when it’s expensive transfers value to the shareholders who sell.",
+      "visual": null,
+      "words": [],
+      "asks": [
+        {
+          "question": "Why? Explain the mechanism.",
+          "answer": "Profit is split across shares. If profit is $100M and there are 100M shares, EPS is $1. Buy back 10M shares and the same $100M is split 90M ways: about $1.11 each.",
+          "run": "2d9e6f13-5c8a-4b71-9f02-7a3e1c4b8d56",
+          "at": "2026-09-19T01:38:20.918Z"
+        }
+      ],
+      "notes": [],
+      "sources": [
+        {
+          "run": "2d9e6f13-5c8a-4b71-9f02-7a3e1c4b8d56",
+          "title": "How do stock buybacks actually help shareholders?",
+          "kind": "explore",
+          "at": "2026-09-19T01:31:44.090327+00:00"
+        }
+      ],
+      "misconceptions": [],
+      "shared": null
+    }
+  ],
+  "tracks": [
+    {
+      "id": "finance",
+      "title": "Finance"
+    },
+    {
+      "id": "communication",
+      "title": "Communication"
+    },
+    {
+      "id": "explore",
+      "title": "Side trips"
+    }
+  ]
+}

@@ -1,8 +1,9 @@
 import SwiftUI
 
 // Memory (src/components/you/you.tsx MemorySheet): everything Fieldwork has
-// learned about the learner. What it isn't sure of yet comes first, then the
-// rest by kind, folded. Pushed from You rather than shown as a sheet.
+// learned about the learner, as cards grouped by kind. What it isn't sure of
+// yet comes first; swipe a memory to pin, edit or forget it. Pushed from You
+// rather than shown as a sheet.
 
 // MARK: - Model (docs/API.md §8.9)
 
@@ -101,11 +102,18 @@ func memoryIsNew(_ m: MemItem, since seen: String) -> Bool {
     return m.created_at > seen
 }
 
-private let memGroups: [(title: String, kinds: [String])] = [
-    ("Goals", ["goal"]),
-    ("How you like to learn", ["preference", "style"]),
-    ("Background and interests", ["background", "interest", "knowledge"]),
-    ("Moments worth remembering", ["episode"]),
+private struct MemGroup {
+    let title: String
+    let kinds: [String]
+    let icon: String
+    let color: Color
+}
+
+private let memGroups: [MemGroup] = [
+    .init(title: "Goals", kinds: ["goal"], icon: "target", color: FW.Palette.finance),
+    .init(title: "How you like to learn", kinds: ["preference", "style"], icon: "slider.horizontal.3", color: FW.Palette.judgment),
+    .init(title: "Background and interests", kinds: ["background", "interest", "knowledge"], icon: "person.text.rectangle.fill", color: FW.Palette.communication),
+    .init(title: "Moments worth remembering", kinds: ["episode"], icon: "star.bubble.fill", color: FW.Palette.coral),
 ]
 
 // MARK: - Screen
@@ -121,37 +129,35 @@ struct MemoryView: View {
     @State private var adding = ""
     @State private var editing: MemItem?
     @State private var confirmForget = false
-    @State private var open: Set<String> = []
     @State private var started = false
     @FocusState private var addFocused: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Memory").font(.display(32)).foregroundStyle(FW.Palette.text)
-                    Text("Used quietly to teach you better. Edit or remove anything.")
-                        .font(.sans(15)).foregroundStyle(FW.Palette.text2)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if let memories {
-                    list(memories)
-                } else if let error = loader.error {
-                    ErrorNote(message: error) { Task { await load() } }
-                } else {
-                    SkeletonLines(count: 5).padding(.top, 8)
+        Group {
+            if let memories {
+                list(memories)
+            } else {
+                ScrollView {
+                    Group {
+                        if let error = loader.error {
+                            ErrorNote(message: error) { Task { await load() } }
+                        } else {
+                            VStack(spacing: 12) {
+                                ForEach(0..<3, id: \.self) { _ in
+                                    SkeletonLines(count: 3).padding(16).background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+                                }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, FW.Size.gutter)
+                    .padding(.top, 8)
                 }
             }
-            .padding(.horizontal, FW.Size.gutter)
-            .padding(.top, 8)
-            .padding(.bottom, 48)
         }
-        .scrollDismissesKeyboard(.interactively)
         .screenBackground()
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Memory")
+        .navigationBarTitleDisplayMode(.large)
         .task { await begin() }
-        .refreshable { await load() }
         .sheet(item: $editing) { m in
             MemEditSheet(memory: m) { content in
                 Task {
@@ -170,134 +176,175 @@ struct MemoryView: View {
 
     // MARK: Content
 
-    @ViewBuilder
     private func list(_ all: [MemItem]) -> some View {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         let match = { (m: MemItem) in q.isEmpty || m.content.lowercased().contains(q) }
         let unsure = all.filter { $0.status == "candidate" && match($0) }
         let sure = all.filter { $0.status != "candidate" && match($0) }
-        let newCount = all.filter { memoryIsNew($0, since: since) }.count
-
-        if all.count > 8 {
-            HStack(spacing: 10) {
-                Image(systemName: "magnifyingglass").font(.system(size: 15)).foregroundStyle(FW.Palette.text3)
-                TextField("Search \(all.count) memories", text: $query)
-                    .font(.sans(16))
-                    .foregroundStyle(FW.Palette.text)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .submitLabel(.search)
-                    .accessibilityLabel("Search memories")
-                if !query.isEmpty {
-                    Button { query = "" } label: {
-                        Image(systemName: "xmark.circle.fill").foregroundStyle(FW.Palette.text3)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Clear search")
-                }
-            }
-            .padding(.horizontal, 14)
-            .frame(minHeight: 46)
-            .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-            .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line, lineWidth: 1))
-        }
-
-        if all.isEmpty {
-            Text("Nothing yet. After a few sessions this fills with what helps you learn.")
-                .font(.sans(15)).foregroundStyle(FW.Palette.text2)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-
-        if !unsure.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Kicker("Not sure yet · \(unsure.count)")
-                Text("Seen once. Keep what’s true; dismiss what isn’t.")
-                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                rows(unsure, tentative: true)
-            }
-        }
-
-        let groups = memGroups.compactMap { g -> (String, [MemItem])? in
+        let groups = memGroups.compactMap { g -> (MemGroup, [MemItem])? in
             let items = sure.filter { g.kinds.contains($0.kind) }
-            return items.isEmpty ? nil : (g.title, items)
+            return items.isEmpty ? nil : (g, items)
         }
-        if !groups.isEmpty {
-            VStack(spacing: 0) {
-                Rule()
-                ForEach(groups, id: \.0) { title, items in
-                    let newHere = items.filter { memoryIsNew($0, since: since) }.count
-                    PlanDisclosure(
-                        title: title,
-                        teaser: "\(items.count) \(items.count == 1 ? "memory" : "memories")\(newHere > 0 ? " · \(newHere) new" : "")",
-                        titleSize: 15,
-                        open: Binding(
-                            get: { !q.isEmpty || open.contains(title) },
-                            set: { v in if v { open.insert(title) } else { open.remove(title) } }
-                        )
-                    ) {
-                        rows(items, tentative: false)
+
+        return List {
+            Section {
+                addForm
+                    .listRowBackground(FW.Palette.raised)
+            } header: {
+                summary(all)
+            } footer: {
+                Text(all.isEmpty ? "Used quietly to teach you better." : "Used quietly to teach you better. Swipe a memory to edit or forget it.")
+                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+            }
+
+            if all.isEmpty {
+                Section {
+                    YouEmpty(icon: "brain.head.profile", color: FW.Palette.review, title: "Nothing yet", line: "After a few sessions, this fills with what helps you learn.")
+                        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets())
+                }
+            }
+
+            if !unsure.isEmpty {
+                Section {
+                    ForEach(unsure) { m in row(m, tentative: true) }
+                } header: {
+                    MemHeader(icon: "questionmark.circle.fill", color: FW.Palette.caution, title: "Not sure yet", count: unsure.count)
+                } footer: {
+                    Text("Seen once. Keep what’s true; dismiss what isn’t.").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                }
+            }
+
+            ForEach(groups, id: \.0.title) { g, items in
+                Section {
+                    ForEach(items) { m in row(m, tentative: false) }
+                } header: {
+                    MemHeader(icon: g.icon, color: g.color, title: g.title, count: items.count)
+                }
+            }
+
+            if !q.isEmpty, unsure.isEmpty, sure.isEmpty {
+                Section {
+                    Text("Nothing matches “\(query)”.").font(.sans(15)).foregroundStyle(FW.Palette.text2)
+                        .listRowBackground(FW.Palette.raised)
+                }
+            }
+
+            if !all.isEmpty {
+                Section {
+                    Button(role: .destructive) { confirmForget = true } label: {
+                        Label("Forget everything", systemImage: "trash")
+                            .font(.sans(16, .medium))
+                            .foregroundStyle(FW.Palette.negative)
                     }
-                    Rule()
+                    .listRowBackground(FW.Palette.raised)
                 }
             }
         }
-        if !q.isEmpty, unsure.isEmpty, sure.isEmpty {
-            Text("Nothing matches “\(query)”.").font(.sans(15)).foregroundStyle(FW.Palette.text2)
-        }
-
-        addForm
-        if newCount > 0 {
-            Text("\(newCount) learned since you last looked, marked with a dot.")
-                .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-        }
-        if !all.isEmpty {
-            Button("Forget everything") { confirmForget = true }
-                .font(.sans(15, .medium))
-                .foregroundStyle(FW.Palette.negative)
-                .buttonStyle(.plain)
-                .frame(minHeight: 44)
-        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .listSectionSpacing(22)
+        .listRowSeparatorTint(FW.Palette.line)
+        .scrollDismissesKeyboard(.interactively)
+        .refreshable { await load() }
+        .modifier(MemSearch(enabled: all.count > 8, query: $query, count: all.count))
     }
 
-    private func rows(_ items: [MemItem], tentative: Bool) -> some View {
-        VStack(spacing: 0) {
-            ForEach(Array(items.enumerated()), id: \.element.id) { i, m in
-                if i > 0 { Rule() }
-                MemRow(
-                    memory: m,
-                    origin: m.source_run.flatMap { origins[$0] },
-                    fresh: memoryIsNew(m, since: since),
-                    tentative: tentative,
-                    onPin: { Task { await save(m, pinned: !m.pinned) } },
-                    onEdit: { editing = m },
-                    onForget: { Task { await remove(m) } },
-                    onKeep: { Task { await review(m, "keep", toast: "Kept.") } },
-                    onDismiss: { Task { await review(m, "dismiss", toast: "Dismissed.") } },
-                    onOrigin: { openOrigin(m) }
-                )
+    // Counts at a glance.
+    private func summary(_ all: [MemItem]) -> some View {
+        let fresh = all.filter { memoryIsNew($0, since: since) }.count
+        let pinned = all.filter(\.pinned).count
+        return HStack(spacing: 8) {
+            Pill(text: "\(all.count) saved", icon: "brain.head.profile", color: FW.Palette.text2)
+            if fresh > 0 { Pill(text: "\(fresh) new", icon: "sparkles", color: FW.Palette.review) }
+            if pinned > 0 { Pill(text: "\(pinned) pinned", icon: "pin.fill", color: FW.Palette.caution) }
+            Spacer(minLength: 0)
+        }
+        .textCase(nil)
+        .padding(.leading, -4)
+        .padding(.bottom, 8)
+        .rise(0)
+    }
+
+    private func row(_ m: MemItem, tentative: Bool) -> some View {
+        MemRow(
+            memory: m,
+            origin: m.source_run.flatMap { origins[$0] },
+            fresh: memoryIsNew(m, since: since),
+            tentative: tentative,
+            onKeep: { Task { await review(m, "keep", toast: "Kept.") } },
+            onDismiss: { Task { await review(m, "dismiss", toast: "Dismissed.") } },
+            onOrigin: { openOrigin(m) }
+        )
+        .listRowBackground(FW.Palette.raised)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            if tentative {
+                Button { Task { await review(m, "dismiss", toast: "Dismissed.") } } label: { Label("Dismiss", systemImage: "xmark") }
+                    .tint(FW.Palette.text3)
+            } else {
+                Button(role: .destructive) { Task { await remove(m) } } label: { Label("Forget", systemImage: "trash") }
+                Button { editing = m } label: { Label("Edit", systemImage: "pencil") }
+                    .tint(FW.Palette.review)
+            }
+        }
+        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+            if tentative {
+                Button { Task { await review(m, "keep", toast: "Kept.") } } label: { Label("Keep", systemImage: "checkmark") }
+                    .tint(FW.Palette.positive)
+            } else {
+                Button { Task { await save(m, pinned: !m.pinned) } } label: {
+                    Label(m.pinned ? "Unpin" : "Pin", systemImage: m.pinned ? "pin.slash.fill" : "pin.fill")
+                }
+                .tint(FW.Palette.caution)
+            }
+        }
+        .contextMenu {
+            if tentative {
+                Button { Task { await review(m, "keep", toast: "Kept.") } } label: { Label("Keep", systemImage: "checkmark") }
+                Button { Task { await review(m, "dismiss", toast: "Dismissed.") } } label: { Label("Dismiss", systemImage: "xmark") }
+            } else {
+                Button { Task { await save(m, pinned: !m.pinned) } } label: {
+                    Label(m.pinned ? "Unpin" : "Pin", systemImage: m.pinned ? "pin.slash" : "pin")
+                }
+                Button { editing = m } label: { Label("Edit", systemImage: "pencil") }
+            }
+            if let run = m.source_run, let origin = origins[run] {
+                Button { openOrigin(m) } label: { Label("Open \(origin.title)", systemImage: "arrow.up.forward.app") }
+            }
+            if !tentative {
+                Button(role: .destructive) { Task { await remove(m) } } label: { Label("Forget", systemImage: "trash") }
             }
         }
     }
 
     private var addForm: some View {
         let ready = adding.trimmingCharacters(in: .whitespacesAndNewlines).count >= 3
-        return HStack(spacing: 10) {
-            TextField("Tell it something: “Use sports examples”…", text: $adding, axis: .vertical)
+        return HStack(alignment: .center, spacing: 10) {
+            Image(systemName: "plus.bubble.fill")
+                .font(.system(size: 18))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(FW.Palette.text3)
+            TextField("Tell it something: “Use sports examples”", text: $adding, axis: .vertical)
                 .font(.sans(16))
                 .lineLimit(1...4)
                 .focused($addFocused)
                 .submitLabel(.done)
                 .onSubmit { add() }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .frame(minHeight: 46)
-                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line, lineWidth: 1))
                 .accessibilityLabel("Add something Fieldwork should know")
-            Button("Add") { add() }
-                .buttonStyle(.fw(.secondary))
-                .disabled(!ready)
+            Button { add() } label: {
+                Image(systemName: "arrow.up.circle.fill")
+                    .font(.system(size: 28))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(ready ? FW.Palette.onAccent : FW.Palette.text3, ready ? FW.Palette.accent : FW.Palette.surface2)
+                    .scaleEffect(ready ? 1 : 0.9)
+                    .animation(Springs.bouncy, value: ready)
+            }
+            .buttonStyle(.plain)
+            .disabled(!ready)
+            .accessibilityLabel("Add")
         }
+        .padding(.vertical, 4)
     }
 
     // MARK: Behaviour
@@ -318,16 +365,16 @@ struct MemoryView: View {
     }
 
     private func adopt(_ r: MemListResponse) {
-        let first = memories == nil
-        memories = r.memories
-        origins = r.origins
-        if first, r.memories.count <= 6 { open = Set(memGroups.map(\.title)) }
+        withAnimation(memories == nil ? nil : Springs.snappy) {
+            memories = r.memories
+            origins = r.origins
+        }
     }
 
     private func put(_ m: MemItem) {
         var list = (memories ?? []).filter { $0.id != m.id }
         if m.status != "archived" { list.insert(m, at: 0) }
-        withAnimation(.snappy(duration: 0.3)) { memories = list }
+        withAnimation(Springs.snappy) { memories = list }
     }
 
     @discardableResult
@@ -355,6 +402,7 @@ struct MemoryView: View {
                 put(r.memory)
                 adding = ""
                 addFocused = false
+                Feedback.shared.play(.tap)
             } catch {
                 Toasts.shared.show(error.localizedDescription)
             }
@@ -375,7 +423,7 @@ struct MemoryView: View {
 
     private func remove(_ m: MemItem) async {
         let before = memories
-        withAnimation(.snappy(duration: 0.3)) { memories = (memories ?? []).filter { $0.id != m.id } }
+        withAnimation(Springs.snappy) { memories = (memories ?? []).filter { $0.id != m.id } }
         do {
             try await API.delete("/api/memory", ["id": m.id])
             Toasts.shared.show("Forgotten.", action: "Undo") {
@@ -397,7 +445,7 @@ struct MemoryView: View {
     private func forgetAll() async {
         do {
             try await API.delete("/api/memory", ["all": true])
-            withAnimation { memories = [] }
+            withAnimation(Springs.smooth) { memories = [] }
             LoaderCache.values["/api/memory"] = nil
             Toasts.shared.show("Fieldwork will start learning about you again from scratch.")
         } catch {
@@ -415,6 +463,42 @@ struct MemoryView: View {
     }
 }
 
+// Search appears once there's enough to search through.
+private struct MemSearch: ViewModifier {
+    let enabled: Bool
+    @Binding var query: String
+    let count: Int
+    func body(content: Content) -> some View {
+        if enabled {
+            content.searchable(text: $query, prompt: "Search \(count) memories")
+        } else {
+            content
+        }
+    }
+}
+
+// A kind's header: its glyph, its name and how many.
+private struct MemHeader: View {
+    let icon: String
+    let color: Color
+    let title: String
+    let count: Int
+    var body: some View {
+        HStack(spacing: 10) {
+            IconBadge(systemName: icon, color: color, size: 28)
+            Text(title).font(.sans(16, .semibold)).foregroundStyle(FW.Palette.text)
+            Spacer(minLength: 4)
+            Text("\(count)").font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text3).monospacedDigit()
+                .contentTransition(.numericText())
+        }
+        .textCase(nil)
+        .padding(.leading, -4)
+        .padding(.bottom, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
+    }
+}
+
 // MARK: - Row
 
 private struct MemRow: View {
@@ -422,9 +506,6 @@ private struct MemRow: View {
     let origin: MemOrigin?
     let fresh: Bool
     let tentative: Bool
-    let onPin: () -> Void
-    let onEdit: () -> Void
-    let onForget: () -> Void
     let onKeep: () -> Void
     let onDismiss: () -> Void
     let onOrigin: () -> Void
@@ -437,7 +518,7 @@ private struct MemRow: View {
         } else if m.source == "import" {
             out += AttributedString("From your plan")
         } else if let origin, m.source_run != nil {
-            out += AttributedString("Learned in ")
+            out += AttributedString("From ")
             var link = AttributedString(origin.title)
             link.link = URL(string: "fieldwork-memory://origin")
             link.foregroundColor = FW.Palette.text2
@@ -447,64 +528,54 @@ private struct MemRow: View {
             out += AttributedString("Noticed in a session")
         }
         if !tentative, m.source != "user", m.evidence > 1 { out += AttributedString(" · seen \(m.evidence)×") }
-        if m.pinned { out += AttributedString(" · pinned") }
         return out
     }
 
     var body: some View {
-        HStack(alignment: .top, spacing: 10) {
-            VStack(alignment: .leading, spacing: 3) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    if fresh {
-                        Circle().fill(FW.Palette.review).frame(width: 7, height: 7)
-                            .alignmentGuide(.firstTextBaseline) { d in d[.bottom] }
-                            .accessibilityLabel("New")
-                    }
-                    Text(memory.content)
-                        .font(.sans(15))
-                        .lineSpacing(3)
-                        .foregroundStyle(FW.Palette.text)
-                        .fixedSize(horizontal: false, vertical: true)
+        VStack(alignment: .leading, spacing: 8) {
+            Text(memory.content)
+                .font(.sans(15))
+                .lineSpacing(2)
+                .foregroundStyle(FW.Palette.text)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 6) {
+                if fresh {
+                    Text("New")
+                        .font(.sans(11, .bold))
+                        .foregroundStyle(FW.Palette.review)
+                        .padding(.horizontal, 7)
+                        .frame(height: 18)
+                        .background(FW.Palette.review.opacity(0.16), in: .capsule)
+                        .accessibilityLabel("New")
+                }
+                if memory.pinned {
+                    Image(systemName: "pin.fill")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(FW.Palette.caution)
+                        .accessibilityLabel("Pinned")
                 }
                 Text(meta)
                     .font(.sans(12.5))
                     .foregroundStyle(FW.Palette.text3)
                     .tint(FW.Palette.text2)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
                     .environment(\.openURL, OpenURLAction { _ in
                         onOrigin()
                         return .handled
                     })
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
             if tentative {
-                HStack(spacing: 2) {
+                HStack(spacing: 8) {
                     Button(action: onKeep) { Label("Keep", systemImage: "checkmark") }
+                        .buttonStyle(.fw(.primary, small: true))
+                    Button(action: onDismiss) { Label("Dismiss", systemImage: "xmark") }
                         .buttonStyle(.fw(.secondary, small: true))
-                    icon("xmark", label: "Dismiss", action: onDismiss)
                 }
-            } else {
-                HStack(spacing: 0) {
-                    icon(memory.pinned ? "pin.fill" : "pin", label: memory.pinned ? "Unpin" : "Pin", action: onPin)
-                        .accessibilityAddTraits(memory.pinned ? .isSelected : [])
-                    icon("pencil", label: "Edit", action: onEdit)
-                    icon("trash", label: "Forget", action: onForget)
-                }
+                .labelStyle(.titleAndIcon)
+                .padding(.top, 2)
             }
         }
-        .padding(.vertical, 12)
-    }
-
-    private func icon(_ name: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: name)
-                .font(.system(size: 15))
-                .foregroundStyle(FW.Palette.text2)
-                .frame(width: 36, height: 36)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .padding(.vertical, 6)
     }
 }
 
@@ -530,8 +601,8 @@ private struct MemEditSheet: View {
                 .lineLimit(3...8)
                 .focused($focused)
                 .padding(14)
-                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line, lineWidth: 1))
+                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: FW.Radius.base, style: .continuous).strokeBorder(FW.Palette.line, lineWidth: 1))
                 .accessibilityLabel("Memory")
             Button("Save") { onSave(trimmed) }
                 .buttonStyle(.fw(.primary, wide: true))

@@ -1,9 +1,9 @@
 import SwiftUI
 
 // Learn (src/components/learn/learn.tsx, rolling.tsx). A plan that runs a
-// week at a time shows this week, next week's draft (yours to shape until its
-// Monday) and the direction beyond. An older fixed plan shows this week, next
-// week and its chapters.
+// week at a time shows this week as a day-by-day timeline, next week's draft
+// (yours to shape until its Monday), your rhythm and the direction beyond. An
+// older fixed plan shows this week, next week and its chapters.
 struct LearnView: View {
     @Environment(Store.self) private var store
     @Environment(Router.self) private var router
@@ -16,30 +16,35 @@ struct LearnView: View {
             VStack(alignment: .leading, spacing: 0) {
                 if let plan {
                     if plan.isRolling {
-                        LearnRolling(plan: plan, concepts: mastery.value?.concepts ?? [])
+                        LearnRolling(plan: plan, concepts: mastery.value?.concepts ?? [], onRhythm: { rhythm = true })
                     } else {
                         LearnFixed(plan: plan, concepts: mastery.value?.concepts ?? [])
                     }
                 } else {
-                    VStack(alignment: .leading, spacing: 20) {
-                        PageHead(eyebrow: "Learn", title: "No plan yet.")
-                        Button("Import a plan") { router.push(.importPlan) }
-                            .buttonStyle(.fw(.primary))
+                    VStack(spacing: 14) {
+                        IconBadge(systemName: "map.fill", color: FW.Palette.judgment, size: 72, circle: true)
+                            .padding(.bottom, 6)
+                        Text("No plan yet.").font(.sans(22, .bold)).foregroundStyle(FW.Palette.text)
+                        Button { router.push(.importPlan) } label: { Label("Import a plan", systemImage: "square.and.arrow.down") }
+                            .buttonStyle(.fw(.primary, wide: true))
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 60)
+                    .rise()
                 }
             }
             .padding(.horizontal, FW.Size.gutter)
-            .padding(.top, 8)
+            .padding(.top, 4)
             .padding(.bottom, 48)
         }
         .scrollDismissesKeyboard(.interactively)
         .screenBackground()
-        .navigationTitle("")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationTitle("Learn")
+        .navigationBarTitleDisplayMode(.large)
         .toolbar {
             if plan?.isRolling == true {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button { rhythm = true } label: { Label("Your rhythm", systemImage: "calendar").labelStyle(.titleAndIcon) }
+                    Button("Your rhythm", systemImage: "calendar") { rhythm = true }
                 }
             }
         }
@@ -52,123 +57,98 @@ struct LearnView: View {
     }
 }
 
-// MARK: - Session rows
+// MARK: - Session rows (fixed plans)
 
 private struct LearnSessionRow: View {
     let session: Plan.Session
     let done: Bool
     let today: String
     var strength: Double? = nil
-    // Rolling plans say why; fixed ones show the subject.
     var sub: String
-    // Rolling plans add "today" / "still open this week"; fixed plans pass their own.
-    var autoSuffix = true
-    var onSwap: (() -> Void)? = nil
-    var onRemove: (() -> Void)? = nil
     let onOpen: () -> Void
-
-    private var state: String {
-        done ? "done" : session.date == today ? "today" : session.date < today ? "open" : "planned"
-    }
 
     var body: some View {
         let color = trackColor(session.subject)
-        HStack(spacing: 4) {
-            Button(action: onOpen) {
-                HStack(spacing: 12) {
-                    VStack(spacing: 1) {
-                        Text(PlanDate.short(PlanDate.dayIndex(session.date)).uppercased())
-                            .font(.sans(11)).tracking(0.4)
-                            .foregroundStyle(FW.Palette.text3)
-                        Text("\(Int(session.date.suffix(2)) ?? 0)")
-                            .font(.sans(19, .medium)).monospacedDigit()
-                            .foregroundStyle(FW.Palette.text)
-                    }
-                    .frame(width: 34)
-                    Dot(color: color, hollow: !done, lit: state == "today")
-                        .opacity(state == "open" ? 0.7 : 1)
-                    VStack(alignment: .leading, spacing: 2) {
-                        HStack(alignment: .firstTextBaseline, spacing: 8) {
-                            Text(session.title)
-                                .font(.sans(15))
-                                .foregroundStyle(done ? FW.Palette.text2 : FW.Palette.text)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                            if session.added { PlanPill(text: "New") }
-                        }
-                        Text(sub + (!autoSuffix ? "" : state == "today" ? " · today" : state == "open" ? " · still open this week" : ""))
-                            .font(.sans(13))
-                            .foregroundStyle(FW.Palette.text3)
+        let isToday = session.date == today
+        Button(action: onOpen) {
+            HStack(spacing: 12) {
+                VStack(spacing: 0) {
+                    Text(PlanDate.short(PlanDate.dayIndex(session.date)))
+                        .font(.sans(12, .semibold))
+                        .foregroundStyle(isToday ? FW.Palette.accent : FW.Palette.text3)
+                    Text("\(Int(session.date.suffix(2)) ?? 0)")
+                        .font(.rounded(19))
+                        .foregroundStyle(FW.Palette.text)
+                }
+                .frame(width: 36)
+                LearnNode(color: color, glyph: Glyph.track(session.subject), done: done, today: isToday, size: 34)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(session.title)
+                            .font(.sans(15, .medium))
+                            .foregroundStyle(done ? FW.Palette.text2 : FW.Palette.text)
                             .multilineTextAlignment(.leading)
-                            .lineLimit(3)
                             .fixedSize(horizontal: false, vertical: true)
+                        if session.added { PlanPill(text: "New") }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    if let strength, strength > 0 { PlanMiniMeter(value: strength, color: color) }
-                    if done {
-                        Image(systemName: "checkmark").font(.system(size: 14, weight: .semibold)).foregroundStyle(color)
-                            .accessibilityLabel("Done")
-                    } else if onSwap == nil {
-                        Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(FW.Palette.text3)
-                            .accessibilityHidden(true)
-                    }
+                    Text(sub)
+                        .font(.sans(13))
+                        .foregroundStyle(FW.Palette.text3)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
                 }
-                .padding(.vertical, 10)
-                .frame(minHeight: 60)
-                .contentShape(.rect)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if let strength, strength > 0 { PlanMiniMeter(value: strength, color: color) }
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(FW.Palette.text4)
+                    .accessibilityHidden(true)
             }
-            .buttonStyle(.plain)
-            if let onSwap, let onRemove {
-                HStack(spacing: 0) {
-                    icon("arrow.triangle.2.circlepath", label: "Swap \(session.title)", action: onSwap)
-                    icon("xmark", label: "Take \(session.title) out of this week", action: onRemove)
-                }
-            }
+            .padding(.vertical, 10)
+            .frame(minHeight: 60)
+            .contentShape(.rect)
         }
-    }
-
-    private func icon(_ name: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: name)
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(FW.Palette.text2)
-                .frame(width: 34, height: 40)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .buttonStyle(.pressable)
+        .accessibilityValue(done ? "Done" : "")
     }
 }
 
-private func learnRows<Item: Identifiable, Row: View>(_ items: [Item], @ViewBuilder row: @escaping (Item) -> Row) -> some View {
-    VStack(spacing: 0) {
-        ForEach(Array(items.enumerated()), id: \.element.id) { i, item in
-            if i > 0 { Rule() }
-            row(item)
-        }
-    }
-}
+// A day's marker: the track's glyph in its hue, filled with a tick once done.
+private struct LearnNode: View {
+    let color: Color
+    let glyph: String
+    var done = false
+    var today = false
+    var size: CGFloat = 36
 
-private struct LearnSectionHead<Trailing: View>: View {
-    let eyebrow: String
-    let title: String
-    @ViewBuilder var trailing: () -> Trailing
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Kicker(eyebrow)
-            HStack(spacing: 10) {
-                Text(title).font(.sans(20, .semibold)).foregroundStyle(FW.Palette.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                trailing()
+        ZStack {
+            Circle().fill(done ? color : color.opacity(today ? 0.2 : 0.13))
+            if today && !done {
+                Circle().strokeBorder(color, lineWidth: 2)
             }
+            Image(systemName: done ? "checkmark" : glyph)
+                .font(.system(size: size * (done ? 0.4 : 0.38), weight: .bold))
+                .foregroundStyle(done ? FW.Palette.raised : color)
+                .contentTransition(.symbolEffect(.replace))
         }
-        .padding(.bottom, 8)
+        .frame(width: size, height: size)
+        .accessibilityHidden(true)
     }
 }
 
-extension LearnSectionHead where Trailing == EmptyView {
-    init(eyebrow: String, title: String) { self.init(eyebrow: eyebrow, title: title) { EmptyView() } }
+// A card with the raised fill and hairline used across Learn.
+private extension View {
+    func learnCard(padding: CGFloat = 16, tint: Color? = nil, stroke: Color = FW.Palette.line) -> some View {
+        self
+            .padding(padding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+            .background {
+                if let tint {
+                    RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).fill(tint)
+                }
+            }
+            .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(stroke, lineWidth: 1))
+    }
 }
 
 // MARK: - Rolling plan
@@ -176,6 +156,7 @@ extension LearnSectionHead where Trailing == EmptyView {
 private struct LearnRolling: View {
     let plan: Plan
     let concepts: [PlanConcept]
+    let onRhythm: () -> Void
     @Environment(Store.self) private var store
     @Environment(Router.self) private var router
     @State private var open: Plan.Session?
@@ -184,6 +165,8 @@ private struct LearnRolling: View {
     @State private var swapping: Plan.Session?
     @State private var track: LearnTrackRef?
     @State private var adding = false
+    @State private var shaping = false
+    @State private var addAfterShape = false
     @State private var pastOpen: Set<String> = []
 
     var body: some View {
@@ -200,69 +183,89 @@ private struct LearnRolling: View {
         let before = today < plan.start_date
         let canEditNow = PlanDate.editable(current, today: today)
 
-        VStack(alignment: .leading, spacing: 32) {
-            PageHead(
-                eyebrow: "Learn",
-                title: plan.title,
-                subtitle: "\(before ? "Starts \(PlanDate.label(plan.start_date))" : "Week \(index)") · \(doneThisWeek) of \(thisWeek.count) done this week"
-            )
+        VStack(alignment: .leading, spacing: 28) {
+            // The week at a glance.
+            LearnWeekHeader(
+                plan: plan, start: current, sessions: thisWeek, done: done, today: today,
+                label: before ? "Starts \(PlanDate.label(plan.start_date))" : "Week \(index)",
+                doneCount: doneThisWeek
+            ) { s in open = s }
+            .rise(0)
 
-            // This week
-            VStack(alignment: .leading, spacing: 0) {
-                LearnSectionHead(eyebrow: before ? "Your first week" : "This week", title: PlanDate.range(current))
+            // This week, day by day.
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHead(title: before ? "Your first week" : "This week", trailing: PlanDate.range(current))
                 if thisWeek.isEmpty {
-                    muted("Nothing planned this week. Rest counts too.")
+                    muted("Nothing planned this week. Rest counts too.", icon: "moon.zzz.fill")
                 } else {
-                    learnRows(thisWeek) { s in row(s, done: done, today: today, canEdit: canEditNow) }
+                    LearnTimeline(start: current, today: today) { date in
+                        ForEach(thisWeek.filter { $0.date == date }) { s in
+                            card(s, done: done, today: today, canEdit: canEditNow)
+                        }
+                    } hasSession: { date in thisWeek.contains { $0.date == date } } node: { date in
+                        let ss = thisWeek.filter { $0.date == date }
+                        return ss.first.map { s in (trackColor(s.subject), Glyph.track(s.subject), ss.allSatisfy { done.contains($0.id) }) }
+                    }
                 }
                 if canEditNow {
-                    Text(today == current ? "You can reshape this week until tonight." : "You can reshape this week until it starts on Monday.")
+                    Label(today == current ? "You can reshape this week until tonight." : "You can reshape this week until it starts on Monday.", systemImage: "hand.draw")
                         .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                        .padding(.vertical, 6)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+            .rise(1)
 
             // Next week
             if current <= today {
                 let meta = plan.weekMeta(upcoming)
-                VStack(alignment: .leading, spacing: 0) {
-                    LearnSectionHead(eyebrow: "Next week", title: PlanDate.range(upcoming)) {
-                        if meta?.status == "draft" { PlanPill(text: "Draft", color: FW.Palette.caution) }
-                    }
+                Group {
                     if let meta {
                         LearnNextWeek(
-                            plan: plan, start: upcoming, meta: meta, sessions: nextSessions, done: done, today: today,
-                            row: { s, canEdit in AnyView(row(s, done: done, today: today, canEdit: canEdit)) },
-                            onAdd: { adding = true }
+                            plan: plan, start: upcoming, meta: meta, sessions: nextSessions, today: today,
+                            onOpen: { open = $0 },
+                            onSwap: { swapping = $0 },
+                            onRemove: { remove($0) },
+                            onShape: { shaping = true }
                         )
                     } else {
-                        LearnDraftLater()
+                        LearnDraftLater(start: upcoming)
                     }
                 }
+                .rise(2)
             }
 
+            LearnRhythmCard(plan: plan, onOpen: onRhythm)
+                .rise(3)
+
             direction(today)
+                .rise(4)
 
             if !past.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Kicker("Past weeks").padding(.bottom, 4)
-                    Rule()
-                    ForEach(Array(past), id: \.start) { m in
-                        let ss = plan.weekSessions(m.start)
-                        PlanDisclosure(
-                            title: PlanDate.range(m.start),
-                            teaser: "\(m.done ?? ss.filter { done.contains($0.id) }.count) of \(m.planned ?? ss.count) done",
-                            open: Binding(get: { pastOpen.contains(m.start) }, set: { v in if v { pastOpen.insert(m.start) } else { pastOpen.remove(m.start) } })
-                        ) {
-                            if ss.isEmpty {
-                                muted("Nothing finished that week. Its topics went back to their tracks.")
-                            } else {
-                                learnRows(ss) { s in row(s, done: done, today: today, canEdit: false) }
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionHead(title: "Past weeks")
+                    VStack(spacing: 0) {
+                        ForEach(Array(past.enumerated()), id: \.element.start) { i, m in
+                            let ss = plan.weekSessions(m.start)
+                            if i > 0 { Rule() }
+                            PlanDisclosure(
+                                title: PlanDate.range(m.start),
+                                teaser: "\(m.done ?? ss.filter { done.contains($0.id) }.count) of \(m.planned ?? ss.count) done",
+                                open: Binding(get: { pastOpen.contains(m.start) }, set: { v in if v { pastOpen.insert(m.start) } else { pastOpen.remove(m.start) } })
+                            ) {
+                                if ss.isEmpty {
+                                    muted("Nothing finished that week. Its topics went back to their tracks.", icon: "arrow.uturn.backward")
+                                } else {
+                                    VStack(spacing: 8) {
+                                        ForEach(ss) { s in card(s, done: done, today: today, canEdit: false, compact: true) }
+                                    }
+                                }
                             }
                         }
-                        Rule()
                     }
+                    .padding(.horizontal, 16)
+                    .learnCard(padding: 0)
                 }
+                .rise(5)
             }
         }
         .sheet(item: $open, onDismiss: afterSessionSheet) { s in
@@ -290,6 +293,19 @@ private struct LearnRolling: View {
             }
         }
         .sheet(item: $track) { t in PlanTrackSheet(trackId: t.id) }
+        .sheet(isPresented: $shaping, onDismiss: {
+            if addAfterShape {
+                addAfterShape = false
+                adding = true
+            }
+        }) {
+            if let meta = plan.weekMeta(upcoming) {
+                LearnShapeSheet(start: upcoming, meta: meta) {
+                    addAfterShape = true
+                    shaping = false
+                }
+            }
+        }
         .sheet(isPresented: $adding) {
             PlanAddSheet(plan: plan, start: upcoming, taken: nextSessions.map { PlanDate.dayIndex($0.date) }) { trackId, day in
                 adding = false
@@ -309,21 +325,16 @@ private struct LearnRolling: View {
         }
     }
 
-    private func row(_ s: Plan.Session, done: Set<String>, today: String, canEdit: Bool) -> some View {
+    private func card(_ s: Plan.Session, done: Set<String>, today: String, canEdit: Bool, compact: Bool = false) -> some View {
         let isDone = done.contains(s.id)
         let editable = canEdit && !isDone
-        return LearnSessionRow(
-            session: s, done: isDone, today: today,
+        return LearnSessionCard(
+            plan: plan, session: s, done: isDone, today: today,
             strength: planStrength(concepts, s.id),
-            sub: s.why ?? "\(subjectLabel(s.subject)) · \(s.duration_minutes) min",
+            compact: compact,
             onSwap: editable ? { swapping = s } : nil,
             onRemove: editable ? { remove(s) } : nil
         ) { open = s }
-    }
-
-    private func subjectLabel(_ s: String) -> String {
-        let t = s.replacingOccurrences(of: "-", with: " ")
-        return t.prefix(1).uppercased() + t.dropFirst()
     }
 
     private func remove(_ s: Plan.Session) {
@@ -331,52 +342,48 @@ private struct LearnRolling: View {
         Task { await runPlanEdit(store, ["op": .string("remove"), "sessionId": .string(s.id)], message) }
     }
 
-    private func muted(_ text: String) -> some View {
-        Text(text).font(.sans(15)).foregroundStyle(FW.Palette.text2)
-            .fixedSize(horizontal: false, vertical: true)
-            .padding(.vertical, 6)
+    private func muted(_ text: String, icon: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon).font(.system(size: 15, weight: .semibold)).foregroundStyle(FW.Palette.text3)
+            Text(text).font(.sans(15)).foregroundStyle(FW.Palette.text2)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.vertical, 8)
     }
 
-    // What you're working toward: one card per track, then checkpoints.
+    // What you're working toward: one row per track, then checkpoints.
     private func direction(_ today: String) -> some View {
         let tracks = plan.horizon?.tracks ?? []
         let checkpoints = plan.milestones.filter { $0.date >= today }
-        return VStack(alignment: .leading, spacing: 0) {
-            LearnSectionHead(eyebrow: "Direction", title: "What you’re working toward")
-            VStack(spacing: 12) {
-                ForEach(tracks) { t in
-                    LearnTrackCard(plan: plan, track: t) { track = LearnTrackRef(id: t.id) }
+        return VStack(alignment: .leading, spacing: 28) {
+            if !tracks.isEmpty {
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionHead(title: "Tracks", trailing: "\(tracks.reduce(0) { $0 + $1.backlog.count }) topics waiting")
+                    GroupCard {
+                        ForEach(tracks) { t in
+                            LearnTrackRow(plan: plan, track: t) { track = LearnTrackRef(id: t.id) }
+                        }
+                    }
                 }
             }
             if !checkpoints.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Kicker("Checkpoints")
-                    learnRows(checkpoints.map { LearnCheckpoint(m: $0) }) { c in
-                        let days = PlanDate.daysUntil(today, c.m.date)
-                        HStack(spacing: 14) {
-                            Image(systemName: "scope")
-                                .font(.system(size: 15))
-                                .foregroundStyle(FW.Palette.text2)
-                                .frame(width: 36, height: 36)
-                                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.sm))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(c.m.title).font(.sans(15)).foregroundStyle(FW.Palette.text).fixedSize(horizontal: false, vertical: true)
-                                Text("Target: \(PlanDate.month(c.m.date))").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionHead(title: "Checkpoints")
+                    GroupCard {
+                        ForEach(checkpoints.map { LearnCheckpoint(m: $0) }) { c in
+                            let days = PlanDate.daysUntil(today, c.m.date)
+                            GroupRow(icon: "flag.checkered", title: c.m.title, caption: "Target: \(PlanDate.month(c.m.date))", color: FW.Palette.coral) {
+                                VStack(alignment: .trailing, spacing: 0) {
+                                    Text("\(days)").font(.rounded(20))
+                                        .foregroundStyle(days <= 21 ? FW.Palette.caution : FW.Palette.text)
+                                    Text("days").font(.sans(12, .medium)).foregroundStyle(FW.Palette.text3)
+                                }
+                                .fixedSize()
                             }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                Text("\(days)").font(.sans(20, .medium)).monospacedDigit()
-                                    .foregroundStyle(days <= 21 ? FW.Palette.caution : FW.Palette.text)
-                                Text("days").font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                            }
-                            .fixedSize()
+                            .accessibilityElement(children: .combine)
                         }
-                        .padding(.vertical, 10)
-                        .frame(minHeight: 56)
-                        .accessibilityElement(children: .combine)
                     }
                 }
-                .padding(.top, 24)
             }
         }
     }
@@ -388,7 +395,256 @@ private struct LearnCheckpoint: Identifiable {
     var id: String { m.date + m.title }
 }
 
-private struct LearnTrackCard: View {
+// MARK: - The week at a glance
+
+// The plan's name, this week's progress ring and a strip of the seven days,
+// each marked with its track's glyph (a tick once done). Today is ringed.
+private struct LearnWeekHeader: View {
+    let plan: Plan
+    let start: String
+    let sessions: [Plan.Session]
+    let done: Set<String>
+    let today: String
+    let label: String
+    let doneCount: Int
+    let onOpen: (Plan.Session) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .center, spacing: 14) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(label).font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text3)
+                    Text(plan.title)
+                        .font(.sans(22, .bold))
+                        .foregroundStyle(FW.Palette.text)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                LearnRing(done: doneCount, total: sessions.count)
+            }
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { d in
+                    let date = PlanDate.addDays(start, d)
+                    let ss = sessions.filter { $0.date == date }
+                    let isToday = date == today
+                    Button { if let s = ss.first { onOpen(s) } } label: {
+                        VStack(spacing: 8) {
+                            Text(String(PlanDate.short(d).prefix(1)))
+                                .font(.sans(12, .semibold))
+                                .foregroundStyle(isToday ? FW.Palette.text : FW.Palette.text3)
+                            if let s = ss.first {
+                                LearnNode(color: trackColor(s.subject), glyph: Glyph.track(s.subject), done: ss.allSatisfy { done.contains($0.id) }, today: isToday, size: 34)
+                            } else {
+                                Circle().strokeBorder(FW.Palette.line3, style: StrokeStyle(lineWidth: 1.5, dash: [3, 3]))
+                                    .frame(width: 34, height: 34)
+                            }
+                            Text("\(Int(date.suffix(2)) ?? 0)")
+                                .font(.sans(13, isToday ? .bold : .medium))
+                                .monospacedDigit()
+                                .foregroundStyle(isToday ? FW.Palette.onAccent : FW.Palette.text2)
+                                .frame(width: 26, height: 22)
+                                .background { if isToday { Capsule().fill(FW.Palette.accent) } }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .contentShape(.rect)
+                    }
+                    .buttonStyle(.pressable(0.92))
+                    .disabled(ss.isEmpty)
+                    .accessibilityLabel("\(PlanDate.dayNames[d])\(isToday ? ", today" : ""): \(ss.isEmpty ? "rest" : ss.map(\.title).joined(separator: ", "))")
+                }
+            }
+        }
+        .learnCard(padding: 18)
+    }
+}
+
+// This week's sessions done, as a ring with the count inside.
+private struct LearnRing: View {
+    let done: Int
+    let total: Int
+    @State private var shown: Double = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        let value = total > 0 ? Double(done) / Double(total) : 0
+        ZStack {
+            Circle().stroke(FW.Palette.surface2, lineWidth: 6)
+            Circle().trim(from: 0, to: shown)
+                .stroke(FW.Palette.positive, style: StrokeStyle(lineWidth: 6, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            VStack(spacing: -2) {
+                Text("\(done)").font(.rounded(19)).foregroundStyle(FW.Palette.text).contentTransition(.numericText())
+                Text("of \(total)").font(.sans(10, .semibold)).foregroundStyle(FW.Palette.text3)
+            }
+        }
+        .frame(width: 60, height: 60)
+        .onAppear { withAnimation(reduceMotion ? nil : Springs.smooth.delay(0.25)) { shown = value } }
+        .onChange(of: value) { _, v in withAnimation(Springs.smooth) { shown = v } }
+        .accessibilityElement()
+        .accessibilityLabel("\(done) of \(total) done this week")
+    }
+}
+
+// MARK: - Timeline
+
+// Seven days down a rail: a day label, the day's marker, and its sessions
+// (or a quiet "Rest"). Today's label is lit.
+private struct LearnTimeline<Cards: View>: View {
+    let start: String
+    let today: String
+    @ViewBuilder var cards: (String) -> Cards
+    let hasSession: (String) -> Bool
+    let node: (String) -> (Color, String, Bool)?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(0..<7, id: \.self) { d in
+                let date = PlanDate.addDays(start, d)
+                let isToday = date == today
+                let busy = hasSession(date)
+                HStack(alignment: .top, spacing: 12) {
+                    VStack(spacing: 0) {
+                        Text(isToday ? "Today" : PlanDate.short(d))
+                            .font(.sans(12, .semibold))
+                            .foregroundStyle(isToday ? FW.Palette.accent : FW.Palette.text3)
+                        Text("\(Int(date.suffix(2)) ?? 0)")
+                            .font(.rounded(busy ? 20 : 16, busy ? .bold : .semibold))
+                            .foregroundStyle(isToday ? FW.Palette.accent : busy ? FW.Palette.text : FW.Palette.text3)
+                    }
+                    .frame(width: 42)
+                    .padding(.top, busy ? 10 : 2)
+                    // The rail.
+                    VStack(spacing: 0) {
+                        Rectangle().fill(d == 0 ? .clear : FW.Palette.line2).frame(width: 2, height: busy ? 12 : 6)
+                        if let n = node(date) {
+                            LearnNode(color: n.0, glyph: n.1, done: n.2, today: isToday, size: 30)
+                        } else {
+                            Circle().fill(FW.Palette.surface3).frame(width: 10, height: 10).padding(.vertical, 2)
+                        }
+                        Rectangle().fill(d == 6 ? .clear : FW.Palette.line2).frame(width: 2).frame(maxHeight: .infinity)
+                    }
+                    .frame(width: 30)
+                    VStack(alignment: .leading, spacing: 8) {
+                        if busy {
+                            cards(date)
+                        } else {
+                            Text("Rest").font(.sans(14)).foregroundStyle(FW.Palette.text4)
+                                .padding(.top, 3)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.bottom, busy ? 12 : 10)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
+// One session in the timeline: title, minutes and track, why in a line.
+// Editable ones carry a menu (and a long-press menu) to swap or remove.
+private struct LearnSessionCard: View {
+    let plan: Plan
+    let session: Plan.Session
+    let done: Bool
+    let today: String
+    var strength: Double? = nil
+    var compact = false
+    var onSwap: (() -> Void)? = nil
+    var onRemove: (() -> Void)? = nil
+    let onOpen: () -> Void
+
+    private var state: String {
+        done ? "done" : session.date == today ? "today" : session.date < today ? "open" : "planned"
+    }
+
+    var body: some View {
+        let color = trackColor(session.subject)
+        Button(action: onOpen) {
+            HStack(alignment: .top, spacing: 12) {
+                if compact {
+                    LearnNode(color: color, glyph: Glyph.track(session.subject), done: done, size: 30)
+                }
+                VStack(alignment: .leading, spacing: 5) {
+                    HStack(alignment: .firstTextBaseline, spacing: 8) {
+                        Text(session.title)
+                            .font(.sans(16, .semibold))
+                            .foregroundStyle(done ? FW.Palette.text2 : FW.Palette.text)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                        if session.added { PlanPill(text: "New") }
+                    }
+                    HStack(spacing: 6) {
+                        Image(systemName: "clock").font(.system(size: 11, weight: .semibold))
+                        Text("\(session.duration_minutes) min")
+                        Text("·")
+                        Text(plan.trackTitle(session.subject)).foregroundStyle(color)
+                        switch state {
+                        case "done": Text("· Done").foregroundStyle(FW.Palette.positive)
+                        case "open": Text("· Still open").foregroundStyle(FW.Palette.caution)
+                        default: EmptyView()
+                        }
+                    }
+                    .font(.sans(13, .medium))
+                    .foregroundStyle(FW.Palette.text3)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
+                    if let why = session.why, !compact {
+                        Text(why)
+                            .font(.sans(13))
+                            .foregroundStyle(FW.Palette.text3)
+                            .multilineTextAlignment(.leading)
+                            .lineLimit(2)
+                    }
+                    if let strength, strength > 0 {
+                        PlanMiniMeter(value: strength, color: color).padding(.top, 2)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.trailing, onSwap != nil ? 30 : 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(FW.Palette.raised, in: .rect(cornerRadius: 16, style: .continuous))
+            .background {
+                if state == "today" { RoundedRectangle(cornerRadius: 16, style: .continuous).fill(color.opacity(0.06)) }
+            }
+            .overlay(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .strokeBorder(state == "today" ? color.opacity(0.7) : FW.Palette.line, lineWidth: state == "today" ? 1.5 : 1)
+            )
+            .opacity(done ? 0.8 : 1)
+            .contentShape(.rect(cornerRadius: 16))
+        }
+        .buttonStyle(.pressable)
+        .overlay(alignment: .topTrailing) {
+            if let onSwap, let onRemove {
+                Menu {
+                    Button("Swap for another topic", systemImage: "arrow.triangle.2.circlepath", action: onSwap)
+                    Button("Take it out of this week", systemImage: "xmark", role: .destructive, action: onRemove)
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(FW.Palette.text2)
+                        .frame(width: 44, height: 44)
+                        .contentShape(.rect)
+                }
+                .accessibilityLabel("Change \(session.title)")
+            }
+        }
+        .contextMenu {
+            if let onSwap, let onRemove {
+                Button("Swap for another topic", systemImage: "arrow.triangle.2.circlepath", action: onSwap)
+                Button("Take it out of this week", systemImage: "xmark", role: .destructive, action: onRemove)
+            }
+        }
+    }
+}
+
+// MARK: - Tracks and rhythm
+
+private struct LearnTrackRow: View {
     let plan: Plan
     let track: Plan.Track
     let onOpen: () -> Void
@@ -396,170 +652,288 @@ private struct LearnTrackCard: View {
     var body: some View {
         let days = plan.slots.filter { $0.track == track.id }.map { PlanDate.short($0.day) }
         Button(action: onOpen) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack(spacing: 8) {
-                    Dot(color: trackColor(track.id))
-                    Text(track.title).font(.sans(16, .semibold)).foregroundStyle(FW.Palette.text)
-                        .lineLimit(2)
-                    Spacer(minLength: 8)
-                    Text(track.paused ? "Paused" : days.isEmpty ? "No day yet" : days.joined(separator: " · "))
-                        .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                        .lineLimit(1)
-                        .fixedSize()
-                }
-                if let goal = track.goals.first {
-                    Text(goal).font(.serif(16)).foregroundStyle(FW.Palette.text)
-                        .lineSpacing(3)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Group {
-                    if let next = track.backlog.first {
-                        Text("\(Text("Next").font(.sans(13)).foregroundStyle(FW.Palette.text3))  \(next.title)")
-                    } else {
-                        Text("Everything on this track is covered.").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+            HStack(spacing: 14) {
+                IconBadge(systemName: Glyph.track(track.id), color: trackColor(track.id), size: 36)
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 8) {
+                        Text(track.title).font(.sans(16, .medium)).foregroundStyle(FW.Palette.text).lineLimit(1)
+                        if track.paused { PlanPill(text: "Paused", color: FW.Palette.text3) }
                     }
+                    Group {
+                        if let next = track.backlog.first {
+                            Text("Next: \(next.title)")
+                        } else {
+                            Text("Everything on this track is covered.")
+                        }
+                    }
+                    .font(.sans(13)).foregroundStyle(FW.Palette.text3).lineLimit(1)
                 }
-                .font(.sans(14))
-                .foregroundStyle(FW.Palette.text2)
-                .multilineTextAlignment(.leading)
-                .fixedSize(horizontal: false, vertical: true)
-                Text("\(track.backlog.count) topics waiting").font(.sans(13)).monospacedDigit().foregroundStyle(FW.Palette.text3)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text(track.paused ? "—" : days.isEmpty ? "No day yet" : days.joined(separator: " · "))
+                        .font(.sans(13, .medium)).foregroundStyle(FW.Palette.text2)
+                    Text("\(track.backlog.count) topics").font(.sans(12)).monospacedDigit().foregroundStyle(FW.Palette.text3)
+                }
+                .lineLimit(1)
+                .fixedSize()
+                Image(systemName: "chevron.right").font(.system(size: 13, weight: .semibold)).foregroundStyle(FW.Palette.text4)
             }
-            .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 18)
+            .padding(.vertical, 11)
+            .frame(minHeight: 60)
             .opacity(track.paused ? 0.6 : 1)
-            .contentShape(.rect(cornerRadius: FW.Radius.lg))
+            .contentShape(.rect)
         }
-        .buttonStyle(YouPressStyle())
+        .buttonStyle(.pressable(0.985))
+        .accessibilityHint("Shows the topics waiting on this track")
     }
 }
 
-// Next week, while it's still a draft: the sessions, the planner's note, any
-// suggestion for more, and a way to steer it.
+// Which track each weekday keeps, as a row of glyphs; opens the rhythm sheet.
+private struct LearnRhythmCard: View {
+    let plan: Plan
+    let onOpen: () -> Void
+
+    var body: some View {
+        let rhythm = plan.horizon?.rhythm
+        let count = plan.slots.count
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHead(title: "Your rhythm", trailing: rhythm.map { "\($0.minutes) min · \(PlanDate.clock($0.start_local))" })
+            Button(action: onOpen) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(spacing: 0) {
+                        ForEach(0..<7, id: \.self) { d in
+                            let t = rhythm?.days[String(d)]
+                            VStack(spacing: 6) {
+                                if let t {
+                                    IconBadge(systemName: Glyph.track(t), color: trackColor(t), size: 34, circle: true)
+                                } else {
+                                    IconBadge(systemName: "moon.zzz.fill", color: FW.Palette.text4, size: 34, circle: true)
+                                }
+                                Text(PlanDate.short(d)).font(.sans(12, .medium)).foregroundStyle(FW.Palette.text3)
+                            }
+                            .frame(maxWidth: .infinity)
+                        }
+                    }
+                    HStack {
+                        Text("\(count) session\(count == 1 ? "" : "s") a week")
+                            .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.85)
+                        Spacer(minLength: 8)
+                        Text("Change").font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text)
+                        Image(systemName: "chevron.right").font(.system(size: 12, weight: .semibold)).foregroundStyle(FW.Palette.text4)
+                    }
+                }
+                .learnCard(padding: 16)
+                .contentShape(.rect(cornerRadius: FW.Radius.lg))
+            }
+            .buttonStyle(.pressable)
+            .accessibilityLabel("Your rhythm: \(plan.rhythmSummary)")
+            .accessibilityHint("Change which day keeps which subject")
+        }
+    }
+}
+
+// MARK: - Next week
+
+// Next week, while it's still a draft: the planner's note, the sessions, any
+// suggestion for more, and one clear way to shape it.
 private struct LearnNextWeek: View {
     let plan: Plan
     let start: String
     let meta: Plan.WeekMeta
     let sessions: [Plan.Session]
-    let done: Set<String>
     let today: String
-    let row: (Plan.Session, Bool) -> AnyView
-    let onAdd: () -> Void
+    let onOpen: (Plan.Session) -> Void
+    let onSwap: (Plan.Session) -> Void
+    let onRemove: (Plan.Session) -> Void
+    let onShape: () -> Void
     @Environment(Store.self) private var store
-    @State private var note: String
-    @State private var busy = false
-    @FocusState private var focused: Bool
-
-    init(plan: Plan, start: String, meta: Plan.WeekMeta, sessions: [Plan.Session], done: Set<String>, today: String,
-         row: @escaping (Plan.Session, Bool) -> AnyView, onAdd: @escaping () -> Void) {
-        self.plan = plan
-        self.start = start
-        self.meta = meta
-        self.sessions = sessions
-        self.done = done
-        self.today = today
-        self.row = row
-        self.onAdd = onAdd
-        _note = State(initialValue: meta.steer ?? "")
-    }
 
     var body: some View {
         let canEdit = PlanDate.editable(start, today: today)
         let freeDay = [4, 5, 6, 0, 1, 2, 3].first { d in !sessions.contains { PlanDate.dayIndex($0.date) == d } }
-        VStack(alignment: .leading, spacing: 0) {
-            if let n = meta.note {
-                Text(n).font(.serif(19)).lineSpacing(4).foregroundStyle(FW.Palette.text2)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 2)
-                    .padding(.bottom, 10)
+        let minutes = sessions.reduce(0) { $0 + $1.duration_minutes }
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHead(title: "Next week", trailing: PlanDate.range(start))
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 12) {
+                    IconBadge(systemName: meta.status == "draft" ? "pencil.and.outline" : "calendar", color: FW.Palette.judgment, size: 40)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(meta.status == "draft" ? "Drafted for you" : "Planned")
+                            .font(.sans(17, .semibold)).foregroundStyle(FW.Palette.text)
+                        Text("\(sessions.count) session\(sessions.count == 1 ? "" : "s") · \(LearnFormat.minutes(minutes))")
+                            .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                    }
+                    Spacer(minLength: 8)
+                    if meta.status == "draft" { PlanPill(text: "Draft", color: FW.Palette.caution, big: true) }
+                }
+                if let n = meta.note {
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "sparkles").font(.system(size: 13, weight: .semibold)).foregroundStyle(FW.Palette.judgment)
+                            .padding(.top, 3)
+                        PlanMoreText(text: n, font: .sans(15), color: FW.Palette.text2)
+                    }
+                    .padding(12)
+                    .background(FW.Palette.judgment.opacity(0.07), in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
+                }
+                if sessions.isEmpty {
+                    Label("Nothing planned. A week away, or everything is paused.", systemImage: "moon.zzz")
+                        .font(.sans(15)).foregroundStyle(FW.Palette.text2)
+                        .fixedSize(horizontal: false, vertical: true)
+                } else {
+                    VStack(spacing: 0) {
+                        ForEach(Array(sessions.enumerated()), id: \.element.id) { i, s in
+                            if i > 0 { Rule().padding(.leading, 88) }
+                            row(s, canEdit: canEdit)
+                        }
+                    }
+                }
+                if canEdit, let s = meta.suggestion, let freeDay {
+                    suggestion(s, day: freeDay)
+                }
+                if canEdit {
+                    Button(action: onShape) {
+                        Label("Shape next week", systemImage: "slider.horizontal.3")
+                    }
+                    .buttonStyle(.fw(.primary, wide: true))
+                }
             }
-            if sessions.isEmpty {
-                Text("Nothing planned. A week away, or everything is paused.")
-                    .font(.sans(15)).foregroundStyle(FW.Palette.text2)
-                    .padding(.vertical, 6)
-            } else {
-                learnRows(sessions) { s in row(s, canEdit) }
+            .learnCard(padding: 16)
+        }
+    }
+
+    private func row(_ s: Plan.Session, canEdit: Bool) -> some View {
+        Button { onOpen(s) } label: {
+            HStack(spacing: 12) {
+                Text(PlanDate.short(PlanDate.dayIndex(s.date)))
+                    .font(.sans(13, .semibold))
+                    .foregroundStyle(FW.Palette.text3)
+                    .frame(width: 34, alignment: .leading)
+                IconBadge(systemName: Glyph.track(s.subject), color: trackColor(s.subject), size: 30, circle: true)
+                HStack(spacing: 6) {
+                    Text(s.title)
+                        .font(.sans(15, .medium))
+                        .foregroundStyle(FW.Palette.text)
+                        .multilineTextAlignment(.leading)
+                        .lineLimit(2)
+                    if s.added { PlanPill(text: "New") }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Text("\(s.duration_minutes)m")
+                    .font(.sans(13, .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(FW.Palette.text3)
             }
-            if canEdit, let s = meta.suggestion, let freeDay {
-                suggestion(s, day: freeDay)
+            .padding(.vertical, 9)
+            .frame(minHeight: 52)
+            .contentShape(.rect)
+        }
+        .buttonStyle(.pressable(0.985))
+        .contextMenu {
+            if canEdit {
+                Button("Swap for another topic", systemImage: "arrow.triangle.2.circlepath") { onSwap(s) }
+                Button("Take it out of this week", systemImage: "xmark", role: .destructive) { onRemove(s) }
             }
-            if canEdit { steer }
         }
     }
 
     private func suggestion(_ s: Plan.Suggestion, day: Int) -> some View {
         let track = s.track ?? plan.slots.first?.track ?? plan.horizon?.tracks.first?.id ?? ""
-        return HStack(alignment: .top, spacing: 12) {
-            Image(systemName: "sparkles").font(.system(size: 16)).foregroundStyle(FW.Palette.judgment)
-                .frame(width: 20)
-                .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 10) {
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 12) {
+                IconBadge(systemName: "plus.circle.fill", color: FW.Palette.judgment, size: 32, circle: true)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Room for \(s.extra == 1 ? "one more session" : "\(s.extra) more sessions")\(s.track.map { " of \(plan.trackTitle($0))" } ?? "")?")
-                        .font(.sans(15, .medium)).foregroundStyle(FW.Palette.text)
+                        .font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text)
                         .fixedSize(horizontal: false, vertical: true)
                     if !s.why.isEmpty {
-                        Text(s.why).font(.sans(13)).foregroundStyle(FW.Palette.text3).fixedSize(horizontal: false, vertical: true)
+                        PlanMoreText(text: s.why, font: .sans(13), color: FW.Palette.text3)
                     }
                 }
-                HStack(spacing: 6) {
-                    Button("Add \(PlanDate.short(day))") {
-                        Task { await runPlanEdit(store, ["op": .string("add"), "week": .string(start), "track": .string(track), "day": .number(Double(day))], "Added on \(PlanDate.dayNames[day]).") }
-                    }
-                    .buttonStyle(.fw(.secondary, small: true))
-                    Button {
-                        Task { await runPlanEdit(store, ["op": .string("dismiss-suggestion"), "week": .string(start)]) }
-                    } label: {
-                        Image(systemName: "xmark").font(.system(size: 13, weight: .medium)).foregroundStyle(FW.Palette.text2)
-                            .frame(width: 34, height: 34)
-                            .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("No thanks")
-                }
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 8) {
+                Button("Add \(PlanDate.short(day))") {
+                    Task { await runPlanEdit(store, ["op": .string("add"), "week": .string(start), "track": .string(track), "day": .number(Double(day))], "Added on \(PlanDate.dayNames[day]).") }
+                }
+                .buttonStyle(.fw(.secondary, small: true))
+                Button("No thanks") {
+                    Task { await runPlanEdit(store, ["op": .string("dismiss-suggestion"), "week": .string(start)]) }
+                }
+                .buttonStyle(.fw(.ghost, small: true))
+            }
+            .padding(.leading, 44)
         }
-        .padding(.vertical, 14)
-        .padding(.horizontal, 16)
-        .background(FW.Palette.judgment.opacity(0.09), in: .rect(cornerRadius: FW.Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg).strokeBorder(FW.Palette.judgment.opacity(0.22), lineWidth: 1))
-        .padding(.top, 14)
+        .padding(14)
+        .background(FW.Palette.judgment.opacity(0.08), in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.base, style: .continuous).strokeBorder(FW.Palette.judgment.opacity(0.2), lineWidth: 1))
+    }
+}
+
+private enum LearnFormat {
+    // "3 h 30 min", "45 min".
+    static func minutes(_ m: Int) -> String {
+        let h = m / 60, r = m % 60
+        if h == 0 { return "\(r) min" }
+        return r == 0 ? "\(h) h" : "\(h) h \(r) min"
+    }
+}
+
+// Steer next week in a few words, redraft it, or add a session.
+private struct LearnShapeSheet: View {
+    let start: String
+    let meta: Plan.WeekMeta
+    let onAdd: () -> Void
+    @Environment(Store.self) private var store
+    @Environment(\.dismiss) private var dismiss
+    @State private var note: String
+    @State private var busy = false
+    @FocusState private var focused: Bool
+
+    init(start: String, meta: Plan.WeekMeta, onAdd: @escaping () -> Void) {
+        self.start = start
+        self.meta = meta
+        self.onAdd = onAdd
+        _note = State(initialValue: meta.steer ?? "")
     }
 
-    private var steer: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Kicker("Anything for this week?")
-            TextField("More speaking, less politics, a lighter week…", text: $note, axis: .vertical)
-                .font(.sans(16))
-                .lineLimit(2...6)
-                .focused($focused)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 12)
-                .frame(minHeight: 72, alignment: .topLeading)
-                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line, lineWidth: 1))
-                .onChange(of: note) { _, v in if v.count > 600 { note = String(v.prefix(600)) } }
-                .accessibilityLabel("Anything for this week?")
-            HStack(spacing: 8) {
+    var body: some View {
+        SheetScaffold(title: "Shape next week", subtitle: PlanDate.range(start)) {
+            VStack(alignment: .leading, spacing: 10) {
+                Label("Anything for this week?", systemImage: "text.bubble")
+                    .font(.sans(15, .semibold))
+                    .foregroundStyle(FW.Palette.text)
+                TextField("More speaking, less politics, a lighter week…", text: $note, axis: .vertical)
+                    .font(.sans(16))
+                    .lineLimit(3...6)
+                    .focused($focused)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 12)
+                    .frame(minHeight: 96, alignment: .topLeading)
+                    .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.base, style: .continuous).strokeBorder(focused ? FW.Palette.line3 : FW.Palette.line, lineWidth: 1))
+                    .onChange(of: note) { _, v in if v.count > 600 { note = String(v.prefix(600)) } }
+                    .accessibilityLabel("Anything for this week?")
+            }
+            VStack(spacing: 10) {
                 Button { Task { await redraft() } } label: {
                     HStack(spacing: 8) {
-                        if busy { ProgressView().controlSize(.small) } else { Image(systemName: "arrow.clockwise").font(.system(size: 14, weight: .medium)) }
-                        Text("Redraft")
+                        if busy { ProgressView().controlSize(.small).tint(FW.Palette.onAccent) } else { Image(systemName: "arrow.clockwise") }
+                        Text(busy ? "Redrafting…" : "Redraft")
                     }
                 }
-                .buttonStyle(.fw(.secondary))
+                .buttonStyle(.fw(.primary, wide: true))
                 .disabled(busy)
                 Button(action: onAdd) { Label("Add a session", systemImage: "plus") }
-                    .buttonStyle(.fw(.ghost))
+                    .buttonStyle(.fw(.secondary, wide: true))
+                    .disabled(busy)
             }
-            Text("Change anything until \(PlanDate.label(start)). What you don’t finish goes back to its track, never into a backlog.")
+            Label("Change anything until \(PlanDate.label(start)). What you don’t finish goes back to its track, never into a backlog.", systemImage: "arrow.uturn.backward")
                 .font(.sans(13)).foregroundStyle(FW.Palette.text3)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.top, 18)
-        .overlay(alignment: .top) { Rule() }
-        .padding(.top, 18)
+        .presentationDetents([.medium, .large])
     }
 
     private func redraft() async {
@@ -575,6 +949,7 @@ private struct LearnNextWeek: View {
             let r: LearnStateBody = try await API.post("/api/plan/week", ["action": "redraft"])
             store.adopt(r.state)
             Toasts.shared.show("Redrafted.")
+            dismiss()
         } catch is CancellationError {
         } catch {
             Toasts.shared.show(error.localizedDescription)
@@ -585,27 +960,32 @@ private struct LearnNextWeek: View {
 private struct LearnStateBody: Decodable, Sendable { var state: JSON }
 
 private struct LearnDraftLater: View {
+    let start: String
     @Environment(Store.self) private var store
     @State private var busy = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Next week is drafted on Sunday at noon, from what you’ve learned this week. You’ll get a notice when it’s ready.")
-                .font(.sans(15)).foregroundStyle(FW.Palette.text2)
-                .fixedSize(horizontal: false, vertical: true)
-            Button { Task { await draft() } } label: {
-                HStack(spacing: 8) {
-                    if busy { ProgressView().controlSize(.small) }
-                    Text("Draft it now")
+            SectionHead(title: "Next week", trailing: PlanDate.range(start))
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(alignment: .top, spacing: 12) {
+                    IconBadge(systemName: "calendar.badge.clock", color: FW.Palette.judgment, size: 40)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Drafted Sunday at noon").font(.sans(17, .semibold)).foregroundStyle(FW.Palette.text)
+                        PlanMoreText(text: "Next week is drafted on Sunday at noon, from what you’ve learned this week. You’ll get a notice when it’s ready.", font: .sans(13), color: FW.Palette.text3)
+                    }
                 }
+                Button { Task { await draft() } } label: {
+                    HStack(spacing: 8) {
+                        if busy { ProgressView().controlSize(.small) } else { Image(systemName: "wand.and.sparkles") }
+                        Text("Draft it now")
+                    }
+                }
+                .buttonStyle(.fw(.secondary, wide: true))
+                .disabled(busy)
             }
-            .buttonStyle(.fw(.secondary))
-            .disabled(busy)
+            .learnCard(padding: 16)
         }
-        .padding(.vertical, 18)
-        .padding(.horizontal, 20)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg))
     }
 
     private func draft() async {
@@ -657,19 +1037,25 @@ private struct LearnFixed: View {
         let book = learnChapters(plan, names: names.value?.names ?? [])
 
         VStack(alignment: .leading, spacing: 32) {
-            PageHead(
-                eyebrow: "Learn", title: plan.title,
-                subtitle: "\(PlanDate.monthDay(plan.start_date)) → \(PlanDate.monthDay(plan.end_date)) · \(totalDone) of \(totalPlanned) sessions"
-            )
+            VStack(alignment: .leading, spacing: 4) {
+                Text("\(PlanDate.monthDay(plan.start_date)) → \(PlanDate.monthDay(plan.end_date))")
+                    .font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text3)
+                Text(plan.title).font(.sans(22, .bold)).foregroundStyle(FW.Palette.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                Pill(text: "\(totalDone) of \(totalPlanned) sessions", icon: "checkmark.circle.fill", color: FW.Palette.positive)
+                    .padding(.top, 6)
+            }
+            .rise(0)
             if !shown.isEmpty {
                 VStack(alignment: .leading, spacing: 28) {
                     ForEach(Array(shown.enumerated()), id: \.element.id) { j, w in
                         block(w, label: before ? (j > 0 ? "The week after" : "Your first week") : j > 0 ? "Next week" : "This week", done: done, today: today)
+                            .rise(j + 1)
                     }
                 }
             }
-            VStack(alignment: .leading, spacing: 8) {
-                Kicker("The whole plan")
+            VStack(alignment: .leading, spacing: 12) {
+                SectionHead(title: "The whole plan", trailing: "\(book.count) chapters")
                 VStack(spacing: 10) {
                     ForEach(Array(book.enumerated()), id: \.element.id) { n, ch in
                         chapter(ch, n: n + 1, weeks: weeks, done: done, today: today)
@@ -720,13 +1106,13 @@ private struct LearnFixed: View {
     }
 
     private func block(_ w: Week, label: String?, done: Set<String>, today: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(label ?? "Week \(w.index)").font(.sans(17, .semibold)).foregroundStyle(FW.Palette.text)
-                Text((label != nil ? "Week \(w.index) · " : "") + PlanDate.monthDay(w.week.start_date) + (w.week.mode != "standard" ? " · \(w.week.mode)" : ""))
-                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+        VStack(alignment: .leading, spacing: 8) {
+            if let label {
+                SectionHead(title: label, trailing: "Week \(w.index) · " + PlanDate.monthDay(w.week.start_date) + (w.week.mode != "standard" ? " · \(w.week.mode)" : ""))
+            } else {
+                Text("Week \(w.index) · " + PlanDate.monthDay(w.week.start_date) + (w.week.mode != "standard" ? " · \(w.week.mode)" : ""))
+                    .font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text2)
             }
-            .padding(.bottom, 4)
             VStack(spacing: 0) {
                 ForEach(Array(w.sessions.enumerated()), id: \.element.session.id) { i, item in
                     if i > 0 { Rule() }
@@ -735,15 +1121,18 @@ private struct LearnFixed: View {
                     LearnSessionRow(
                         session: item.session, done: st == "done", today: today,
                         strength: planStrength(concepts, item.session.id),
-                        sub: item.session.subject + (item.session.optional ? " · optional" : "") + suffix,
-                        autoSuffix: false
+                        sub: item.session.subject + (item.session.optional ? " · optional" : "") + suffix
                     ) { open = item.session }
                 }
             }
+            .padding(.horizontal, label != nil ? 14 : 0)
+            .background { if label != nil { RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).fill(FW.Palette.raised) } }
+            .overlay { if label != nil { RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line) } }
             if !w.week.evidence.isEmpty {
-                Text(w.week.evidence).font(.serif(16)).foregroundStyle(FW.Palette.text2)
+                Label(w.week.evidence, systemImage: "checkmark.seal")
+                    .font(.sans(14)).foregroundStyle(FW.Palette.text2)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(.top, 6)
+                    .padding(.top, 4)
             }
         }
     }
@@ -761,7 +1150,7 @@ private struct LearnFixed: View {
         if let m = ch.milestone { meta += " · milestone: \(m)" }
         return VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.snappy(duration: 0.3)) { if isOpen { expanded.remove(ch.id) } else { expanded.insert(ch.id) } }
+                withAnimation(Springs.snappy) { if isOpen { expanded.remove(ch.id) } else { expanded.insert(ch.id) } }
             } label: {
                 HStack(alignment: .top, spacing: 14) {
                     LearnChapterRing(done: finished, total: sessions.count, n: n)
@@ -773,7 +1162,7 @@ private struct LearnFixed: View {
                             if isNow { PlanPill(text: "Now", color: FW.Palette.accent) }
                         }
                         if !ch.outcome.isEmpty {
-                            Text(ch.outcome).font(.serif(15)).foregroundStyle(FW.Palette.text2)
+                            Text(ch.outcome).font(.sans(14)).foregroundStyle(FW.Palette.text2)
                                 .multilineTextAlignment(.leading)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -795,7 +1184,7 @@ private struct LearnFixed: View {
                 }
                 .contentShape(.rect)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable(0.985))
             if isOpen {
                 VStack(alignment: .leading, spacing: 24) {
                     ForEach(inside) { w in block(w, label: nil, done: done, today: today) }
@@ -818,12 +1207,12 @@ private struct LearnChapterRing: View {
         ZStack {
             Circle().stroke(FW.Palette.line2, lineWidth: 2.5)
             Circle().trim(from: 0, to: total > 0 ? Double(done) / Double(total) : 0)
-                .stroke(FW.Palette.text, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+                .stroke(FW.Palette.positive, style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
                 .rotationEffect(.degrees(-90))
             if complete {
-                Image(systemName: "checkmark").font(.system(size: 14, weight: .semibold)).foregroundStyle(FW.Palette.text)
+                Image(systemName: "checkmark").font(.system(size: 14, weight: .bold)).foregroundStyle(FW.Palette.positive)
             } else {
-                Text("\(n)").font(.sans(15, .medium)).monospacedDigit().foregroundStyle(FW.Palette.text)
+                Text("\(n)").font(.rounded(15)).foregroundStyle(FW.Palette.text)
             }
         }
         .frame(width: 38, height: 38)

@@ -4,6 +4,10 @@ Every screen and feature, on the web (`src/components`) and on iPhone (`ios/Fiel
 
 Status: ✅ same behaviour · 🔶 adapted for the platform (same data and outcome, different interaction) · — not on this platform (by design)
 
+## Look and feel
+
+The iPhone app has its own presentation (September 2026, at the owner's request): system type (SF Pro) instead of the serif outside lessons, visual-first screens (icon tiles, rings, stat tiles, grouped settings) with shorter copy, and spring animations throughout. Lessons keep the learner's reading font and full text. The data, actions and features match the web; where the iPhone shows something the web doesn't, it's listed in **Gaps**.
+
 ## Screens
 
 | Screen / feature | Web | iPhone | Notes |
@@ -34,7 +38,7 @@ Status: ✅ same behaviour · 🔶 adapted for the platform (same data and outco
 | Practice setup: topic, side, difficulty, length, voice with samples | ✅ | ✅ | Samples bundled from `public/voices` |
 | Practice brief, text practice, voice (GPT-Live) | ✅ | ✅ | iPhone voice uses native WebRTC |
 | Practice feedback: best line, change, rewrite, criteria, replay timeline, redo from here, try again | ✅ | ✅ | |
-| Tutor chat (thread synced across devices) | ✅ panel / embedded | ✅ Tutor tab | Thread lives in `tutor_messages` |
+| Tutor chat (thread synced across devices) | ✅ panel / embedded | 🔶 Tutor tab, chat-app layout | Thread lives in `tutor_messages`. iPhone: composer centred until the first message, stop button, copy / ask again, writing style picked from the title |
 | Tutor actions (open, start today, writing style, remember) | ✅ | ✅ | |
 | Notebook index, entry, notes, quick recall | ✅ | ✅ | |
 | Notebook share cards | ✅ | ✅ | |
@@ -56,4 +60,12 @@ Status: ✅ same behaviour · 🔶 adapted for the platform (same data and outco
 
 | What | Platform missing it | Why | Plan |
 | --- | --- | --- | --- |
-| _none yet_ | | | |
+| Fixed-plan "Adjust schedule" (move, shorten, recover, undo) and the field-map strip | iPhone | Only older fixed plans use them; the owner's plan is rolling | Port if a fixed plan is imported again |
+| Router ignores `/learn#next` (opens Learn at the top) | iPhone | Anchor scrolling not wired up | Scroll to the next-week card |
+| Email sign-in by link | iPhone | The app can't follow the email's link | Code only, by design |
+| Practice brief: "What good looks like" (the brief's success criteria as a checklist) | Web | Added in the iPhone redesign | Add to `practice/conversation.tsx` brief |
+| Notebook: quick-recall deck on the index, Notes and Terms panes | Web | Added in the iPhone redesign | Consider for the web Notebook |
+| Mastery: a ring per subject; shorter next-challenge copy | Web | Added in the iPhone redesign | Consider for the web |
+| Notebook share sheet: live card preview | Web | Added in the iPhone redesign | Consider for the web |
+| Today: Progress and Your plan tiles; quests shown only in the level sheet | Web / iPhone | iPhone Today keeps just the streak and level in the header | Quests stay one tap away |
+| You: sign out asks to confirm; session switches and breaks in their own sheet; export and delete as separate rows | Web | iPhone reorganised settings into grouped cards | Same settings, different grouping |

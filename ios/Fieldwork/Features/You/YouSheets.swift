@@ -6,32 +6,93 @@ import UniformTypeIdentifiers
 import UserNotifications
 
 // Settings sheets (src/components/you/sheets.tsx, writing.tsx, settings.tsx,
-// passkeys.tsx): teaching style, writing, voice, notifications, reading,
-// game elements, your plan, sign-in, AI cost and data & privacy.
+// passkeys.tsx): teaching style, writing, voice, sessions, notifications,
+// reading, game elements, your plan, sign-in, AI cost and deleting the
+// account. Choices are cards with a picture of what they do; the fine print
+// sits in a footnote at the bottom.
 
 // MARK: - Shared pieces
 
-// A setting with its effect spelled out and a control on the right
-// (web: .setting-line).
-struct YouSettingLine<Control: View>: View {
-    let title: String
-    var detail: String? = nil
-    @ViewBuilder var control: () -> Control
-
+// Grouped rows on a sheet (GroupCard sits on the raised surface the sheet
+// already uses, so sheets group on the surface a step down).
+struct YouSheetCard<Content: View>: View {
+    @ViewBuilder var content: () -> Content
     var body: some View {
-        HStack(spacing: 16) {
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let detail {
-                    Text(detail).font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                        .lineSpacing(2)
-                        .fixedSize(horizontal: false, vertical: true)
+        VStack(spacing: 0) {
+            Group(subviews: content()) { rows in
+                ForEach(Array(rows.enumerated()), id: \.offset) { i, row in
+                    row
+                    if i < rows.count - 1 {
+                        Rectangle().fill(FW.Palette.line).frame(height: 1).padding(.leading, 50)
+                    }
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            control()
         }
+        .padding(.horizontal, 14)
+        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+    }
+}
+
+// A small label over a group of choices on a sheet.
+struct YouSheetLabel: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Kicker(text).padding(.leading, 4).padding(.bottom, -8).accessibilityAddTraits(.isHeader)
+    }
+}
+
+// The fine print, kept to the bottom of a sheet.
+struct YouFootnote: View {
+    let text: String
+    init(_ text: String) { self.text = text }
+    var body: some View {
+        Text(text)
+            .font(.sans(13))
+            .foregroundStyle(FW.Palette.text3)
+            .lineSpacing(2)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 4)
+            .padding(.top, 4)
+    }
+}
+
+// A choice as a card: tinted and outlined in the accent with a check when
+// it's the one picked.
+struct YouChoice<Label: View>: View {
+    let selected: Bool
+    var radius: CGFloat = FW.Radius.base
+    // Small chips rely on the outline alone.
+    var check = true
+    let action: () -> Void
+    @ViewBuilder var label: () -> Label
+
+    var body: some View {
+        let shape = RoundedRectangle(cornerRadius: radius, style: .continuous)
+        Button {
+            Feedback.shared.play(.tap)
+            withAnimation(Springs.snappy) { action() }
+        } label: {
+            label()
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                .background(FW.Palette.surface, in: shape)
+                .overlay { shape.fill(FW.Palette.accent.opacity(selected ? 0.07 : 0)) }
+                .overlay { shape.strokeBorder(selected ? FW.Palette.accent : FW.Palette.line, lineWidth: selected ? 2 : 1) }
+                .overlay(alignment: .topTrailing) {
+                    if selected && check {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18, weight: .semibold))
+                            .symbolRenderingMode(.palette)
+                            .foregroundStyle(FW.Palette.onAccent, FW.Palette.accent)
+                            .padding(8)
+                            .transition(.scale(0.4).combined(with: .opacity))
+                    }
+                }
+                .contentShape(shape)
+        }
+        .buttonStyle(.pressable)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .animation(Springs.bouncy, value: selected)
     }
 }
 
@@ -81,36 +142,62 @@ enum YouShare {
     }
 }
 
+// Everything in the account as one JSON file, handed to the share sheet.
+@MainActor
+enum YouExport {
+    static func all() async {
+        do {
+            let req = try await API.request("/api/export", method: "GET", body: nil)
+            let (data, response) = try await API.session.data(for: req)
+            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+            guard (200..<300).contains(status) else { throw API.failure(data, status: status) }
+            let url = URL.temporaryDirectory.appending(path: "fieldwork-account.json")
+            try data.write(to: url, options: .atomic)
+            YouShare.present(url) { completed in
+                if completed { Toasts.shared.show("Account export downloaded.") }
+            }
+        } catch is CancellationError {
+        } catch let e as APIError {
+            Toasts.shared.show(e.message)
+        } catch {
+            Toasts.shared.show(API.reachability(error, fallback: "Couldn’t reach the server. Try again.").message)
+        }
+    }
+}
+
 // MARK: - Teaching style
 
 private func youBand(_ x: Double, _ lo: String, _ mid: String, _ hi: String) -> String { x < 0.35 ? lo : x > 0.65 ? hi : mid }
 
 private struct YouStyleAxis {
     let name: String, left: String, right: String
+    let icon: String
+    let color: Color
     let value: KeyPath<MemStyle, Double>
     let means: (Double) -> String
 }
 
 private var youStyleAxes: [YouStyleAxis] { [
-    .init(name: "Depth", left: "Brief", right: "Thorough", value: \.depth) { x in
+    .init(name: "Depth", left: "Brief", right: "Thorough", icon: "text.alignleft", color: FW.Palette.review, value: \.depth) { x in
         "Replies of about \(Int(((50 + x * 140) / 10).rounded()) * 10) words"
     },
-    .init(name: "Challenge", left: "Gentle", right: "Stretching", value: \.challenge) { x in
+    .init(name: "Challenge", left: "Gentle", right: "Stretching", icon: "mountain.2.fill", color: FW.Palette.coral, value: \.challenge) { x in
         youBand(x, "Small steps that build confidence", "A steady pace", "Pushes harder and skips the obvious")
     },
-    .init(name: "Visuals", left: "Words", right: "Pictures", value: \.visual) { x in
+    .init(name: "Visuals", left: "Words", right: "Pictures", icon: "chart.bar.xaxis", color: FW.Palette.finance, value: \.visual) { x in
         youBand(x, "Diagrams only when essential", "Diagrams when they clarify", "Diagrams and charts often")
     },
-    .init(name: "Questions", left: "Explain", right: "Ask me", value: \.questions) { x in
+    .init(name: "Questions", left: "Explain", right: "Ask me", icon: "questionmark.bubble.fill", color: FW.Palette.judgment, value: \.questions) { x in
         youBand(x, "Explains clearly before asking", "A balance of explaining and asking", "Asks you first, then explains")
     },
-    .init(name: "Examples", left: "Abstract", right: "Concrete", value: \.examples) { x in
+    .init(name: "Examples", left: "Abstract", right: "Concrete", icon: "lightbulb.fill", color: FW.Palette.caution, value: \.examples) { x in
         youBand(x, "Comfortable with abstract framing", "A mix of framing and examples", "Always anchored in a concrete example")
     },
 ] }
 
-// Each axis, with what its current position means in practice. The style is
-// inferred from what the learner does and moves slowly on purpose.
+// Each axis as a dial between two ends, with what its position means in
+// practice. The style is inferred from what the learner does and moves
+// slowly on purpose.
 struct YouStyleSheet: View {
     let style: MemStyle?
 
@@ -118,54 +205,88 @@ struct YouStyleSheet: View {
         let s = style.flatMap { $0.observations > 0 ? $0 : nil }
         SheetScaffold(title: "Teaching style", subtitle: "How your tutor writes for you, learned from what you do.") {
             if let s {
-                VStack(alignment: .leading, spacing: 18) {
-                    ForEach(youStyleAxes, id: \.name) { a in axis(a, s[keyPath: a.value]) }
+                YouSheetCard {
+                    ForEach(Array(youStyleAxes.enumerated()), id: \.element.name) { i, a in
+                        YouStyleAxisRow(axis: a, x: s[keyPath: a.value], index: i)
+                    }
                 }
-                .padding(18)
-                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg))
             } else {
-                Text("Nothing learned yet. After a few sessions this shows how your tutor has adapted to you.")
-                    .font(.sans(15)).foregroundStyle(FW.Palette.text2)
-                    .fixedSize(horizontal: false, vertical: true)
+                YouEmpty(icon: "sparkles", color: FW.Palette.judgment, title: "Nothing learned yet", line: "After a few sessions, this shows how your tutor has adapted.")
             }
-            Text((s.map { "Learned from \($0.observations) moments. " } ?? "")
-                + "Asking for “simpler”, “go deeper”, an example or a picture moves these, and one session can’t swing them. To reset them, use Forget everything in Memory.")
-                .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                .lineSpacing(2)
-                .fixedSize(horizontal: false, vertical: true)
+            YouFootnote((s.map { "Learned from \($0.observations) moments. " } ?? "")
+                + "Asking for “simpler”, “go deeper”, an example or a picture moves these, and one session can’t swing them. Forget everything in Memory resets them.")
         }
     }
+}
 
-    private func axis(_ a: YouStyleAxis, _ x: Double) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                Text(a.name).font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text)
-                Spacer(minLength: 0)
-                Text(a.means(x)).font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                    .multilineTextAlignment(.trailing)
+private struct YouStyleAxisRow: View {
+    let axis: YouStyleAxis
+    let x: Double
+    let index: Int
+    @State private var shown = 0.5
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            IconBadge(systemName: axis.icon, color: axis.color, size: 36)
+            VStack(alignment: .leading, spacing: 8) {
+                Text(axis.name).font(.sans(16, .semibold)).foregroundStyle(FW.Palette.text)
+                HStack(spacing: 10) {
+                    Text(axis.left).font(.sans(12, .medium)).foregroundStyle(FW.Palette.text3)
+                        .lineLimit(1).minimumScaleFactor(0.8).frame(width: 62, alignment: .leading)
+                    GeometryReader { geo in
+                        let w = geo.size.width
+                        ZStack(alignment: .leading) {
+                            Capsule().fill(FW.Palette.surface3).frame(height: 6)
+                            Capsule().fill(axis.color.opacity(0.35))
+                                .frame(width: max(6, w * min(max(shown, 0), 1)), height: 6)
+                            Circle().fill(axis.color)
+                                .frame(width: 16, height: 16)
+                                .overlay(Circle().strokeBorder(FW.Palette.surface, lineWidth: 3))
+                                .shadow(color: axis.color.opacity(0.45), radius: 4)
+                                .offset(x: w * min(max(shown, 0), 1) - 8)
+                        }
+                        .frame(maxHeight: .infinity)
+                    }
+                    .frame(height: 16)
+                    Text(axis.right).font(.sans(12, .medium)).foregroundStyle(FW.Palette.text3)
+                        .lineLimit(1).minimumScaleFactor(0.8).frame(width: 62, alignment: .trailing)
+                }
+                .accessibilityElement()
+                .accessibilityLabel("\(axis.name): \(axis.left) to \(axis.right)")
+                .accessibilityValue("\(Int((x * 100).rounded())) percent")
+                Text(axis.means(x)).font(.sans(13)).foregroundStyle(FW.Palette.text2)
+                    .lineLimit(1).minimumScaleFactor(0.85)
+            }
+        }
+        .padding(.vertical, 14)
+        .onAppear {
+            if reduceMotion { shown = x } else {
+                withAnimation(Springs.bouncy.delay(0.15 + Double(index) * 0.06)) { shown = x }
+            }
+        }
+    }
+}
+
+// An empty state: a big glyph, a title and one line.
+struct YouEmpty: View {
+    let icon: String
+    var color: Color = FW.Palette.text2
+    let title: String
+    let line: String
+    var body: some View {
+        VStack(spacing: 12) {
+            IconBadge(systemName: icon, color: color, size: 56, circle: true)
+            VStack(spacing: 4) {
+                Text(title).font(.sans(17, .semibold)).foregroundStyle(FW.Palette.text)
+                Text(line).font(.sans(14)).foregroundStyle(FW.Palette.text3).multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            HStack(spacing: 12) {
-                Text(a.left).font(.sans(12)).foregroundStyle(FW.Palette.text3)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                    .frame(width: 64, alignment: .leading)
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        Capsule().fill(FW.Palette.line2).frame(height: 2)
-                        Circle().fill(FW.Palette.text).frame(width: 12, height: 12)
-                            .offset(x: geo.size.width * min(max(x, 0), 1) - 6)
-                    }
-                    .frame(maxHeight: .infinity)
-                }
-                .frame(height: 12)
-                Text(a.right).font(.sans(12)).foregroundStyle(FW.Palette.text3)
-                    .lineLimit(1).minimumScaleFactor(0.8)
-                    .frame(width: 64, alignment: .trailing)
-            }
-            .accessibilityElement()
-            .accessibilityLabel("\(a.name): \(a.left) to \(a.right)")
-            .accessibilityValue("\(Int((x * 100).rounded())) percent")
         }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+        .padding(.horizontal, 16)
+        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
     }
 }
 
@@ -175,80 +296,83 @@ struct YouWritingSheet: View {
     @Environment(Store.self) private var store
 
     var body: some View {
-        SheetScaffold(title: "Writing style", subtitle: "How your tutor talks to you in lessons, feedback and chat. It changes the tone and length, never what’s true.") {
+        SheetScaffold(title: "Writing style", subtitle: "Changes the tone and length, never what’s true.") {
             YouWritingPicker(value: store.prefs.writing) { id in store.setPrefs { $0.writing = id } }
         }
     }
 }
 
-// The five styles as cards, each with a small stage that shows its character
-// in motion (the chosen one plays), and a sample of how it sounds.
+// A sample of how the chosen style sounds, then the five styles as cards,
+// each with a small stage that shows its character in motion (the chosen one
+// plays).
 struct YouWritingPicker: View {
     let value: String
     let onChange: (String) -> Void
+    @Environment(Store.self) private var store
 
     var body: some View {
         let all = Writing.all
         let current = all.first { $0.id == value } ?? all[0]
         VStack(alignment: .leading, spacing: 18) {
+            sample(current)
             VStack(spacing: 10) {
                 if let first = all.first { card(first) }
                 ForEach(Array(stride(from: 1, to: all.count, by: 2)), id: \.self) { i in
                     HStack(alignment: .top, spacing: 10) {
-                        card(all[i]).frame(maxHeight: .infinity, alignment: .top)
-                        if i + 1 < all.count { card(all[i + 1]).frame(maxHeight: .infinity, alignment: .top) } else { Color.clear }
+                        card(all[i])
+                        if i + 1 < all.count { card(all[i + 1]) } else { Color.clear }
                     }
                     .fixedSize(horizontal: false, vertical: true)
                 }
             }
             .accessibilityElement(children: .contain)
             .accessibilityLabel("Writing style")
-            VStack(alignment: .leading, spacing: 8) {
-                Kicker("Sounds like")
-                Text(current.sample)
-                    .font(.serif(17))
-                    .lineSpacing(5)
+        }
+    }
+
+    // How the tutor sounds, in the face lessons are read in.
+    private func sample(_ w: Writing) -> some View {
+        let face = store.prefs.reading.lessonFont
+        return HStack(alignment: .top, spacing: 10) {
+            Aperture(size: 26)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Sounds like").font(.sans(12, .semibold)).foregroundStyle(FW.Palette.text3)
+                Text(w.sample)
+                    .font(.fw(face, 16))
+                    .lineSpacing(4)
                     .foregroundStyle(FW.Palette.text)
                     .fixedSize(horizontal: false, vertical: true)
+                    .id(w.id)
+                    .transition(.blurReplace)
             }
-            .padding(.vertical, 16)
-            .padding(.horizontal, 18)
+            .padding(.vertical, 12)
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-            .id(current.id)
-            .transition(.opacity)
+            .background(FW.Palette.surface, in: UnevenRoundedRectangle(topLeadingRadius: 6, bottomLeadingRadius: 18, bottomTrailingRadius: 18, topTrailingRadius: 18, style: .continuous))
         }
-        .animation(.easeOut(duration: FW.Motion.base), value: value)
+        .animation(Springs.smooth, value: w.id)
+        .accessibilityElement(children: .combine)
     }
 
     private func card(_ w: Writing) -> some View {
         let on = w.id == value
-        return Button {
-            Feedback.shared.play(.tap)
-            onChange(w.id)
-        } label: {
+        return YouChoice(selected: on) { onChange(w.id) } label: {
             VStack(alignment: .leading, spacing: 2) {
                 YouWritingStage(kind: w.id, playing: on)
                     .frame(height: 58)
                     .frame(maxWidth: .infinity)
                     .background(FW.Palette.bg, in: .rect(cornerRadius: 10))
                     .clipShape(.rect(cornerRadius: 10))
-                Text(w.label).font(.sans(14.5, .semibold)).foregroundStyle(FW.Palette.text)
+                Text(w.label).font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text)
                     .padding(.top, 10)
-                Text(w.note).font(.sans(12.5)).foregroundStyle(FW.Palette.text3)
-                    .fixedSize(horizontal: false, vertical: true)
+                Text(w.note).font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                    .lineLimit(1).minimumScaleFactor(0.85)
             }
-            .padding(.horizontal, 12)
-            .padding(.top, 12)
-            .padding(.bottom, 14)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(on ? FW.Palette.surface : FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.base))
-            .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(on ? FW.Palette.accent : FW.Palette.line, lineWidth: 1))
-            .contentShape(.rect(cornerRadius: FW.Radius.base))
+            .padding(10)
+            .padding(.bottom, 2)
         }
-        .buttonStyle(YouPressStyle())
         .accessibilityLabel("\(w.label), \(w.note)")
-        .accessibilityAddTraits(on ? .isSelected : [])
     }
 }
 
@@ -257,19 +381,20 @@ struct YouDangerStyle: ButtonStyle {
     @Environment(\.isEnabled) private var enabled
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.sans(15, .medium))
+            .font(.sans(16, .semibold))
             .padding(.horizontal, 18)
-            .frame(minHeight: 46)
+            .frame(minHeight: 52)
             .frame(maxWidth: .infinity)
             .foregroundStyle(FW.Palette.negative)
             .background(FW.Palette.negative.opacity(configuration.isPressed ? 0.22 : 0.14), in: .capsule)
             .opacity(enabled ? 1 : 0.4)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: FW.Motion.fast), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(configuration.isPressed ? .snappy(duration: 0.16) : Springs.bouncy, value: configuration.isPressed)
             .contentShape(.capsule)
     }
 }
 
+// Kept for other screens' cards; new cards use `.pressable`.
 struct YouPressStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -388,7 +513,8 @@ private struct YouWritingStage: View {
         }
     }
 
-    // A serif word, underlined by pen.
+    // A serif word, underlined by pen. (The serif is the point: it's what
+    // "formal" looks like on the page.)
     private func formal(_ t: Double) -> some View {
         let p = loop(t, 2.6)
         let to: Double = p.map { $0 < 0.15 ? 0 : $0 < 0.5 ? ease(lerp($0, 0.15, 0.5)) : 1 } ?? 1
@@ -438,11 +564,23 @@ private let youVoiceGender: [String: String] = [
     "cedar": "man", "willow": "woman", "meridian": "man", "gleam": "woman", "vesper": "man", "stone": "man",
 ]
 
+private func youVoiceColor(_ id: String) -> Color {
+    switch id {
+    case "cedar": FW.Palette.finance
+    case "willow": FW.Palette.coral
+    case "meridian": FW.Palette.review
+    case "gleam": FW.Palette.caution
+    case "vesper": FW.Palette.judgment
+    default: FW.Palette.communication
+    }
+}
+
 struct YouVoiceSheet: View {
     @Environment(Store.self) private var store
     var body: some View {
-        SheetScaffold(title: "Practice voice", subtitle: "Who you talk to in practice conversations. You can still pick another for a single session.") {
+        SheetScaffold(title: "Practice voice", subtitle: "Who you talk to in practice conversations.") {
             YouVoicePicker(value: store.prefs.voice) { id in store.setPrefs { $0.voice = id } }
+            YouFootnote("You can still pick another voice for a single session.")
         }
     }
 }
@@ -454,58 +592,61 @@ struct YouVoicePicker: View {
     @State private var player = YouVoiceSamplePlayer()
 
     var body: some View {
-        VStack(spacing: 6) {
-            ForEach(Voice.all) { v in
-                let picked = v.id == value
-                HStack(spacing: 6) {
-                    Button {
-                        Feedback.shared.play(.tap)
-                        onChange(v.id)
-                    } label: {
-                        HStack(spacing: 12) {
-                            ZStack {
-                                Circle().fill(picked ? FW.Palette.accent : .clear)
-                                Circle().strokeBorder(picked ? .clear : FW.Palette.line3, lineWidth: 1.5)
-                                if picked {
-                                    Image(systemName: "checkmark").font(.system(size: 10, weight: .bold)).foregroundStyle(FW.Palette.onAccent)
-                                }
-                            }
-                            .frame(width: 20, height: 20)
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(v.label).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text)
-                                Text("\(v.note) · plays a \(youVoiceGender[v.id] ?? "man")")
-                                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            Spacer(minLength: 0)
-                        }
-                        .padding(.vertical, 6)
-                        .padding(.horizontal, 8)
-                        .frame(minHeight: 48)
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(v.label), \(v.note)")
-                    .accessibilityAddTraits(picked ? .isSelected : [])
-                    Button { player.toggle(v.id) } label: {
-                        Group {
-                            if player.playing == v.id { YouVoiceBars() } else { Image(systemName: "play.fill").font(.system(size: 13)) }
-                        }
-                        .foregroundStyle(player.playing == v.id ? FW.Palette.text : FW.Palette.text2)
-                        .frame(width: 40, height: 40)
-                        .contentShape(.rect)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel(player.playing == v.id ? "Stop \(v.label)" : "Hear \(v.label)")
-                }
-                .padding(.leading, 4)
-                .padding(.trailing, 6)
-                .padding(.vertical, 4)
-                .background(picked ? FW.Palette.raised : FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(picked ? FW.Palette.line3 : FW.Palette.line, lineWidth: 1))
-            }
+        YouSheetCard {
+            ForEach(Voice.all) { v in row(v) }
         }
         .onDisappear { player.stop() }
+    }
+
+    private func row(_ v: Voice) -> some View {
+        let picked = v.id == value
+        let playing = player.playing == v.id
+        let color = youVoiceColor(v.id)
+        return HStack(spacing: 12) {
+            Button {
+                Feedback.shared.play(.tap)
+                withAnimation(Springs.snappy) { onChange(v.id) }
+            } label: {
+                HStack(spacing: 12) {
+                    Text(String(v.label.prefix(1)))
+                        .font(.rounded(17))
+                        .foregroundStyle(color)
+                        .frame(width: 38, height: 38)
+                        .background(color.opacity(0.16), in: .circle)
+                        .overlay(Circle().strokeBorder(color, lineWidth: picked ? 2 : 0))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(v.label).font(.sans(16, .medium)).foregroundStyle(FW.Palette.text)
+                        Text("\(v.note) · \(youVoiceGender[v.id] ?? "man")")
+                            .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                            .lineLimit(1).minimumScaleFactor(0.85)
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: picked ? "checkmark.circle.fill" : "circle")
+                        .font(.system(size: 22))
+                        .symbolRenderingMode(.palette)
+                        .foregroundStyle(picked ? FW.Palette.onAccent : FW.Palette.line3, picked ? FW.Palette.accent : FW.Palette.line3)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+                .contentShape(.rect)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(v.label), \(v.note)")
+            .accessibilityAddTraits(picked ? .isSelected : [])
+            Button { player.toggle(v.id) } label: {
+                Group {
+                    if playing { YouVoiceBars() } else { Image(systemName: "play.fill").font(.system(size: 13, weight: .semibold)) }
+                }
+                .foregroundStyle(playing ? FW.Palette.onAccent : FW.Palette.text)
+                .frame(width: 36, height: 36)
+                .background(playing ? FW.Palette.accent : FW.Palette.surface3, in: .circle)
+                .contentShape(.circle)
+            }
+            .buttonStyle(.pressable(0.9))
+            .accessibilityLabel(playing ? "Stop \(v.label)" : "Hear \(v.label)")
+        }
+        .padding(.vertical, 11)
+        .frame(minHeight: 60)
+        .animation(Springs.snappy, value: playing)
     }
 }
 
@@ -571,6 +712,55 @@ final class YouVoiceSamplePlayer: NSObject, AVAudioPlayerDelegate {
     }
 }
 
+// MARK: - Sessions
+
+// How each lesson runs: the three in-session aids and breaks.
+struct YouSessionsSheet: View {
+    @Environment(Store.self) private var store
+
+    var body: some View {
+        let s = store.prefs.session
+        SheetScaffold(title: "Sessions", subtitle: "How each lesson runs.") {
+            YouSheetCard {
+                aid("Familiarity check", "Skips what you already know", "hand.raised.fill", FW.Palette.review, \.familiarity, s.familiarity)
+                aid("Confidence rating", "Say how sure you are", "gauge.with.dots.needle.50percent", FW.Palette.judgment, \.confidence, s.confidence)
+                aid("“I don’t know yet”", "Be taught instead of guessing", "lightbulb.fill", FW.Palette.caution, \.dontKnow, s.dontKnow)
+            }
+            YouSheetLabel("Breaks")
+            HStack(spacing: 10) {
+                breakChoice(0, "Off", "pause.circle")
+                breakChoice(5, "5 min", "cup.and.saucer.fill")
+                breakChoice(10, "10 min", "figure.walk")
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            YouFootnote("Breaks come about every 50 minutes in sessions of an hour or more. Changes apply from the next session you start.")
+        }
+    }
+
+    private func aid(_ title: String, _ caption: String, _ icon: String, _ color: Color, _ key: WritableKeyPath<Prefs.Session, Bool>, _ on: Bool) -> some View {
+        GroupRow(icon: icon, title: title, caption: caption, color: color) {
+            Toggle(title, isOn: Binding(get: { on }, set: { v in store.setPrefs { $0.session[keyPath: key] = v } }))
+                .labelsHidden()
+        }
+    }
+
+    private func breakChoice(_ minutes: Int, _ label: String, _ icon: String) -> some View {
+        let on = store.prefs.session.breaks == minutes
+        return YouChoice(selected: on, check: false) { store.setPrefs { $0.session.breaks = minutes } } label: {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .medium))
+                    .foregroundStyle(on ? FW.Palette.text : FW.Palette.text3)
+                    .symbolEffect(.bounce, value: on)
+                Text(label).font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+        }
+        .accessibilityLabel("Breaks: \(label)")
+    }
+}
+
 // MARK: - Notifications
 
 // The `settings:reminders` record (docs/API.md §4.3).
@@ -599,15 +789,16 @@ private struct YouNotifyKind {
     let key: WritableKeyPath<Prefs.Notify, Bool>
     let title: String
     let detail: String
-    let time: String?
+    let icon: String
+    let color: Color
 }
 
 private var youNotifyKinds: [YouNotifyKind] { [
-    .init(key: \.morning, title: "Session preview", detail: "What today’s session is about, on learning days.", time: "morning"),
-    .init(key: \.nudge, title: "One nudge", detail: "Only if you haven’t started by then. Never more than one.", time: "followup"),
-    .init(key: \.breaks, title: "Break’s over", detail: "When a break in a long session ends.", time: nil),
-    .init(key: \.insights, title: "Weekly Insights", detail: "When last week’s read is ready, Monday morning.", time: nil),
-    .init(key: \.week, title: "Next week’s draft", detail: "When next week is drafted and yours to shape, Sunday.", time: nil),
+    .init(key: \.morning, title: "Session preview", detail: "What today’s session is about", icon: "sun.horizon.fill", color: FW.Palette.caution),
+    .init(key: \.nudge, title: "One nudge", detail: "Only if you haven’t started", icon: "hand.wave.fill", color: FW.Palette.coral),
+    .init(key: \.breaks, title: "Break’s over", detail: "When a break in a session ends", icon: "cup.and.saucer.fill", color: FW.Palette.communication),
+    .init(key: \.insights, title: "Weekly Insights", detail: "Monday morning", icon: "chart.bar.fill", color: FW.Palette.review),
+    .init(key: \.week, title: "Next week’s draft", detail: "Sunday, yours to shape", icon: "calendar.badge.clock", color: FW.Palette.finance),
 ] }
 
 func youNotifySummary(_ on: Bool, _ prefs: Prefs) -> String {
@@ -636,36 +827,39 @@ struct YouNotificationsSheet: View {
     }
 
     var body: some View {
-        SheetScaffold(title: "Notifications", subtitle: "Sent to this device. Nothing sensitive shows on the lock screen.") {
-            YouSettingLine(title: "Allow notifications", detail: on ? "On for this device" : "Off for this device") {
-                Toggle("Allow notifications", isOn: Binding(get: { on }, set: { v in Task { await toggle(v) } }))
-                    .labelsHidden()
-                    .disabled(busy)
+        let n = store.prefs.notify
+        SheetScaffold(title: "Notifications", subtitle: "Sent to this device.") {
+            YouSheetCard {
+                GroupRow(icon: on ? "bell.badge.fill" : "bell.slash.fill", title: "Allow notifications",
+                         caption: on ? "On for this device" : "Off for this device", color: on ? FW.Palette.coral : FW.Palette.text3) {
+                    Toggle("Allow notifications", isOn: Binding(get: { on }, set: { v in Task { await toggle(v) } }))
+                        .labelsHidden()
+                        .disabled(busy)
+                }
             }
             if denied {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Notifications for Fieldwork are turned off in iOS Settings. Turn them on there, then come back.")
-                        .font(.sans(14)).foregroundStyle(FW.Palette.text2)
-                        .fixedSize(horizontal: false, vertical: true)
+                HStack(spacing: 12) {
+                    IconBadge(systemName: "exclamationmark.triangle.fill", color: FW.Palette.caution, size: 36)
+                    Text("Off in iOS Settings")
+                        .font(.sans(14, .medium)).foregroundStyle(FW.Palette.text)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                     Button("Open Settings") {
                         if let url = URL(string: UIApplication.openNotificationSettingsURLString) { UIApplication.shared.open(url) }
                     }
                     .buttonStyle(.fw(.secondary, small: true))
                 }
-                .card(FW.Radius.base, fill: FW.Palette.surface, padding: 14)
+                .padding(12)
+                .background(FW.Palette.caution.opacity(0.1), in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+                .transition(.opacity.combined(with: .scale(0.96)))
             }
             if let error {
                 Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative).fixedSize(horizontal: false, vertical: true)
             }
-            VStack(alignment: .leading, spacing: 14) {
-                Kicker("What to send")
-                ForEach(youNotifyKinds, id: \.title) { k in
-                    let enabled = store.prefs.notify[keyPath: k.key]
-                    YouSettingLine(title: k.title, detail: k.detail) {
-                        HStack(spacing: 10) {
-                            if let slot = k.time {
-                                timePicker(slot, label: "\(k.title) time").disabled(!enabled)
-                            }
+            Group {
+                YouSheetLabel("What to send")
+                YouSheetCard {
+                    ForEach(youNotifyKinds, id: \.title) { k in
+                        GroupRow(icon: k.icon, title: k.title, caption: k.detail, color: k.color) {
                             Toggle(k.title, isOn: Binding(
                                 get: { store.prefs.notify[keyPath: k.key] },
                                 set: { v in store.setPrefs { $0.notify[keyPath: k.key] = v } }
@@ -674,37 +868,28 @@ struct YouNotificationsSheet: View {
                         }
                     }
                 }
-            }
-            .disabled(!on)
-            .opacity(on ? 1 : 0.45)
-            VStack(alignment: .leading, spacing: 10) {
-                Kicker("Quiet hours")
-                Text("Nothing is sent between these times, whatever else is on.")
-                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                    .fixedSize(horizontal: false, vertical: true)
-                HStack(spacing: 12) {
-                    quiet("From", "quietStart")
-                    quiet("Until", "quietEnd")
+                YouSheetLabel("Times")
+                YouSheetCard {
+                    timeRow("Session preview", "sun.horizon.fill", FW.Palette.caution, "morning").disabled(!n.morning).opacity(n.morning ? 1 : 0.5)
+                    timeRow("Nudge", "hand.wave.fill", FW.Palette.coral, "followup").disabled(!n.nudge).opacity(n.nudge ? 1 : 0.5)
+                    timeRow("Quiet from", "moon.zzz.fill", FW.Palette.judgment, "quietStart")
+                    timeRow("Quiet until", "sunrise.fill", FW.Palette.review, "quietEnd")
                 }
             }
             .disabled(!on)
             .opacity(on ? 1 : 0.45)
+            YouFootnote("Nothing is sent during quiet hours, whatever else is on, and nothing sensitive shows on the lock screen.")
         }
+        .animation(Springs.snappy, value: on)
+        .animation(Springs.snappy, value: denied)
         .task { await checkPermission() }
         .onChange(of: scenePhase) { _, p in if p == .active { Task { await checkPermission() } } }
     }
 
-    private func quiet(_ label: String, _ key: String) -> some View {
-        HStack {
-            Text(label).font(.sans(14)).foregroundStyle(FW.Palette.text2)
-            Spacer(minLength: 4)
-            timePicker(key, label: label)
+    private func timeRow(_ title: String, _ icon: String, _ color: Color, _ key: String) -> some View {
+        GroupRow(icon: icon, title: title, color: color) {
+            timePicker(key, label: title)
         }
-        .padding(.leading, 12)
-        .padding(.trailing, 6)
-        .frame(minHeight: 48)
-        .frame(maxWidth: .infinity)
-        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
     }
 
     private func timePicker(_ key: String, label: String) -> some View {
@@ -768,11 +953,12 @@ struct YouNotificationsSheet: View {
 
 private let youReadingSizes: [(String, String)] = [("s", "Small"), ("m", "Default"), ("l", "Large"), ("xl", "Largest")]
 
+// "Sans" is the system face on iPhone (Instrument Sans on the web).
 private let youFontInfo: [Face: (label: String, note: String, short: String)] = [
-    .sans: ("Instrument Sans", "Clean and even", "Instrument Sans"),
+    .sans: ("Sans", "Clean and even", "Sans"),
     .serif: ("Newsreader", "A book serif", "Newsreader"),
-    .hyperlegible: ("Atkinson Hyperlegible", "Designed for low vision", "Atkinson"),
-    .dyslexic: ("OpenDyslexic", "Weighted letters for dyslexia", "OpenDyslexic"),
+    .hyperlegible: ("Atkinson Hyperlegible", "For low vision", "Atkinson"),
+    .dyslexic: ("OpenDyslexic", "For dyslexia", "OpenDyslexic"),
 ]
 
 func youFontSummary(_ r: Prefs.Reading) -> String {
@@ -793,21 +979,46 @@ struct YouReadingSheet: View {
 
     var body: some View {
         let r = store.prefs.reading
-        SheetScaffold(title: "Reading", subtitle: "Type for lessons and for everything else. Changes apply as you choose.") {
+        SheetScaffold(title: "Reading", subtitle: "Type for lessons and for everything else.") {
             preview(r)
-            PlanField(label: "Lesson font", hint: "Used for everything you read and write inside a session.") {
-                fontChoice(r.lessonFont, standard: .serif) { f in store.setPrefs { $0.reading.lessonFont = f } }
+            YouSheetLabel("Lesson font")
+            fontChoice(r.lessonFont, standard: .serif) { f in store.setPrefs { $0.reading.lessonFont = f } }
+            YouSheetLabel("Lesson text size")
+            HStack(spacing: 8) {
+                ForEach(Array(youReadingSizes.enumerated()), id: \.element.0) { i, s in
+                    YouChoice(selected: r.size == s.0, check: false) { store.setPrefs { $0.reading.size = s.0 } } label: {
+                        VStack(spacing: 6) {
+                            Text("A").font(.fw(r.lessonFont, [14, 17, 20, 23][i], .medium)).foregroundStyle(FW.Palette.text)
+                                .frame(height: 28, alignment: .bottom)
+                            Text(s.1).font(.sans(12, .medium)).foregroundStyle(FW.Palette.text2).lineLimit(1).minimumScaleFactor(0.8)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                    }
+                    .accessibilityLabel("Text size: \(s.1)")
+                }
             }
-            PlanField(label: "Lesson text size") {
-                Segmented(options: youReadingSizes, selection: Binding(get: { store.prefs.reading.size }, set: { v in store.setPrefs { $0.reading.size = v } }))
+            .fixedSize(horizontal: false, vertical: true)
+            YouSheetLabel("Line length")
+            HStack(spacing: 8) {
+                ForEach([("narrow", "Shorter", 0.5), ("normal", "Default", 0.72), ("wide", "Longer", 0.94)], id: \.0) { w in
+                    YouChoice(selected: r.width == w.0, check: false) { store.setPrefs { $0.reading.width = w.0 } } label: {
+                        VStack(spacing: 10) {
+                            YouLinesGlyph(width: w.2)
+                                .frame(height: 22)
+                            Text(w.1).font(.sans(12, .medium)).foregroundStyle(FW.Palette.text2)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 14)
+                    }
+                    .accessibilityLabel("Line length: \(w.1)")
+                }
             }
-            PlanField(label: "Line length", hint: "Shorter lines are easier to track; longer ones fit more on screen.") {
-                Segmented(options: [("narrow", "Shorter"), ("normal", "Default"), ("wide", "Longer")],
-                          selection: Binding(get: { store.prefs.reading.width }, set: { v in store.setPrefs { $0.reading.width = v } }))
-            }
-            PlanField(label: "App font", hint: "Menus, pages and everything outside lessons.") {
-                fontChoice(r.appFont, standard: .sans) { f in store.setPrefs { $0.reading.appFont = f } }
-            }
+            .fixedSize(horizontal: false, vertical: true)
+            YouSheetLabel("App font")
+            fontChoice(r.appFont, standard: .sans) { f in store.setPrefs { $0.reading.appFont = f } }
+            YouFootnote("The lesson font is used for everything you read and write in a session; the app font for menus and pages. Shorter lines are easier to track.")
         }
     }
 
@@ -815,20 +1026,22 @@ struct YouReadingSheet: View {
         let size = 17 * store.prefs.readScale
         let face = r.lessonFont
         return VStack(alignment: .leading, spacing: 10) {
-            Kicker("Preview · a lesson")
+            Label("A lesson", systemImage: "book.pages").font(.sans(12, .semibold)).foregroundStyle(FW.Palette.text3)
             Text("A sale on credit is \(Text("profit").font(.fw(face, size, .semibold))) the day you make it, but it isn’t \(Text("cash").font(.fw(face, size, italic: true))) until the customer pays. That gap is where healthy businesses run out of money.")
                 .font(.fw(face, size))
                 .lineSpacing(size * 0.45)
                 .foregroundStyle(FW.Palette.text)
                 .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: r.width == "narrow" ? 290 : .infinity, alignment: .leading)
-                .animation(.easeOut(duration: FW.Motion.base), value: size)
+                .frame(maxWidth: r.width == "narrow" ? 250 : r.width == "normal" ? 300 : .infinity, alignment: .leading)
+                .animation(Springs.smooth, value: size)
+                .animation(Springs.smooth, value: r.width)
+                .animation(.easeOut(duration: FW.Motion.base), value: face)
         }
-        .padding(.top, 18)
-        .padding(.horizontal, 20)
-        .padding(.bottom, 20)
+        .padding(.top, 16)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg))
+        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Preview")
     }
@@ -836,35 +1049,40 @@ struct YouReadingSheet: View {
     private func fontChoice(_ value: Face, standard: Face, onChange: @escaping (Face) -> Void) -> some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
             ForEach([Face.sans, .serif, .hyperlegible, .dyslexic], id: \.self) { f in
-                let on = f == value
                 let info = youFontInfo[f]!
-                Button {
-                    Feedback.shared.play(.tap)
-                    onChange(f)
-                } label: {
+                YouChoice(selected: f == value) { onChange(f) } label: {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Aa").font(.fw(f, f == .dyslexic ? 22 : 26)).foregroundStyle(FW.Palette.text)
+                        Text("Aa").font(.fw(f, f == .dyslexic ? 24 : 28)).foregroundStyle(FW.Palette.text)
+                            .frame(height: 36, alignment: .bottomLeading)
                             .padding(.bottom, 4)
                         Text(info.label).font(.fw(f, f == .dyslexic ? 13 : 14, .medium)).foregroundStyle(FW.Palette.text)
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text(info.note + (f == standard ? " · default" : ""))
+                            .lineLimit(1).minimumScaleFactor(0.75)
+                        Text(f == standard ? "Default" : info.note)
                             .font(.sans(12)).foregroundStyle(FW.Palette.text3)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Spacer(minLength: 0)
+                            .lineLimit(1).minimumScaleFactor(0.85)
                     }
                     .padding(.vertical, 12)
                     .padding(.horizontal, 14)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                    .background(on ? FW.Palette.raised : FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(on ? FW.Palette.text : FW.Palette.line, lineWidth: on ? 1.5 : 1))
-                    .contentShape(.rect(cornerRadius: FW.Radius.base))
                 }
-                .buttonStyle(YouPressStyle())
                 .accessibilityLabel("\(info.label), \(info.note)")
-                .accessibilityAddTraits(on ? .isSelected : [])
             }
         }
+    }
+}
+
+// Three lines of text as bars, for picking a line length.
+private struct YouLinesGlyph: View {
+    let width: Double
+    var body: some View {
+        GeometryReader { geo in
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach([1.0, 0.86, 0.64], id: \.self) { k in
+                    Capsule().fill(FW.Palette.text3).frame(width: geo.size.width * width * k, height: 3)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -874,13 +1092,15 @@ private struct YouGameItem {
     let key: WritableKeyPath<Prefs.Game, Bool>
     let title: String
     let detail: String
+    let icon: String
+    let color: Color
 }
 
 private var youGameItems: [YouGameItem] { [
-    .init(key: \.xp, title: "XP and levels", detail: "Points for answers and sessions, and the level they add up to."),
-    .init(key: \.streak, title: "Streak", detail: "How many learning days or weeks in a row. Planned time off never breaks it."),
-    .init(key: \.quests, title: "Daily quests", detail: "Three small goals a day, with a bonus for all three."),
-    .init(key: \.pops, title: "In-session celebrations", detail: "“+XP” and “3 in a row” as answers are marked."),
+    .init(key: \.xp, title: "XP and levels", detail: "Points for answers and sessions", icon: "bolt.fill", color: FW.Palette.caution),
+    .init(key: \.streak, title: "Streak", detail: "Planned time off never breaks it", icon: "flame.fill", color: FW.Palette.coral),
+    .init(key: \.quests, title: "Daily quests", detail: "Three small goals, a bonus for all", icon: "checklist", color: FW.Palette.finance),
+    .init(key: \.pops, title: "In-session celebrations", detail: "“+XP” and “3 in a row”", icon: "party.popper.fill", color: FW.Palette.judgment),
 ] }
 
 func youGameSummary(_ p: Prefs) -> String {
@@ -891,19 +1111,24 @@ func youGameSummary(_ p: Prefs) -> String {
 struct YouGameSheet: View {
     @Environment(Store.self) private var store
     var body: some View {
-        SheetScaffold(title: "Game elements", subtitle: "Optional extras. Your learning, memory and progress work the same with all of them off.") {
-            VStack(alignment: .leading, spacing: 14) {
+        SheetScaffold(title: "Game elements", subtitle: "Optional extras.") {
+            YouSheetCard {
                 ForEach(youGameItems, id: \.title) { g in
-                    YouSettingLine(title: g.title, detail: g.detail) {
+                    let on = store.prefs.game[keyPath: g.key]
+                    let locked = g.key == \.pops && !store.prefs.game.xp
+                    GroupRow(icon: g.icon, title: g.title, caption: g.detail, color: on && !locked ? g.color : FW.Palette.text3) {
                         Toggle(g.title, isOn: Binding(
                             get: { store.prefs.game[keyPath: g.key] },
                             set: { v in store.setPrefs { $0.game[keyPath: g.key] = v } }
                         ))
                         .labelsHidden()
-                        .disabled(g.title == "In-session celebrations" && !store.prefs.game.xp)
+                        .disabled(locked)
                     }
+                    .opacity(locked ? 0.5 : 1)
+                    .animation(Springs.snappy, value: on)
                 }
             }
+            YouFootnote("Your learning, memory and progress work the same with all of them off.")
         }
     }
 }
@@ -917,24 +1142,36 @@ struct YouPlanSheet: View {
 
     var body: some View {
         let plan = store.decodedPlan
-        SheetScaffold(title: "Your plan", subtitle: plan?.title ?? "No plan imported yet.") {
-            VStack(spacing: 8) {
-                Button {
-                    dismiss()
-                    router.push(.importPlan, on: .you)
-                } label: {
-                    youActionLabel(plan != nil ? "Import a new plan" : "Import a plan", icon: "square.and.arrow.down")
+        SheetScaffold(title: "Your plan") {
+            HStack(spacing: 14) {
+                IconBadge(systemName: "map.fill", color: FW.Palette.review, size: 48)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(plan?.title ?? "No plan yet").font(.sans(17, .semibold)).foregroundStyle(FW.Palette.text)
+                        .lineLimit(2)
+                    if let plan {
+                        Text("\(Dates.short(plan.start_date)) – \(Dates.short(plan.end_date))").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                    } else {
+                        Text("Import one to begin").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                    }
                 }
-                .buttonStyle(.fw(.primary, wide: true))
+                Spacer(minLength: 0)
+            }
+            Button {
+                dismiss()
+                router.push(.importPlan, on: .you)
+            } label: {
+                Label(plan != nil ? "Import a new plan" : "Import a plan", systemImage: "square.and.arrow.down")
+            }
+            .buttonStyle(.fw(.primary, wide: true))
+            YouSheetCard {
                 if let json = store.plan {
                     ShareLink(item: SharedJSONFile(name: "fieldwork-plan.json", json: json), preview: SharePreview("fieldwork-plan.json")) {
-                        youActionLabel("Export this plan", icon: "arrow.down.to.line")
+                        GroupRow(icon: "doc.text.fill", title: "Export this plan", color: FW.Palette.judgment, value: nil)
                     }
-                    .buttonStyle(.fw(.secondary, wide: true))
+                    .buttonStyle(.plain)
                 } else {
-                    Button {} label: { youActionLabel("Export this plan", icon: "arrow.down.to.line") }
-                        .buttonStyle(.fw(.secondary, wide: true))
-                        .disabled(true)
+                    GroupRow(icon: "doc.text.fill", title: "Export this plan", color: FW.Palette.judgment, value: nil, chevron: false)
+                        .opacity(0.45)
                 }
                 ShareLink(
                     item: SharedJSONFile(name: "fieldwork-progress.json", json: .object([
@@ -943,19 +1180,11 @@ struct YouPlanSheet: View {
                     ])),
                     preview: SharePreview("fieldwork-progress.json")
                 ) {
-                    youActionLabel("Export progress", icon: "arrow.down.to.line")
+                    GroupRow(icon: "chart.line.uptrend.xyaxis", title: "Export progress", color: FW.Palette.finance, value: nil)
                 }
-                .buttonStyle(.fw(.secondary, wide: true))
+                .buttonStyle(.plain)
             }
         }
-    }
-}
-
-func youActionLabel(_ title: String, icon: String) -> some View {
-    HStack(spacing: 10) {
-        Image(systemName: icon).font(.system(size: 15, weight: .medium)).frame(width: 20)
-        Text(title)
-        Spacer(minLength: 0)
     }
 }
 
@@ -973,17 +1202,18 @@ struct YouSignInSheet: View {
     var body: some View {
         SheetScaffold(title: "Sign-in", subtitle: email) {
             if loading {
-                SkeletonLines(count: 2)
+                SkeletonLines(count: 2).padding(.vertical, 8)
             } else if available {
                 passkeys
             }
-            if let message, !available {
+            if let message {
                 Text(message).font(.sans(14)).foregroundStyle(FW.Palette.text2).fixedSize(horizontal: false, vertical: true)
+                    .transition(.opacity)
             }
-            Text("Without a passkey, you sign in with a code sent to your email.")
-                .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                .fixedSize(horizontal: false, vertical: true)
+            YouFootnote("Without a passkey, you sign in with a code sent to your email.")
         }
+        .animation(Springs.snappy, value: list?.map(\.id))
+        .animation(Springs.snappy, value: loading)
         .task { await refresh() }
         .confirmationDialog("Remove this passkey?", isPresented: Binding(get: { removing != nil }, set: { if !$0 { removing = nil } }), titleVisibility: .visible) {
             Button("Remove", role: .destructive) {
@@ -993,54 +1223,48 @@ struct YouSignInSheet: View {
         }
     }
 
+    @ViewBuilder
     private var passkeys: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("Passkeys").font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text)
-                Text(list?.isEmpty == false ? "Sign in with Face ID, Touch ID or your password manager." : "Skip the email link next time.")
-                    .font(.sans(14)).foregroundStyle(FW.Palette.text2)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            if let list, !list.isEmpty {
-                VStack(spacing: 0) {
-                    ForEach(Array(list.enumerated()), id: \.element.id) { i, k in
-                        if i > 0 { Rule() }
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(k.friendly_name.flatMap { $0.isEmpty ? nil : $0 } ?? "Passkey")
-                                    .font(.sans(15)).foregroundStyle(FW.Palette.text)
-                                    .lineLimit(1)
-                                Text(k.last_used_at.map { "Used " + day($0) } ?? "Added " + day(k.created_at))
-                                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                            }
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            Button("Remove") { removing = k }
-                                .font(.sans(14, .medium))
-                                .foregroundStyle(FW.Palette.text2)
-                                .buttonStyle(.plain)
-                                .frame(minHeight: 44)
-                        }
-                        .padding(.vertical, 6)
+        if let list, !list.isEmpty {
+            YouSheetLabel("Passkeys")
+            YouSheetCard {
+                ForEach(list) { k in
+                    let name = k.friendly_name.flatMap { $0.isEmpty ? nil : $0 } ?? "Passkey"
+                    GroupRow(icon: glyph(name), title: name,
+                             caption: k.last_used_at.map { "Used " + day($0) } ?? "Added " + day(k.created_at),
+                             color: FW.Palette.review) {
+                        Button("Remove") { removing = k }
+                            .font(.sans(14, .medium))
+                            .foregroundStyle(FW.Palette.negative)
+                            .buttonStyle(.plain)
+                            .frame(minHeight: 44)
                     }
+                    .transition(.opacity.combined(with: .scale(0.96)))
                 }
             }
-            if let message {
-                Text(message).font(.sans(14)).foregroundStyle(FW.Palette.text2).fixedSize(horizontal: false, vertical: true)
-            }
-            Button { Task { await add() } } label: {
-                HStack(spacing: 8) {
-                    if adding { ProgressView().controlSize(.small) }
-                    Text("Add a passkey")
-                }
-            }
-            .buttonStyle(.fw(.secondary))
-            .disabled(adding)
+        } else {
+            YouEmpty(icon: "person.badge.key.fill", color: FW.Palette.review, title: "No passkeys yet", line: "Sign in with Face ID next time, and skip the email code.")
         }
-        .card(FW.Radius.lg, fill: FW.Palette.surface, padding: 16)
+        Button { Task { await add() } } label: {
+            HStack(spacing: 8) {
+                if adding { ProgressView().controlSize(.small).tint(FW.Palette.onAccent) } else { Image(systemName: "plus") }
+                Text("Add a passkey")
+            }
+        }
+        .buttonStyle(.fw(.primary, wide: true))
+        .disabled(adding)
+    }
+
+    private func glyph(_ name: String) -> String {
+        let n = name.lowercased()
+        if n.contains("iphone") { return "iphone" }
+        if n.contains("ipad") { return "ipad" }
+        if n.contains("mac") || n.contains("laptop") { return "laptopcomputer" }
+        return "key.fill"
     }
 
     private func day(_ s: String) -> String {
-        Stamp.parse(s)?.formatted(date: .numeric, time: .omitted) ?? ""
+        Stamp.parse(s)?.formatted(date: .abbreviated, time: .omitted) ?? ""
     }
 
     private func refresh() async {
@@ -1115,86 +1339,66 @@ struct YouUsageSheet: View {
 
     var body: some View {
         SheetScaffold(title: "AI cost this month", subtitle: "Unmetered. Shown so there are no surprises.") {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 24, alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)], alignment: .leading, spacing: 18) {
-                stat(youDollars(usage.total), "total")
-                ForEach(["fast", "primary", "reasoning", "voice"], id: \.self) { t in
+            VStack(spacing: 2) {
+                Text(youDollars(usage.total))
+                    .font(.rounded(48))
+                    .foregroundStyle(FW.Palette.text)
+                    .contentTransition(.numericText())
+                Text("\(usage.calls) calls this month").font(.sans(14)).foregroundStyle(FW.Palette.text3)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 8)
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible())], spacing: 10) {
+                ForEach(Array(["fast", "primary", "reasoning", "voice"].enumerated()), id: \.element) { i, t in
                     if let tier = usage.byTier[t] {
-                        stat(youDollars(tier.usd), "\(t == "voice" ? "Voice" : usage.models[t] ?? t) · \(tier.calls) calls")
+                        tile(youDollars(tier.usd), t == "voice" ? "Voice" : usage.models[t] ?? t, "\(tier.calls) calls", icon(t))
+                            .rise(i)
                     }
                 }
             }
             if usage.cacheRate > 0 {
-                Text("\(Int((usage.cacheRate * 100).rounded()))% of prompt tokens served from cache.")
-                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label("Served from cache", systemImage: "bolt.horizontal.fill").font(.sans(14, .medium)).foregroundStyle(FW.Palette.text2)
+                        Spacer()
+                        Text("\(Int((usage.cacheRate * 100).rounded()))%").font(.rounded(17, .semibold)).foregroundStyle(FW.Palette.text)
+                    }
+                    Meter(value: usage.cacheRate, color: FW.Palette.finance, height: 6)
+                }
+                .padding(14)
+                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
             }
         }
     }
 
-    private func stat(_ value: String, _ label: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.display(28)).monospacedDigit().foregroundStyle(FW.Palette.text)
-                .lineLimit(1).minimumScaleFactor(0.7)
-            Text(label).font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                .fixedSize(horizontal: false, vertical: true)
+    private func icon(_ tier: String) -> (String, Color) {
+        switch tier {
+        case "fast": ("hare.fill", FW.Palette.finance)
+        case "primary": ("sparkles", FW.Palette.coral)
+        case "reasoning": ("brain", FW.Palette.judgment)
+        default: ("waveform", FW.Palette.review)
+        }
+    }
+
+    private func tile(_ value: String, _ name: String, _ calls: String, _ icon: (String, Color)) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            IconBadge(systemName: icon.0, color: icon.1, size: 30)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(value).font(.rounded(22)).foregroundStyle(FW.Palette.text).lineLimit(1).minimumScaleFactor(0.7)
+                Text(name).font(.sans(13, .medium)).foregroundStyle(FW.Palette.text2).lineLimit(1).minimumScaleFactor(0.8)
+                Text(calls).font(.sans(12)).foregroundStyle(FW.Palette.text3).lineLimit(1)
+            }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(14)
+        .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
-// MARK: - Data & privacy
+// MARK: - Delete account
 
-struct YouDataSheet: View {
-    @State private var busy = false
-    @State private var deleting = false
-
-    var body: some View {
-        SheetScaffold(title: "Data & privacy", subtitle: "Everything is yours to take or remove.") {
-            VStack(spacing: 8) {
-                Button { Task { await exportAll() } } label: {
-                    HStack(spacing: 10) {
-                        Group {
-                            if busy { ProgressView().controlSize(.small) } else { Image(systemName: "arrow.down.to.line").font(.system(size: 15, weight: .medium)) }
-                        }
-                        .frame(width: 20)
-                        Text("Export all account data")
-                        Spacer(minLength: 0)
-                    }
-                }
-                .buttonStyle(.fw(.secondary, wide: true))
-                .disabled(busy)
-                Button { deleting = true } label: { youActionLabel("Delete my account", icon: "trash") }
-                    .buttonStyle(YouDangerStyle())
-            }
-        }
-        .sheet(isPresented: $deleting) {
-            YouDeleteAccountSheet()
-                .presentationDetents([.medium, .large])
-        }
-    }
-
-    private func exportAll() async {
-        busy = true
-        defer { busy = false }
-        do {
-            let req = try await API.request("/api/export", method: "GET", body: nil)
-            let (data, response) = try await API.session.data(for: req)
-            let status = (response as? HTTPURLResponse)?.statusCode ?? 0
-            guard (200..<300).contains(status) else { throw API.failure(data, status: status) }
-            let url = URL.temporaryDirectory.appending(path: "fieldwork-account.json")
-            try data.write(to: url, options: .atomic)
-            YouShare.present(url) { completed in
-                if completed { Toasts.shared.show("Account export downloaded.") }
-            }
-        } catch is CancellationError {
-        } catch let e as APIError {
-            Toasts.shared.show(e.message)
-        } catch {
-            Toasts.shared.show(API.reachability(error, fallback: "Couldn’t reach the server. Try again.").message)
-        }
-    }
-}
-
-private struct YouDeleteAccountSheet: View {
+struct YouDeleteAccountSheet: View {
     @Environment(Store.self) private var store
     @Environment(Auth.self) private var auth
     @State private var confirm = ""
@@ -1202,34 +1406,39 @@ private struct YouDeleteAccountSheet: View {
     @State private var error: String?
 
     var body: some View {
+        let ready = confirm == "DELETE MY ACCOUNT"
         SheetScaffold(title: "Delete your account?") {
-            Text("This removes your plans, progress, memories and private files. Export anything you want to keep first.")
-                .font(.sans(15)).foregroundStyle(FW.Palette.text2)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 14) {
+                IconBadge(systemName: "exclamationmark.triangle.fill", color: FW.Palette.negative, size: 44)
+                Text("This removes your plans, progress, memories and private files. Export anything you want to keep first.")
+                    .font(.sans(15)).foregroundStyle(FW.Palette.text2)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
             VStack(alignment: .leading, spacing: 8) {
-                Text("Type DELETE MY ACCOUNT").font(.sans(14, .medium)).foregroundStyle(FW.Palette.text2)
+                Text("Type DELETE MY ACCOUNT").font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text3).padding(.leading, 4)
                 TextField("", text: $confirm)
-                    .font(.sans(16))
+                    .font(.sans(17, .medium))
                     .textInputAutocapitalization(.characters)
                     .autocorrectionDisabled()
-                    .padding(.horizontal, 14)
-                    .frame(minHeight: 46)
-                    .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(FW.Palette.line, lineWidth: 1))
+                    .padding(.horizontal, 16)
+                    .frame(minHeight: 52)
+                    .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
+                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.base, style: .continuous).strokeBorder(ready ? FW.Palette.negative : FW.Palette.line, lineWidth: ready ? 1.5 : 1))
                     .accessibilityLabel("Type DELETE MY ACCOUNT")
             }
             Button { Task { await deleteAccount() } } label: {
                 HStack(spacing: 8) {
-                    if busy { ProgressView().controlSize(.small) }
+                    if busy { ProgressView().controlSize(.small) } else { Image(systemName: "trash") }
                     Text("Permanently delete account")
                 }
             }
             .buttonStyle(YouDangerStyle())
-            .disabled(confirm != "DELETE MY ACCOUNT" || busy)
+            .disabled(!ready || busy)
             if let error {
                 Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative).fixedSize(horizontal: false, vertical: true)
             }
         }
+        .animation(Springs.snappy, value: ready)
     }
 
     private func deleteAccount() async {

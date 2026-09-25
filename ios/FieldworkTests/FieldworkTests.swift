@@ -64,3 +64,16 @@ import Testing
         #expect(SessionExtras.phrases("Profit vs cash") == ["profit vs cash", "profit"])
     }
 }
+
+#if DEBUG
+@Suite("Fixtures")
+@MainActor struct Fixtures {
+    // The demo workspace's plan must decode, or Learn and You show no plan.
+    @Test func demoPlanDecodes() throws {
+        let url = try #require(Bundle.main.url(forResource: "state", withExtension: "json", subdirectory: "Fixtures"))
+        let json = try JSONDecoder().decode(JSON.self, from: Data(contentsOf: url))
+        let plan = try #require(json["state"]?["plan"])
+        _ = try plan.decode(Plan.self)
+    }
+}
+#endif

@@ -27,16 +27,17 @@ struct FWButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.sans(small ? 14 : 15, .medium))
-            .padding(.horizontal, small ? 12 : 18)
-            .frame(minHeight: small ? 34 : 46)
+            .font(.sans(small ? 14 : 16, .semibold))
+            .padding(.horizontal, small ? 14 : 20)
+            .frame(minHeight: small ? 36 : 52)
             .frame(maxWidth: wide ? .infinity : nil)
             .foregroundStyle(foreground)
             .background(background, in: .capsule)
-            .overlay(Capsule().strokeBorder(kind == .secondary ? FW.Palette.line2 : .clear, lineWidth: 1))
+            .overlay(Capsule().strokeBorder(kind == .secondary ? FW.Palette.line : .clear, lineWidth: 1))
             .opacity(enabled ? 1 : 0.4)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: FW.Motion.fast), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? 0.96 : 1)
+            .animation(configuration.isPressed ? .snappy(duration: 0.16) : Springs.bouncy, value: configuration.isPressed)
+            .sensoryFeedback(.impact(flexibility: .soft, intensity: 0.6), trigger: configuration.isPressed) { _, pressed in pressed && kind != .ghost }
             .contentShape(.capsule)
     }
 

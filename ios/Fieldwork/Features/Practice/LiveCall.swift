@@ -46,6 +46,9 @@ final class LiveCall: NSObject {
         disposed = false
         error = nil
         lines = []
+        #if DEBUG
+        if Demo.on { return simulate() }
+        #endif
         status = .connecting
         do {
             guard await AVAudioApplication.requestRecordPermission() else {
@@ -101,6 +104,15 @@ final class LiveCall: NSObject {
     }
 
     func end() async {
+        #if DEBUG
+        if Demo.on, peer == nil, status == .live {
+            ticker?.cancel()
+            status = .ending
+            try? await Task.sleep(for: .seconds(1.2))
+            status = .ended
+            return
+        }
+        #endif
         guard peer != nil else { return }
         status = .ending
         send(["type": "session.close"])
@@ -120,6 +132,7 @@ final class LiveCall: NSObject {
     // Leaving the screen ends the call immediately.
     func dispose() {
         disposed = true
+        ticker?.cancel()
         guard peer != nil || !voiceId.isEmpty else { return }
         send(["type": "session.close"])
         let id = voiceId, seconds = usage, practice = practiceId
@@ -141,6 +154,40 @@ final class LiveCall: NSObject {
     }
 
     // MARK: Internals
+
+    #if DEBUG
+    // -demo: a pretend call (connecting, then turns back and forth with
+    // moving levels), so the stage can be seen without a network.
+    private func simulate() {
+        status = .connecting
+        let script: [PracticeLine] = [
+            .init(role: "assistant", text: "Hey, good to hear from you! Everything okay? You sounded kind of serious in that email."),
+            .init(role: "user", text: "Everything’s fine with the work. I’m calling because I need to move your account to 30-day terms."),
+            .init(role: "assistant", text: "Thirty days? Huh. We’ve been doing it this way for four years. Is something going on over there?"),
+            .init(role: "user", text: "We’ve grown, so payroll is bigger, and when invoices sit for 60 days I end up borrowing to cover it."),
+        ]
+        ticker = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(1.6))
+            guard !Task.isCancelled else { return }
+            self?.started = .now
+            self?.status = .live
+            var n = 0
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(150))
+                guard let call = self, call.status == .live, let started = call.started else { return }
+                call.elapsed = Int(Date.now.timeIntervalSince(started))
+                let turn = n / 30
+                if n % 30 == 0 { call.lines.append(script[turn % script.count]) }
+                let t = Double(n) * 0.15
+                let wobble = (sin(t * 7) + sin(t * 3.1)) / 4 + 0.5
+                let partner = turn % 2 == 0
+                call.levels = (call.levels.me * 0.5 + (partner ? 0 : wobble * 0.8) * 0.5,
+                               call.levels.them * 0.5 + (partner ? wobble : 0) * 0.5)
+                n += 1
+            }
+        }
+    }
+    #endif
 
     private func configureAudio() {
         let session = RTCAudioSession.sharedInstance()

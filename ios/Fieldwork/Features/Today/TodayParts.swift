@@ -1,92 +1,126 @@
 import SwiftUI
 
-// The morning brief: what today is for, the day's agenda with the tutor's
-// margin notes, and one way in.
+// The morning brief as one card: what today is for in a line or two, the
+// day's steps as a short path with the tutor's notes, and one way in.
 struct BriefCard: View {
     let t: TodayModel
     let agenda: [TodayView.AgendaItem]
     let brief: Brief?
     let loading: Bool
-    let number: Int?
     let busy: String?
     let error: String?
     let onRun: (TodayAction) -> Void
-    @Environment(\.colorScheme) private var scheme
+    @State private var expanded = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        let hues = agenda.map { trackColor($0.track) }
+        let note = brief?.note ?? t.why
+        VStack(alignment: .leading, spacing: 20) {
             HStack(spacing: 10) {
-                Aperture(size: 20, busy: loading)
-                Text(((number.map { "No. \(String(format: "%03d", $0)) · " } ?? "") + stamp).uppercased())
-                    .font(.mono(11)).tracking(1).foregroundStyle(FW.Palette.text2)
+                Aperture(size: 24, busy: loading)
+                Text(stamp).font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text2)
+                    .contentTransition(.opacity)
+                Spacer(minLength: 8)
+                if total > 0 { Pill(text: "\(Int(total.rounded())) min", icon: "clock", color: FW.Palette.text3) }
             }
-            VStack(alignment: .leading, spacing: 10) {
-                Text(brief?.title ?? (t.phase == "rest-day" ? "Nothing due today. Rest counts" : "Here’s what we’re working on today"))
-                    .font(.display(30, italic: true))
+            VStack(alignment: .leading, spacing: 8) {
+                Text(brief?.title ?? (t.phase == "rest-day" ? "Nothing due today. Rest counts" : "Here’s today"))
+                    .font(.sans(26, .bold))
                     .foregroundStyle(FW.Palette.text)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(brief?.note ?? t.why)
-                    .font(.sans(16))
-                    .foregroundStyle(FW.Palette.text2)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .id(brief == nil ? "why" : "brief")
-                    .transition(.opacity)
+                    .contentTransition(.opacity)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(note)
+                        .font(.sans(15))
+                        .foregroundStyle(FW.Palette.text2)
+                        .lineSpacing(2)
+                        .lineLimit(expanded ? nil : 2)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if note.count > 110 {
+                        Button(expanded ? "Less" : "More") { withAnimation(Springs.snappy) { expanded.toggle() } }
+                            .font(.sans(14, .semibold))
+                            .foregroundStyle(FW.Palette.text)
+                            .buttonStyle(.plain)
+                    }
+                }
+                .id(brief == nil ? "why" : "brief")
+                .transition(.blurReplace)
             }
             .opacity(loading ? 0.55 : 1)
-            if !agenda.isEmpty { agendaList }
+            if !agenda.isEmpty { steps }
             if let p = t.primary { actions(p) }
-            if let error { Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative) }
+            if let error {
+                Label(error, systemImage: "exclamationmark.circle.fill").font(.sans(14)).foregroundStyle(FW.Palette.negative)
+            }
             if let evidence = t.focus?.evidence, !evidence.isEmpty, t.phase == "learning-day" {
-                VStack(alignment: .leading, spacing: 6) {
-                    Kicker("This week you’ll produce")
-                    Text(evidence).font(.serif(17)).foregroundStyle(FW.Palette.text)
+                HStack(alignment: .top, spacing: 12) {
+                    IconBadge(systemName: "doc.text", color: FW.Palette.text2, size: 32)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("You’ll make this week").font(.sans(12, .semibold)).foregroundStyle(FW.Palette.text3)
+                        Text(evidence).font(.sans(14, .medium)).foregroundStyle(FW.Palette.text).lineLimit(2)
+                    }
                 }
-                .padding(.top, 14)
-                .overlay(alignment: .top) { Rule() }
             }
         }
-        .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 22)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background {
+            Aurora(colors: hues.isEmpty ? [FW.Palette.accent] : hues, base: FW.Palette.raised, intensity: 0.2)
+        }
+        .clipShape(.rect(cornerRadius: FW.Radius.xl, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.xl, style: .continuous).strokeBorder(FW.Palette.line))
+        .animation(Springs.smooth, value: brief?.title)
     }
+
+    private var total: Double { agenda.filter { $0.kind != "practice" }.compactMap(\.minutes).reduce(0, +) }
 
     private var stamp: String {
         loading ? "Developing…" : brief != nil ? "Prepared for you" : t.phase == "rest-day" ? "A rest day" : "Today"
     }
 
-    private var agendaList: some View {
-        VStack(spacing: 0) {
+    // The day's steps, joined by a line, each with its glyph and colour.
+    private var steps: some View {
+        VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(agenda.enumerated()), id: \.offset) { i, a in
-                HStack(alignment: .firstTextBaseline, spacing: 10) {
-                    Text(String(format: "%02d", i + 1)).font(.mono(12)).foregroundStyle(FW.Palette.text3).frame(width: 22, alignment: .leading)
-                    Dot(color: trackColor(a.track), lit: true, size: 7).alignmentGuide(.firstTextBaseline) { $0[.bottom] - 1 }
-                    VStack(alignment: .leading, spacing: 3) {
-                        if i > 0, let action = a.action {
-                            Button { onRun(action) } label: { Text(a.label).multilineTextAlignment(.leading) }
-                                .buttonStyle(.plain)
-                                .disabled(busy != nil)
-                        } else {
-                            Text(a.label)
-                        }
-                        if let note = brief?.item_notes[safe: i] ?? nil {
-                            Text("← " + note)
-                                .font(.serif(15.5, italic: true))
-                                .foregroundStyle(scheme == .dark ? FW.Palette.accent : FW.Palette.text2)
+                let hue = trackColor(a.track)
+                let last = i == agenda.count - 1
+                HStack(alignment: .top, spacing: 14) {
+                    VStack(spacing: 0) {
+                        IconBadge(systemName: Glyph.kind(a.kind), color: hue, size: 36, circle: true, filled: i == 0)
+                        if !last {
+                            Rectangle().fill(FW.Palette.line2).frame(width: 2).frame(maxHeight: .infinity).padding(.vertical, 4)
                         }
                     }
-                    .font(.sans(15))
-                    .foregroundStyle(FW.Palette.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    if let m = a.minutes { Text("\(max(1, Int(m.rounded()))) min").font(.sans(13)).foregroundStyle(FW.Palette.text3).monospacedDigit() }
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(a.label)
+                                .font(.sans(16, i == 0 ? .semibold : .medium))
+                                .foregroundStyle(FW.Palette.text)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer(minLength: 8)
+                            if let m = a.minutes {
+                                Text("\(max(1, Int(m.rounded()))) min").font(.sans(13, .medium)).foregroundStyle(FW.Palette.text3).monospacedDigit()
+                            }
+                        }
+                        if let note = brief?.item_notes[safe: i] ?? nil {
+                            Text(note).font(.sans(13)).foregroundStyle(FW.Palette.text3).lineLimit(2)
+                                .transition(.opacity)
+                        }
+                    }
+                    .padding(.top, 7)
+                    .padding(.bottom, last ? 0 : 18)
                 }
-                .padding(.vertical, 14)
-                .overlay(alignment: .top) { Rule() }
+                .contentShape(.rect)
+                .onTapGesture { if i > 0, let action = a.action, busy == nil { onRun(action) } }
+                .accessibilityElement(children: .combine)
+                .accessibilityAddTraits(i > 0 && a.action != nil ? .isButton : [])
             }
         }
     }
 
     private func actions(_ p: TodayAction) -> some View {
-        let total = agenda.filter { $0.kind != "practice" }.compactMap(\.minutes).reduce(0, +)
-        return VStack(alignment: .leading, spacing: 10) {
+        VStack(spacing: 10) {
             Button { onRun(p) } label: {
                 HStack(spacing: 8) {
                     if busy == p.label { ProgressView().tint(FW.Palette.onAccent) }
@@ -99,16 +133,16 @@ struct BriefCard: View {
             .disabled(busy != nil)
             ForEach(t.secondary.filter { $0.kind == "session" }, id: \.label) { s in
                 if s.label == "Only 20 minutes" {
-                    Button { onRun(s) } label: { Text("Short on time? ") + Text("20 min").bold() }
-                        .buttonStyle(.fw(.ghost, wide: true))
+                    Button { onRun(s) } label: { Label("Short on time? 20 min", systemImage: "timer") }
+                        .buttonStyle(.fw(.ghost, small: true))
                         .disabled(busy != nil)
                 } else {
                     Button(s.label) { onRun(s) }.buttonStyle(.fw(.secondary, wide: true)).disabled(busy != nil)
                 }
             }
             if total > 0 {
-                Text("Ends around \(Date.now.addingTimeInterval(total * 60).formatted(date: .omitted, time: .shortened)) · adapts as you go")
-                    .font(.sans(13)).foregroundStyle(FW.Palette.text3).frame(maxWidth: .infinity)
+                Text("Done around \(Date.now.addingTimeInterval(total * 60).formatted(date: .omitted, time: .shortened))")
+                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
             }
         }
     }
@@ -121,52 +155,68 @@ struct RecapCard: View {
     let xp: Int
     let busy: String?
     let onRun: (TodayAction) -> Void
+    @State private var shown = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 10) {
-                Aperture(size: 20)
-                Kicker("Wrapped for today", color: FW.Palette.text2)
+        VStack(alignment: .leading, spacing: 20) {
+            HStack(spacing: 14) {
+                IconBadge(systemName: "checkmark", color: FW.Palette.positive, size: 48, circle: true, filled: true)
+                    .scaleEffect(shown ? 1 : 0.4)
+                    .symbolEffect(.bounce, value: shown)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Today’s done").font(.sans(26, .bold)).foregroundStyle(FW.Palette.text)
+                    Text("Anything more is optional.").font(.sans(14)).foregroundStyle(FW.Palette.text3)
+                }
             }
-            Text("Today’s done.").font(.display(30, italic: true)).foregroundStyle(FW.Palette.text)
-            HStack(spacing: 28) {
-                stat("\(recap.minutes)", "minutes")
-                stat("\(recap.answers)", recap.answers == 1 ? "answer" : "answers")
-                if xp > 0 { stat("+\(xp)", "XP", color: FW.Palette.caution) }
+            HStack(spacing: 10) {
+                stat("\(recap.minutes)", "minutes", "clock.fill", FW.Palette.text2)
+                stat("\(recap.answers)", recap.answers == 1 ? "answer" : "answers", "checkmark.bubble.fill", FW.Palette.positive)
+                if xp > 0 { stat("+\(xp)", "XP", "star.fill", FW.Palette.caution) }
             }
             if !recap.ideas.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     Kicker("Ideas you worked on")
                     FlowLayout(spacing: 8) {
-                        ForEach(recap.ideas, id: \.self) { idea in
-                            Text(idea).font(.sans(13)).padding(.horizontal, 10).padding(.vertical, 6)
+                        ForEach(Array(recap.ideas.enumerated()), id: \.offset) { i, idea in
+                            Text(idea).font(.sans(13, .medium)).padding(.horizontal, 12).padding(.vertical, 7)
                                 .background(FW.Palette.surface2, in: .capsule).foregroundStyle(FW.Palette.text)
+                                .rise(i, step: 0.04, delay: 0.3)
                         }
-                        if recap.more > 0 { Text("and \(recap.more) more").font(.sans(13)).foregroundStyle(FW.Palette.text3).padding(.vertical, 6) }
+                        if recap.more > 0 { Text("+\(recap.more) more").font(.sans(13)).foregroundStyle(FW.Palette.text3).padding(.vertical, 7) }
                     }
                 }
             }
             if let next = t.focus {
-                VStack(alignment: .leading, spacing: 6) {
-                    Kicker("Next up · \(Dates.weekday(next.date))")
-                    Text(next.title).font(.serif(17)).foregroundStyle(FW.Palette.text)
+                HStack(spacing: 12) {
+                    IconBadge(systemName: Glyph.track(next.subject), color: trackColor(next.subject), size: 36)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Next up · \(Dates.weekday(next.date))").font(.sans(12, .semibold)).foregroundStyle(FW.Palette.text3)
+                        Text(next.title).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text).lineLimit(2)
+                    }
                 }
-                .padding(.top, 14)
-                .overlay(alignment: .top) { Rule() }
             }
             if let p = t.primary {
                 Button(p.label) { onRun(p) }.buttonStyle(.fw(.secondary, wide: true)).disabled(busy != nil)
-                Text("Anything more is optional.").font(.sans(13)).foregroundStyle(FW.Palette.text3)
             }
         }
-        .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 22)
+        .padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background { Aurora(colors: [FW.Palette.positive, FW.Palette.caution], base: FW.Palette.raised, intensity: 0.18) }
+        .clipShape(.rect(cornerRadius: FW.Radius.xl, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.xl, style: .continuous).strokeBorder(FW.Palette.line))
+        .onAppear { withAnimation(Springs.bouncy.delay(0.15)) { shown = true } }
     }
 
-    private func stat(_ value: String, _ label: String, color: Color = FW.Palette.text) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.display(34)).foregroundStyle(color).monospacedDigit()
-            Text(label).font(.sans(13)).foregroundStyle(FW.Palette.text3)
+    private func stat(_ value: String, _ label: String, _ icon: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Image(systemName: icon).font(.system(size: 13, weight: .semibold)).foregroundStyle(color)
+            Text(value).font(.rounded(24)).foregroundStyle(FW.Palette.text).monospacedDigit()
+            Text(label).font(.sans(12, .medium)).foregroundStyle(FW.Palette.text3)
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(FW.Palette.surface.opacity(0.7), in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -181,15 +231,14 @@ struct LearnAnything: View {
     var body: some View {
         let ok = topic.trimmingCharacters(in: .whitespaces).count > 2
         VStack(alignment: .leading, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
-                Kicker("Learn anything")
-                Text("A one-off, outside your plan. It still remembers what it learns about you.")
-                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-            }
-            HStack(spacing: 10) {
-                Image(systemName: "sparkles").foregroundStyle(FW.Palette.judgment)
-                TextField("Why do planes fly? How do index funds work?", text: $topic)
-                    .font(.sans(16))
+            SectionHead(title: "Learn anything")
+            HStack(spacing: 12) {
+                Image(systemName: "sparkles")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(FW.Palette.judgment)
+                    .symbolEffect(.bounce, value: focused)
+                TextField("Why do planes fly?", text: $topic)
+                    .font(.sans(17))
                     .submitLabel(.go)
                     .focused($focused)
                     .onSubmit { if ok { onGo(topic.trimmingCharacters(in: .whitespaces)) } }
@@ -198,22 +247,26 @@ struct LearnAnything: View {
                     onGo(topic.trimmingCharacters(in: .whitespaces))
                 } label: {
                     Group {
-                        if busy { ProgressView().tint(FW.Palette.onAccent) } else { Image(systemName: "arrow.right").font(.system(size: 15, weight: .semibold)) }
+                        if busy { ProgressView().tint(FW.Palette.onAccent) } else { Image(systemName: "arrow.up").font(.system(size: 15, weight: .bold)) }
                     }
-                    .frame(width: 40, height: 40)
+                    .frame(width: 38, height: 38)
                     .foregroundStyle(FW.Palette.onAccent)
                     .background(FW.Palette.accent, in: .circle)
+                    .scaleEffect(ok ? 1 : 0.85)
+                    .opacity(!ok || disabled ? 0.25 : 1)
+                    .animation(Springs.bouncy, value: ok)
                 }
                 .buttonStyle(.plain)
                 .disabled(!ok || disabled)
-                .opacity(!ok || disabled ? 0.4 : 1)
                 .accessibilityLabel("Start exploring")
             }
             .padding(.leading, 16)
             .padding(.trailing, 8)
-            .frame(height: 56)
-            .background(FW.Palette.surface, in: .rect(cornerRadius: 18))
-            .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(focused ? FW.Palette.line3 : FW.Palette.line))
+            .frame(height: 58)
+            .background(FW.Palette.raised, in: .rect(cornerRadius: 29, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 29, style: .continuous).strokeBorder(focused ? FW.Palette.line3 : FW.Palette.line))
+            .animation(Springs.snappy, value: focused)
+            Text("A one-off lesson outside your plan.").font(.sans(13)).foregroundStyle(FW.Palette.text3)
         }
     }
 }
@@ -231,36 +284,35 @@ struct WeekStrip: View {
             : after.map { "Next: \($0.weekday) · \($0.title ?? "")" }
             ?? (t.phase == "learning-day" ? "The last session this week." : "Rest days count too.")
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Kicker("This week")
-                Spacer()
-                Text("\(week.done)/\(week.planned) done").font(.sans(13)).foregroundStyle(FW.Palette.text3).monospacedDigit()
-            }
-            HStack(spacing: 8) {
-                ForEach(week.days, id: \.date) { d in
-                    VStack(spacing: 6) {
-                        DayMarkView(status: d.status, color: trackColor(d.track))
-                        Text(String(d.weekday.prefix(1)))
-                            .font(.sans(12, d.status == "today" ? .semibold : .regular))
-                            .foregroundStyle(d.status == "today" ? FW.Palette.text : FW.Palette.text3)
+            SectionHead(title: "This week", trailing: "\(week.done)/\(week.planned) done")
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 8) {
+                    ForEach(Array(week.days.enumerated()), id: \.element.date) { i, d in
+                        VStack(spacing: 6) {
+                            DayMarkView(status: d.status, color: trackColor(d.track))
+                            Text(String(d.weekday.prefix(3)))
+                                .font(.sans(12, d.status == "today" ? .bold : .medium))
+                                .foregroundStyle(d.status == "today" ? FW.Palette.text : FW.Palette.text3)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .rise(i, step: 0.04, delay: 0.2, distance: 10)
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel("\(d.weekday): \(d.status)\(d.title.map { ", \($0)" } ?? "")")
                     }
-                    .frame(maxWidth: .infinity)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel("\(d.weekday): \(d.status)\(d.title.map { ", \($0)" } ?? "")")
+                }
+                if let note {
+                    Label { Text(note).lineLimit(1) } icon: { Image(systemName: "arrow.turn.down.right") }
+                        .font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                }
+                if let m = t.milestone {
+                    Label {
+                        Text("\(Text("\(m.days)").bold().foregroundStyle(FW.Palette.text)) days to \(m.title.split(separator: ":").first.map(String.init) ?? m.title)")
+                            .lineLimit(1)
+                    } icon: { Image(systemName: "flag.checkered") }
+                    .font(.sans(13)).foregroundStyle(FW.Palette.text3)
                 }
             }
-            if let note { Text(note).font(.sans(13)).foregroundStyle(FW.Palette.text3).lineLimit(1) }
-            if let m = t.milestone {
-                HStack(spacing: 6) {
-                    Image(systemName: "target").font(.system(size: 12))
-                    Text("\(m.days)").font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text).monospacedDigit()
-                    Text("days to \(m.title.split(separator: ":").first.map(String.init) ?? m.title)")
-                }
-                .font(.sans(13))
-                .foregroundStyle(FW.Palette.text3)
-                .padding(.top, 10)
-                .overlay(alignment: .top) { Rule().padding(.top, -2) }
-            }
+            .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 16)
         }
     }
 }
@@ -298,47 +350,6 @@ struct DiagonalHatch: Shape {
     }
 }
 
-// Level, today's quests and the streak in one line; opens the full sheet.
-struct ProgressStrip: View {
-    let progress: Progress
-    let prefs: Prefs
-    let onOpen: () -> Void
-
-    var body: some View {
-        Button(action: onOpen) {
-            HStack(spacing: 12) {
-                if prefs.game.xp {
-                    LevelRing(level: progress.level, fraction: progress.fraction, size: 40)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(progress.rank).font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text)
-                        Text(progress.todayXp > 0 ? "+\(progress.todayXp) XP today" : "\(progress.toNext) XP to level \(progress.level + 1)")
-                            .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                    }
-                }
-                Spacer(minLength: 8)
-                if prefs.game.quests {
-                    HStack(spacing: 4) {
-                        ForEach(progress.quests.prefix(3)) { q in
-                            RoundedRectangle(cornerRadius: 2).fill(q.done ? FW.Palette.positive : FW.Palette.surface3).frame(width: 7, height: 7)
-                        }
-                        Text("\(progress.quests.filter(\.done).count)/3").font(.sans(12)).foregroundStyle(FW.Palette.text3).monospacedDigit()
-                    }
-                }
-                if prefs.game.streak {
-                    Rectangle().fill(FW.Palette.line2).frame(width: 1, height: 22)
-                    HStack(spacing: 3) {
-                        Image(systemName: "flame.fill").foregroundStyle(progress.streak.todayDone ? FW.Palette.coral : FW.Palette.text4)
-                        Text("\(progress.streak.current)").font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text).monospacedDigit()
-                        if progress.streak.unit == "week" { Text("wk").font(.sans(11)).foregroundStyle(FW.Palette.text3) }
-                    }
-                }
-            }
-            .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 12)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
 struct LevelRing: View {
     let level: Int
     let fraction: Double
@@ -348,7 +359,7 @@ struct LevelRing: View {
             Circle().stroke(FW.Palette.surface2, lineWidth: 4)
             Circle().trim(from: 0, to: fraction).stroke(FW.Palette.caution, style: .init(lineWidth: 4, lineCap: .round)).rotationEffect(.degrees(-90))
                 .animation(.easeOut(duration: 1), value: fraction)
-            Text("\(level)").font(.sans(size * 0.36, .semibold)).foregroundStyle(FW.Palette.text).monospacedDigit()
+            Text("\(level)").font(.rounded(size * 0.38, .bold)).contentTransition(.numericText()).foregroundStyle(FW.Palette.text).monospacedDigit()
         }
         .frame(width: size, height: size)
     }

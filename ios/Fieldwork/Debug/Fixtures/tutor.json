@@ -1,0 +1,130 @@
+{
+  "messages": [
+    {
+      "id": "3f9a1c6e-8b2d-4e57-a0c4-7d1e5b9f2a36",
+      "role": "user",
+      "text": "Is a customer deposit revenue? My friend Chris says his catering company counts it as a sale the day it lands.",
+      "at": "2026-09-22T03:41:12.207200+00:00"
+    },
+    {
+      "id": "a7c2e9f4-1d6b-4a83-9e05-2b8f4c7d1a60",
+      "role": "tutor",
+      "blocks": [
+        {
+          "type": "text",
+          "md": "Short answer: no, and Chris’s books are flattering him. A deposit is cash he’s holding for work he still owes. Until the event happens, it’s a **liability** (unearned revenue), not a sale.\n\nIf he books it as revenue on day one, a busy booking month looks hugely profitable even if every event is still ahead of him, and a cancellation leaves a hole."
+        }
+      ],
+      "suggestions": [
+        "What if the event gets cancelled?",
+        "Show me the journal entry",
+        "Quiz me on this"
+      ],
+      "at": "2026-09-22T03:41:31.874711+00:00"
+    },
+    {
+      "id": "d4b8f2a7-6e1c-4d95-b3a0-8c5e2f7d9b14",
+      "role": "user",
+      "text": "Can you go back to normal? The blunt style is a bit much this early. And show me how a deposit actually moves through the books.",
+      "at": "2026-09-23T02:58:40.119288+00:00"
+    },
+    {
+      "id": "8e1d5a3c-2f7b-4c69-a4e8-0d9b6f1c3e72",
+      "role": "tutor",
+      "blocks": [
+        {
+          "type": "text",
+          "md": "Back to balanced from here on. Here’s the path a deposit takes, using Emily’s catering example from Monday:"
+        },
+        {
+          "type": "visual",
+          "visual": {
+            "type": "flow",
+            "title": "A $4,000 catering deposit, from bank to books",
+            "steps": [
+              {
+                "label": "Deposit lands",
+                "detail": "Cash +$4,000; a $4,000 liability: she owes the event",
+                "tone": "accent"
+              },
+              {
+                "label": "Ingredients bought",
+                "detail": "Cash −$2,500, held as a cost of the event",
+                "tone": "default"
+              },
+              {
+                "label": "Event delivered",
+                "detail": "Liability becomes $4,000 of revenue",
+                "tone": "positive"
+              },
+              {
+                "label": "Profit recognized",
+                "detail": "Revenue $4,000 − costs $2,500 = $1,500",
+                "tone": "positive"
+              }
+            ],
+            "loops": false,
+            "takeaway": "The cash arrives first; the revenue only exists once the work is done."
+          }
+        },
+        {
+          "type": "text",
+          "md": "The same shape shows up on an income statement: revenue appears only in the month of the event. Wednesday’s session on reading an income statement builds on exactly this, and it’s still open if you want to finish it."
+        }
+      ],
+      "actions": [
+        {
+          "type": "set_writing",
+          "writing": "balanced",
+          "href": null,
+          "label": null,
+          "content": null
+        },
+        {
+          "type": "open",
+          "writing": null,
+          "href": "/learn",
+          "label": "Open this week",
+          "content": null
+        }
+      ],
+      "suggestions": [
+        "What does the journal entry look like?",
+        "How does this show up in cash flow?",
+        "Quiz me on deposits"
+      ],
+      "at": "2026-09-23T02:59:07.646327+00:00"
+    },
+    {
+      "id": "5c7e0b9d-4a3f-4e21-8d6b-1f9a2c5e8d03",
+      "role": "user",
+      "text": "What’s on today?",
+      "at": "2026-09-24T16:39:10.482600+00:00"
+    },
+    {
+      "id": "f0a6d3b1-9c8e-4f75-b2d7-6e4a0c1f9b28",
+      "role": "tutor",
+      "blocks": [
+        {
+          "type": "text",
+          "md": "Thursday is judgment: **federal versus state powers, and claims versus evidence**, 45 minutes. It opens with two quick recalls, on the deliberate pause and on listening for the need, since both slipped this week.\n\nWednesday’s income statement session is also still open from where you left it, if you’d rather finish that first."
+        }
+      ],
+      "actions": [
+        {
+          "type": "start_today",
+          "writing": null,
+          "href": null,
+          "label": null,
+          "content": null
+        }
+      ],
+      "suggestions": [
+        "Why those two recalls?",
+        "What did I get wrong on listening?",
+        "Finish Wednesday instead"
+      ],
+      "at": "2026-09-24T16:39:32.905511+00:00"
+    }
+  ]
+}

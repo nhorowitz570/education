@@ -131,47 +131,51 @@ struct InsightsFocusCard: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             if let check = report.focus_check { checkLine(check) }
-            Kicker("Your focus next week")
-            Text(focus.title)
-                .font(.display(26))
-                .foregroundStyle(FW.Palette.text)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(focus.why)
-                .font(.sans(15))
-                .foregroundStyle(FW.Palette.text2)
-                .fixedSize(horizontal: false, vertical: true)
-            HStack(alignment: .top, spacing: 12) {
-                Image(systemName: "target")
-                    .font(.system(size: 16))
-                    .foregroundStyle(FW.Palette.review)
-                    .padding(.top, 2)
-                Text(focus.try)
-                    .font(.sans(16))
-                    .foregroundStyle(FW.Palette.text)
-                    .lineSpacing(3)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            HStack(spacing: 12) {
+                IconBadge(systemName: "scope", color: FW.Palette.review, size: 40, circle: true, filled: focus.adopted != nil)
+                    .symbolEffect(.bounce, value: focus.adopted != nil)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Your focus next week").font(.sans(13, .semibold)).foregroundStyle(FW.Palette.text3)
+                    Text(focus.title)
+                        .font(.sans(20, .bold))
+                        .foregroundStyle(FW.Palette.text)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
-            .padding(.vertical, 14)
-            .padding(.horizontal, 16)
-            .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-            .padding(.top, 8)
+            PlanMoreText(text: focus.why, font: .sans(15), color: FW.Palette.text2)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "arrow.turn.down.right")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(FW.Palette.review)
+                    .padding(.top, 3)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Try").font(.sans(12, .semibold)).foregroundStyle(FW.Palette.review)
+                    Text(focus.try)
+                        .font(.sans(15, .medium))
+                        .foregroundStyle(FW.Palette.text)
+                        .lineSpacing(2)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding(14)
+            .background(FW.Palette.review.opacity(0.09), in: .rect(cornerRadius: FW.Radius.base, style: .continuous))
             if latest {
-                VStack(alignment: .leading, spacing: 10) {
+                VStack(alignment: .leading, spacing: 8) {
                     Button { toggle() } label: {
                         HStack(spacing: 8) {
-                            if busy { ProgressView().tint(focus.adopted == nil ? FW.Palette.onAccent : FW.Palette.text) }
-                            if focus.adopted != nil {
-                                if !busy { Image(systemName: "checkmark") }
-                                Text("Your focus this week")
-                            } else {
-                                Text("Make this my focus")
+                            if busy {
+                                ProgressView().tint(focus.adopted == nil ? FW.Palette.onAccent : FW.Palette.text)
+                            } else if focus.adopted != nil {
+                                Image(systemName: "checkmark.circle.fill").transition(.scale.combined(with: .opacity))
                             }
+                            Text(focus.adopted != nil ? "Your focus this week" : "Make this my focus")
+                                .contentTransition(.opacity)
                         }
                     }
-                    .buttonStyle(.fw(focus.adopted != nil ? .secondary : .primary))
+                    .buttonStyle(.fw(focus.adopted != nil ? .secondary : .primary, wide: true))
                     .disabled(busy)
                     .accessibilityAddTraits(focus.adopted != nil ? .isSelected : [])
                     Text(focus.adopted != nil
@@ -179,49 +183,48 @@ struct InsightsFocusCard: View {
                          : "Pins it to memory so your tutor works on it with you.")
                         .font(.sans(13))
                         .foregroundStyle(FW.Palette.text3)
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
                         .fixedSize(horizontal: false, vertical: true)
                 }
-                .padding(.top, 6)
             } else if focus.adopted != nil {
-                Label("You made this your focus.", systemImage: "checkmark")
-                    .font(.sans(13))
+                Label("You made this your focus.", systemImage: "checkmark.circle.fill")
+                    .font(.sans(14, .medium))
                     .foregroundStyle(FW.Palette.positive)
             }
         }
-        .padding(22)
+        .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.xl))
-        .overlay(RoundedRectangle(cornerRadius: FW.Radius.xl).strokeBorder(FW.Palette.line2))
+        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.xl, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.xl, style: .continuous).strokeBorder(FW.Palette.line2))
     }
 
     private func checkLine(_ check: InsightReport.FocusCheck) -> some View {
-        let (tag, color): (String, Color) = switch check.verdict {
-        case "yes": ("Done", FW.Palette.positive)
-        case "partly": ("Partly", FW.Palette.caution)
-        case "no": ("Not yet", FW.Palette.negative)
-        default: ("Unclear", FW.Palette.text3)
+        let (tag, icon, color): (String, String, Color) = switch check.verdict {
+        case "yes": ("Done", "checkmark.circle.fill", FW.Palette.positive)
+        case "partly": ("Partly", "circle.lefthalf.filled", FW.Palette.caution)
+        case "no": ("Not yet", "xmark.circle.fill", FW.Palette.negative)
+        default: ("Unclear", "questionmark.circle.fill", FW.Palette.text3)
         }
-        var lead = AttributedString("Last week\(previous?.focus.map { ": \($0)" } ?? "").")
-        lead.font = .sans(14, .semibold)
-        lead.foregroundColor = FW.Palette.text
-        return HStack(alignment: .top, spacing: 12) {
-            Text(tag)
-                .font(.sans(12, .semibold))
-                .foregroundStyle(color)
-                .padding(.horizontal, 9)
-                .frame(minHeight: 22)
-                .background(color.opacity(0.16), in: .capsule)
-                .fixedSize()
-            Text(lead + AttributedString(" " + check.note))
-                .font(.sans(14))
-                .foregroundStyle(FW.Palette.text2)
-                .lineSpacing(3)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Label(tag, systemImage: icon)
+                    .font(.sans(12, .semibold))
+                    .foregroundStyle(color)
+                    .padding(.horizontal, 9)
+                    .frame(height: 24)
+                    .background(color.opacity(0.14), in: .capsule)
+                    .fixedSize()
+                Text("Last week\(previous?.focus.map { ": \($0)" } ?? "")")
+                    .font(.sans(14, .semibold))
+                    .foregroundStyle(FW.Palette.text)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            PlanMoreText(text: check.note, font: .sans(14), color: FW.Palette.text2)
         }
-        .padding(.bottom, 16)
+        .padding(.bottom, 14)
         .overlay(alignment: .bottom) { Rule() }
-        .padding(.bottom, 10)
     }
 
     private func toggle() {
@@ -232,7 +235,7 @@ struct InsightsFocusCard: View {
             do {
                 let body: [String: JSON] = ["action": .string("adopt"), "id": .string(insight.id), "on": .bool(focus.adopted == nil)]
                 let r: Result = try await API.post("/api/insights", body)
-                withAnimation(.easeOut(duration: FW.Motion.base)) { focus = r.focus }
+                withAnimation(Springs.bouncy) { focus = r.focus }
                 Toasts.shared.show(r.focus.adopted != nil ? "Pinned. Your sessions will lean into it this week." : "Focus removed from memory.")
             } catch {
                 Toasts.shared.show(error.localizedDescription)
@@ -247,42 +250,50 @@ struct InsightsFocusCard: View {
 struct InsightsStat: View {
     let value: Int
     let label: String
+    var icon: String = "circle.fill"
+    var color: Color = FW.Palette.text2
     var of: Int? = nil
     @Environment(\.insightsIn) private var on
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .firstTextBaseline, spacing: 0) {
-                InsightsCount(to: Double(value))
-                    .font(.sans(28, .medium))
-                    .foregroundStyle(FW.Palette.text)
-                if let of { Text("/\(of)").font(.sans(18)).foregroundStyle(FW.Palette.text3) }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .symbolRenderingMode(.hierarchical)
+                    .foregroundStyle(color)
+                HStack(alignment: .firstTextBaseline, spacing: 0) {
+                    InsightsCount(to: Double(value))
+                        .font(.rounded(26))
+                        .foregroundStyle(FW.Palette.text)
+                    if let of { Text("/\(of)").font(.rounded(16, .semibold)).foregroundStyle(FW.Palette.text3) }
+                }
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
             }
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
             Text(label)
-                .font(.sans(13))
+                .font(.sans(13, .medium))
                 .foregroundStyle(FW.Palette.text3)
-                .fixedSize(horizontal: false, vertical: true)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             if let of {
                 HStack(spacing: 4) {
                     ForEach(0..<of, id: \.self) { i in
-                        Circle()
-                            .fill(i < value ? FW.Palette.positive : FW.Palette.surface3)
-                            .frame(width: 6, height: 6)
-                            .scaleEffect(on ? 1 : 0.2)
+                        Capsule()
+                            .fill(i < value ? color : FW.Palette.surface3)
+                            .frame(height: 5)
+                            .scaleEffect(x: on ? 1 : 0.2, anchor: .leading)
                             .opacity(on ? 1 : 0)
                             .animation(reduceMotion ? nil : .spring(duration: 0.42, bounce: 0.3).delay(0.3 + Double(i) * 0.07), value: on)
                     }
                 }
-                .padding(.top, 6)
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg))
-        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg).strokeBorder(FW.Palette.line))
+        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
         .accessibilityElement(children: .combine)
     }
 }
@@ -355,7 +366,7 @@ struct InsightsRadar: View {
 
     private func label(_ key: String, point p: CGPoint, center c: CGPoint, width w: CGFloat) -> some View {
         let text = Text(InsightGrades.label[key] ?? key)
-            .font(.custom("InstrumentSans-Medium", fixedSize: 11.5))
+            .font(.system(size: 11.5, weight: .medium))
             .foregroundStyle(score(key) == nil ? FW.Palette.text4 : FW.Palette.text2)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
@@ -428,6 +439,7 @@ struct InsightsGradeRow: View {
     let prev: Double?
     let trend: [InsightsTrendPoint]
     let index: Int
+    var last = false
     @Environment(\.insightsIn) private var on
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var open = false
@@ -439,7 +451,7 @@ struct InsightsGradeRow: View {
         let shown = trend.filter { $0.score != nil }.count
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.snappy(duration: 0.3)) { open.toggle() }
+                withAnimation(Springs.snappy) { open.toggle() }
             } label: {
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 1) {
@@ -458,10 +470,10 @@ struct InsightsGradeRow: View {
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         if let s = g.score {
                             InsightsCount(to: s.rounded())
-                                .font(.sans(21, .medium))
+                                .font(.rounded(21))
                                 .foregroundStyle(color)
                         } else {
-                            Text("—").font(.sans(21, .medium)).foregroundStyle(FW.Palette.text4)
+                            Text("—").font(.rounded(21)).foregroundStyle(FW.Palette.text4)
                         }
                         if let delta, delta != 0 {
                             HStack(spacing: 1) {
@@ -483,11 +495,10 @@ struct InsightsGradeRow: View {
                         .frame(width: 16)
                 }
                 .padding(.vertical, 10)
-                .padding(.horizontal, 4)
                 .frame(minHeight: 60)
                 .contentShape(.rect)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable(0.985))
             .accessibilityHint(open ? "Hides the evidence" : "Shows the evidence")
             if open {
                 VStack(alignment: .leading, spacing: 10) {
@@ -502,13 +513,12 @@ struct InsightsGradeRow: View {
                     }
                     if shown >= 2 { InsightsTrend(points: trend, color: color) }
                 }
-                .padding(.horizontal, 4)
                 .padding(.top, 2)
-                .padding(.bottom, 18)
+                .padding(.bottom, 16)
                 .transition(.opacity.combined(with: .offset(y: -6)))
             }
         }
-        .overlay(alignment: .bottom) { Rule() }
+        .overlay(alignment: .bottom) { if !last { Rule() } }
     }
 
     private func bar(_ color: Color) -> some View {
@@ -560,7 +570,7 @@ struct InsightsTrend: View {
             let n = points.count
             let x = { (i: Int) -> CGFloat in n < 2 ? (w - gutter) / 2 : 8 + CGFloat(i) / CGFloat(n - 1) * (w - gutter - 16) }
             let y = { (s: Double) -> CGFloat in top + (1 - s / 100) * (height - top - bottom) }
-            let label = Font.custom("InstrumentSans-Medium", fixedSize: 10.5)
+            let label = Font.system(size: 10.5, weight: .medium)
             ZStack(alignment: .topLeading) {
                 Path { p in
                     p.move(to: .init(x: 0, y: y(60)))
@@ -653,7 +663,7 @@ struct InsightsDays: View {
                     .frame(maxWidth: .infinity)
                 }
             }
-            .frame(height: 230)
+            .frame(height: 190)
             HStack(spacing: 6) {
                 Circle().fill(FW.Palette.positive).frame(width: 5, height: 5)
                 Text("answers")
@@ -720,17 +730,17 @@ struct InsightsClock: View {
             ForEach([0, 6, 12, 18], id: \.self) { h in
                 let a = -Double.pi / 2 + Double(h) / 24 * Double.pi * 2
                 Text(h == 0 ? "12am" : h == 12 ? "12pm" : InsightsFormat.hour(h))
-                    .font(.custom("InstrumentSans-Medium", fixedSize: 10.5))
+                    .font(.system(size: 10.5, weight: .medium))
                     .foregroundStyle(FW.Palette.text3)
                     .fixedSize()
                     .position(x: c + cos(a) * (outer + 14), y: c + sin(a) * (outer + 14))
             }
             VStack(spacing: 2) {
                 Text(total > 0 ? InsightsFormat.hour(peak) : "—")
-                    .font(.custom("InstrumentSans-SemiBold", fixedSize: 20))
+                    .font(.system(size: 20, weight: .bold, design: .rounded))
                     .foregroundStyle(FW.Palette.text)
                 Text(total > 0 ? "your peak" : "no activity")
-                    .font(.custom("InstrumentSans-Medium", fixedSize: 11))
+                    .font(.system(size: 11, weight: .medium))
                     .foregroundStyle(FW.Palette.text3)
             }
             .fixedSize()
@@ -801,11 +811,11 @@ struct InsightsAnswers: View {
             }
             VStack(spacing: 2) {
                 Text(a.avg_score.map { "\(Int(($0 * 100).rounded()))" } ?? "—")
-                    .font(.custom("InstrumentSans-Medium", fixedSize: 30))
+                    .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundStyle(FW.Palette.text)
                     .monospacedDigit()
                 Text("average score")
-                    .font(.custom("InstrumentSans-Medium", fixedSize: 10))
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundStyle(FW.Palette.text3)
             }
         }
@@ -851,97 +861,106 @@ struct InsightsAnswers: View {
 
 // MARK: - Folded detail
 
+// A folded card: a tinted glyph, a title and a one-line teaser; the detail
+// draws as it opens.
 struct InsightsDisclosure<Content: View>: View {
     let title: String
     let teaser: String
+    var icon: String = "chevron.down"
+    var color: Color = FW.Palette.text2
     @ViewBuilder var content: () -> Content
     @State private var open = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Button {
-                withAnimation(.snappy(duration: 0.3)) { open.toggle() }
+                withAnimation(Springs.snappy) { open.toggle() }
             } label: {
-                HStack(spacing: 16) {
+                HStack(spacing: 14) {
+                    IconBadge(systemName: icon, color: color, size: 36)
                     VStack(alignment: .leading, spacing: 2) {
                         Text(title).font(.sans(16, .semibold)).foregroundStyle(FW.Palette.text)
                         if !teaser.isEmpty {
                             Text(teaser)
-                                .font(.sans(14))
+                                .font(.sans(13))
                                 .foregroundStyle(FW.Palette.text3)
-                                .lineLimit(2)
-                                .multilineTextAlignment(.leading)
+                                .lineLimit(1)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     Image(systemName: "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(FW.Palette.text3)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(FW.Palette.text4)
                         .rotationEffect(.degrees(open ? 180 : 0))
                 }
-                .padding(.vertical, 14)
-                .frame(minHeight: 64)
+                .padding(.vertical, 12)
+                .frame(minHeight: 60)
                 .contentShape(.rect)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.pressable(0.985))
             .accessibilityAddTraits(open ? .isSelected : [])
             if open {
                 content()
                     // Folded content draws as the fold opens.
                     .environment(\.insightsIn, true)
-                    .padding(.top, 4)
-                    .padding(.bottom, 20)
-                    .transition(.opacity)
+                    .padding(.top, 8)
+                    .padding(.bottom, 18)
+                    .transition(.opacity.combined(with: .offset(y: -6)))
             }
         }
-        .overlay(alignment: .top) { Rule() }
+        .padding(.horizontal, 14)
+        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
+    }
+}
+
+// The model's observations as short cards: a glyph, a title, two lines
+// that open with "More".
+private struct InsightsNote: View {
+    let icon: String
+    let color: Color
+    var kind: String? = nil
+    let title: String
+    let text: String
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 14) {
+            IconBadge(systemName: icon, color: color, size: 36, circle: true)
+            VStack(alignment: .leading, spacing: 4) {
+                if let kind {
+                    Text(kind).font(.sans(12, .semibold)).foregroundStyle(color)
+                }
+                Text(title)
+                    .font(.sans(16, .semibold))
+                    .foregroundStyle(FW.Palette.text)
+                    .fixedSize(horizontal: false, vertical: true)
+                PlanMoreText(text: text, font: .sans(15), color: FW.Palette.text2)
+                    .padding(.top, 2)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(FW.Palette.raised, in: .rect(cornerRadius: FW.Radius.lg, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg, style: .continuous).strokeBorder(FW.Palette.line))
     }
 }
 
 struct InsightsPatterns: View {
     let patterns: [InsightReport.Pattern]
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var shown = false
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 10) {
             ForEach(Array(patterns.enumerated()), id: \.offset) { i, p in
-                let (kind, color): (String, Color) = switch p.kind {
-                case "strength": ("Strength", FW.Palette.positive)
-                case "watch": ("Watch", FW.Palette.caution)
-                default: ("Noticed", FW.Palette.review)
+                let (kind, icon, color): (String, String, Color) = switch p.kind {
+                case "strength": ("Strength", "bolt.fill", FW.Palette.positive)
+                case "watch": ("Watch", "eye.fill", FW.Palette.caution)
+                default: ("Noticed", "lightbulb.fill", FW.Palette.review)
                 }
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(kind.uppercased())
-                        .font(.sans(11.5, .semibold))
-                        .tracking(0.9)
-                        .foregroundStyle(color)
-                    Text(p.title)
-                        .font(.sans(17, .semibold))
-                        .foregroundStyle(FW.Palette.text)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Text(p.body)
-                        .font(.sans(15))
-                        .foregroundStyle(FW.Palette.text2)
-                        .lineSpacing(3)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(20)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(FW.Palette.raised)
-                .overlay(alignment: .leading) {
-                    Rectangle().fill(color).frame(width: 3)
-                        .scaleEffect(y: shown ? 1 : 0, anchor: .top)
-                        .animation(reduceMotion ? nil : .easeOut(duration: 0.7).delay(Double(i) * 0.09 + 0.25), value: shown)
-                }
-                .clipShape(.rect(cornerRadius: FW.Radius.lg))
-                .overlay(RoundedRectangle(cornerRadius: FW.Radius.lg).strokeBorder(FW.Palette.line))
-                .opacity(shown ? 1 : 0)
-                .offset(y: shown ? 0 : 12)
-                .animation(reduceMotion ? nil : .easeOut(duration: 0.65).delay(Double(i) * 0.09), value: shown)
+                InsightsNote(icon: icon, color: color, kind: kind, title: p.title, text: p.body)
+                    .rise(i)
             }
         }
-        .onAppear { shown = true }
     }
 }
 
@@ -949,23 +968,16 @@ struct InsightsMind: View {
     let mind: [InsightReport.Mind]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            ForEach(Array(mind.enumerated()), id: \.offset) { _, m in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(m.title).font(.sans(15, .semibold)).foregroundStyle(FW.Palette.text2)
-                    Text(m.body)
-                        .font(.serif(20))
-                        .foregroundStyle(FW.Palette.text)
-                        .lineSpacing(5)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.leading, 20)
-                .overlay(alignment: .leading) { Rectangle().fill(FW.Palette.line3).frame(width: 1) }
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(Array(mind.enumerated()), id: \.offset) { i, m in
+                InsightsNote(icon: "brain.head.profile", color: FW.Palette.judgment, title: m.title, text: m.body)
+                    .rise(i)
             }
-            Text("Observations from how you worked this week, not a diagnosis of anything.")
+            Label("Observations from how you worked this week, not a diagnosis of anything.", systemImage: "info.circle")
                 .font(.sans(13))
                 .foregroundStyle(FW.Palette.text3)
                 .fixedSize(horizontal: false, vertical: true)
+                .padding(.top, 2)
         }
     }
 }
@@ -989,36 +1001,48 @@ struct InsightsAsk: View {
             "What went best this week?",
         ].compactMap { $0 }
         VStack(alignment: .leading, spacing: 14) {
-            Kicker("Ask about this week")
+            HStack(spacing: 10) {
+                IconBadge(systemName: "bubble.left.and.text.bubble.right.fill", color: FW.Palette.judgment, size: 32)
+                Text("Ask about this week").font(.sans(20, .bold)).foregroundStyle(FW.Palette.text)
+            }
             ForEach(Array(thread.enumerated()), id: \.offset) { _, t in
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(t.q).font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text2).fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(t.q)
+                        .font(.sans(15, .medium))
+                        .foregroundStyle(FW.Palette.onAccent)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 9)
+                        .background(FW.Palette.accent, in: .rect(cornerRadius: 18, style: .continuous))
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     Text(t.a)
-                        .font(.serif(18))
+                        .font(.sans(16))
                         .foregroundStyle(FW.Palette.text)
-                        .lineSpacing(4)
+                        .lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
                         .textSelection(.enabled)
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(FW.Palette.raised, in: .rect(cornerRadius: 18, style: .continuous))
+                        .overlay(RoundedRectangle(cornerRadius: 18, style: .continuous).strokeBorder(FW.Palette.line))
                 }
-                .padding(.bottom, 14)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .overlay(alignment: .bottom) { Rule() }
                 .transition(.opacity.combined(with: .offset(y: 8)))
             }
+            if busy { ShimmerText(text: "Thinking…").transition(.opacity) }
             if thread.isEmpty {
                 FlowLayout(spacing: 8) {
                     ForEach(suggestions, id: \.self) { s in
                         Button { ask(s) } label: {
                             Text(s)
-                                .font(.sans(14))
-                                .foregroundStyle(FW.Palette.text2)
+                                .font(.sans(14, .medium))
+                                .foregroundStyle(FW.Palette.text)
                                 .lineLimit(1)
-                                .padding(.horizontal, 13)
-                                .frame(minHeight: 34)
-                                .background(FW.Palette.surface, in: .capsule)
-                                .overlay(Capsule().strokeBorder(FW.Palette.line))
+                                .padding(.horizontal, 14)
+                                .frame(minHeight: 36)
+                                .background(FW.Palette.raised, in: .capsule)
+                                .overlay(Capsule().strokeBorder(FW.Palette.line2))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(.pressable)
                         .disabled(busy)
                     }
                 }
@@ -1031,10 +1055,10 @@ struct InsightsAsk: View {
                     .focused($focused)
                     .onSubmit { ask(q) }
                     .onChange(of: q) { _, v in if v.count > 300 { q = String(v.prefix(300)) } }
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 18)
                     .frame(minHeight: 48)
-                    .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.base))
-                    .overlay(RoundedRectangle(cornerRadius: FW.Radius.base).strokeBorder(focused ? FW.Palette.line3 : FW.Palette.line))
+                    .background(FW.Palette.raised, in: .capsule)
+                    .overlay(Capsule().strokeBorder(focused ? FW.Palette.line3 : FW.Palette.line2))
                     .accessibilityLabel("Your question about this week")
                 let ok = q.trimmingCharacters(in: .whitespaces).count >= 3 && !busy
                 Button { ask(q) } label: {
@@ -1045,9 +1069,10 @@ struct InsightsAsk: View {
                     .foregroundStyle(FW.Palette.onAccent)
                     .background(FW.Palette.accent, in: .circle)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.pressable)
                 .disabled(!ok)
                 .opacity(ok || busy ? 1 : 0.4)
+                .animation(Springs.snappy, value: ok)
                 .accessibilityLabel("Ask")
             }
             if let error { Text(error).font(.sans(14)).foregroundStyle(FW.Palette.negative).fixedSize(horizontal: false, vertical: true) }
@@ -1066,7 +1091,7 @@ struct InsightsAsk: View {
             do {
                 let body: [String: JSON] = ["action": .string("ask"), "id": .string(id), "question": .string(text)]
                 let r: Answer = try await API.post("/api/insights", body)
-                withAnimation(.easeOut(duration: FW.Motion.slow)) { thread.append((text, r.answer)) }
+                withAnimation(Springs.smooth) { thread.append((text, r.answer)) }
                 q = ""
             } catch {
                 self.error = error.localizedDescription
@@ -1180,11 +1205,9 @@ struct InsightsGenerating: View {
             }
             .padding(.bottom, 12)
             .accessibilityHidden(true)
-            Text("\(lines[i])…")
-                .font(.sans(18, .semibold))
-                .foregroundStyle(FW.Palette.text)
+            ShimmerText(text: "\(lines[i])…", font: .sans(20, .bold))
                 .id(i)
-                .transition(.opacity.combined(with: .offset(y: 8)))
+                .transition(.blurReplace)
             Text("Astra is reading your week. This takes a minute or two, and you can leave; it will be here when you come back.")
                 .font(.sans(15))
                 .foregroundStyle(FW.Palette.text2)
@@ -1199,7 +1222,7 @@ struct InsightsGenerating: View {
             while !Task.isCancelled, i < lines.count - 1 {
                 try? await Task.sleep(for: .seconds(6))
                 if Task.isCancelled { return }
-                withAnimation(.easeOut(duration: FW.Motion.slow)) { i = min(lines.count - 1, i + 1) }
+                withAnimation(Springs.smooth) { i = min(lines.count - 1, i + 1) }
             }
         }
     }

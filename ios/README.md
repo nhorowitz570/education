@@ -20,7 +20,7 @@ The Xcode project is generated from `project.yml` and isn't committed; run `npm 
 | --- | --- |
 | `Fieldwork/App` | Entry point, tabs (Today · Practice · Tutor · Notebook · You), routing by web path, Siri/Shortcuts intents, public config |
 | `Fieldwork/Core` | Auth (passkeys + email code via Supabase), API client with NDJSON streaming, synced workspace store, prefs, push, sound and haptics, models |
-| `Fieldwork/Design` | Darkroom typography, components, Markdown blocks and the native visual renderers |
+| `Fieldwork/Design` | Type (SF Pro outside lessons), motion (`Motion.swift`), visual kit (`Tiles.swift`), components, Markdown blocks and the native visual renderers |
 | `Fieldwork/Features` | One folder per screen, mirroring `src/components` |
 | `FieldworkWidget` | Home Screen widget (today's session, weekly streak) |
 | `Shared` | Code used by the app and the widget |

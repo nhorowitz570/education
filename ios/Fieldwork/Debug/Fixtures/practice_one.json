@@ -1,0 +1,54 @@
+{
+  "practice": {
+    "id": "a3f8d2c7-6e1b-4a95-8c3d-0b7e9f2a5d14",
+    "title": "Firm terms with a longtime client",
+    "status": "active",
+    "started_at": "2026-09-24T04:05:37.664127+00:00",
+    "practice": {
+      "mode": "conversation",
+      "difficulty": "realistic",
+      "minutes": 8,
+      "voice": "cedar",
+      "topic": "Ask my biggest client, who pays in 60+ days, to move to 30-day payment terms without damaging the relationship",
+      "brief": {
+        "title": "Firm terms with a longtime client",
+        "partner": {
+          "name": "Greg Sullivan",
+          "pronouns": "he/him",
+          "from": "Columbus, Ohio",
+          "role": "Owner of a regional HVAC company and your studio’s biggest client for four years",
+          "stance": "Pays when his own customers pay him, and thinks 60-day terms are normal between partners.",
+          "temperament": "Friendly and loyal, but bristles at anything that sounds like a lecture about money.",
+          "triggers": [
+            "Implying he’s a credit risk",
+            "Quoting “policy” at him instead of talking like a partner",
+            "Springing a late fee without warning"
+          ],
+          "delivery": "Warm, unhurried Midwestern cadence; jokes to deflect, then goes quiet when he’s annoyed."
+        },
+        "situation": "Greg’s company pays your studio about $9,000 a month, usually 55 to 70 days after you invoice. Payroll runs every two weeks, and last month you drew on your credit line to cover it. You’ve asked Greg for a quick call to move him to 30-day terms.",
+        "learner_role": "You own the video studio and handle client relationships.",
+        "learner_goal": "Leave with Greg agreeing to 30-day terms from next month, with the relationship intact.",
+        "opening": "Hey, good to hear from you! Everything okay? You sounded kind of serious in that email.",
+        "complications": [
+          "Greg mentions a competitor who offered him 60-day terms last spring.",
+          "He asks whether there’s a discount if he pays early."
+        ],
+        "success": [
+          "States the ask in the first minute",
+          "Explains the cash impact without blaming Greg",
+          "Acknowledges his constraints and the relationship",
+          "Ends with a specific start date and next step"
+        ],
+        "prep": [
+          "What are your first two sentences?",
+          "What could you offer if he pushes back, and what won’t you give up?",
+          "How will you check you understood his concern?"
+        ]
+      },
+      "channel": null,
+      "transcript": [],
+      "concept": "skill-conversation"
+    }
+  }
+}

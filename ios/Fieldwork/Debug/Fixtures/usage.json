@@ -1,0 +1,33 @@
+{
+  "total": 4.3786,
+  "byTier": {
+    "primary": {
+      "calls": 212,
+      "usd": 2.9148
+    },
+    "fast": {
+      "calls": 139,
+      "usd": 0.0927
+    },
+    "reasoning": {
+      "calls": 3,
+      "usd": 0.8214
+    },
+    "embedding": {
+      "calls": 58,
+      "usd": 0.0012
+    },
+    "voice": {
+      "calls": 3,
+      "usd": 0.5485
+    }
+  },
+  "cacheRate": 0.4127,
+  "limit": 75,
+  "models": {
+    "fast": "gpt-6-luna",
+    "primary": "gpt-6-sol",
+    "reasoning": "gpt-6-astra",
+    "voice": "gpt-live-1"
+  }
+}

@@ -1,0 +1,320 @@
+{
+  "run": {
+    "id": "e7a2b5c8-1d3f-4a69-8b0e-4c7d2f9a6e31",
+    "kind": "session",
+    "title": "Read a simple income statement",
+    "status": "done",
+    "cursor": 7,
+    "beats": [
+      {
+        "id": "gauge-muecrmpy15-q7tz",
+        "type": "gauge",
+        "minutes": 0.5,
+        "intent": "Ask how familiar this idea is before teaching it.",
+        "concept": "income-statement-layers",
+        "status": "done",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "Next up: **The layers of an income statement**. How revenue becomes net income, one deduction at a time: direct costs, running costs, then interest and tax."
+          }
+        ],
+        "response": {
+          "gauge": "heard",
+          "at": "2026-09-23T17:04:40.702Z"
+        }
+      },
+      {
+        "id": "orient-muecs9na16-k2m9",
+        "type": "orient",
+        "minutes": 4,
+        "intent": "Orient a newcomer: what this idea is, why it exists, where it fits, and the few terms they will meet. No questions.",
+        "concept": "income-statement-layers",
+        "status": "done",
+        "generating_at": "2026-09-23T17:04:41.337Z",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "An income statement reads **top to bottom**, and each line answers a different question. Here is Jake’s studio in August:"
+          },
+          {
+            "type": "visual",
+            "visual": {
+              "type": "waterfall",
+              "title": "Carter Creative, August: from revenue to net income",
+              "unit": "$",
+              "start": {
+                "label": "Revenue",
+                "value": 52000
+              },
+              "steps": [
+                {
+                  "label": "Freelance editors & gear rental",
+                  "delta": -15500
+                },
+                {
+                  "label": "Salaries & rent",
+                  "delta": -17800
+                },
+                {
+                  "label": "Software & insurance",
+                  "delta": -2400
+                },
+                {
+                  "label": "Loan interest",
+                  "delta": -600
+                },
+                {
+                  "label": "Income tax (est.)",
+                  "delta": -1700
+                }
+              ],
+              "end_label": "Net income",
+              "takeaway": "The biggest bite comes from running the studio, not from doing the work."
+            }
+          },
+          {
+            "type": "text",
+            "md": "- **Revenue**: what the studio earned delivering work ($52,000).\n- **Gross profit**: revenue minus the *direct* cost of delivering it: freelance editors and gear rental ($36,500).\n- **Operating income**: gross profit minus the cost of *running* the studio: salaries, rent, software ($16,300).\n- **Net income**: what’s left after interest and tax ($14,000): the profit you met on Monday."
+          },
+          {
+            "type": "callout",
+            "md": "Gross profit asks “is the work priced well?” Operating income asks “does the business pay for itself?”"
+          }
+        ],
+        "follow_ups": [
+          "Why isn’t Jake’s salary a direct cost?",
+          "Where does loan repayment show up?"
+        ],
+        "tier": "primary",
+        "asks": [
+          {
+            "id": "3b7e0c95-2d4a-4f18-9c63-8a1e5f7b2d40",
+            "prompt": "Where does my own salary go if I run the studio and also edit?",
+            "quote": "the cost of running the studio: salaries, rent, software",
+            "intent": "free",
+            "blocks": [
+              {
+                "type": "text",
+                "md": "Split it by what you’re doing. Hours you spend editing client work are a **direct cost**, like a freelancer’s. Hours spent selling, managing and doing the books are **operating expenses**. Most small studios keep it simple and put the owner’s whole salary in operating expenses, which makes gross margin look a little better than it is."
+              }
+            ],
+            "follow_ups": [
+              "Does that change the net income?",
+              "What do lenders prefer?"
+            ],
+            "at": "2026-09-23T17:08:12.645Z"
+          }
+        ]
+      },
+      {
+        "id": "explain-muecs9na17-x4fd",
+        "type": "explain",
+        "minutes": 3,
+        "intent": "Explain the one idea needed to resolve the situation.",
+        "concept": "income-statement-layers",
+        "status": "done",
+        "generating_at": "2026-09-23T17:05:09.120Z",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "Why bother with layers? Because a problem shows up at a specific line. If **gross profit** falls, the work itself got less profitable: prices dropped or direct costs rose. If gross profit holds but **operating income** falls, the studio got more expensive to run: a hire, a bigger office, new software.\n\nNotice what’s *not* here: loan **principal** repayments and client payments arriving late. Those move cash, not profit, so they live on the cash flow statement."
+          }
+        ],
+        "follow_ups": [
+          "Show me a month where gross profit fell",
+          "What’s a normal operating margin?"
+        ],
+        "tier": "primary"
+      },
+      {
+        "id": "check-muecs9na18-b8wn",
+        "type": "check",
+        "minutes": 2,
+        "intent": "A decision that tests the idea just explained.",
+        "concept": "income-statement-layers",
+        "status": "done",
+        "generating_at": "2026-09-23T17:10:31.884Z",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "Jake’s gross profit rose from $33,000 in July to $36,500 in August. Operating income fell from $18,900 to $16,300."
+          },
+          {
+            "type": "text",
+            "md": "Which explanation fits best?"
+          }
+        ],
+        "question": {
+          "kind": "choice",
+          "options": [
+            "Clients paid more slowly in August",
+            "He hired a producer and moved to a bigger office in August",
+            "Freelance editor rates went up in August",
+            "He paid down part of the equipment loan"
+          ],
+          "placeholder": null,
+          "long": false
+        },
+        "tier": "primary",
+        "response": {
+          "choice": 1,
+          "confidence": "medium",
+          "at": "2026-09-23T17:15:21.387Z"
+        },
+        "feedback": {
+          "verdict": "solid",
+          "score": 0.9,
+          "blocks": [
+            {
+              "type": "text",
+              "md": "Right. Gross profit went **up**, so the work itself got more profitable; the squeeze came from running costs, and a new hire plus a bigger office is exactly that. Slow payments hurt cash, not profit, and a loan repayment isn’t an expense at all."
+            }
+          ]
+        },
+        "correct_index": 1
+      },
+      {
+        "id": "worked-mued60b819-h3pe",
+        "type": "worked",
+        "minutes": 5,
+        "intent": "A worked example: solve the situation step by step, thinking aloud, so the learner sees the method before using it.",
+        "concept": "gross-vs-operating-margin",
+        "status": "done",
+        "generating_at": "2026-09-23T17:15:22.513Z",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "Margins turn those layers into percentages, so months and businesses of different sizes can be compared. Here’s Jake’s August, step by step."
+          },
+          {
+            "type": "visual",
+            "visual": {
+              "type": "bar",
+              "title": "August revenue by client (hatched: invoiced, not yet paid)",
+              "unit": "$",
+              "bars": [
+                {
+                  "label": "Harbor Dental Group",
+                  "value": 20000,
+                  "tone": "accent",
+                  "pending": 8000,
+                  "note": "Pays in about 60 days"
+                },
+                {
+                  "label": "Brightline Solar",
+                  "value": 15500,
+                  "tone": "default",
+                  "pending": null,
+                  "note": "Paid on delivery"
+                },
+                {
+                  "label": "Folsom Parks & Rec",
+                  "value": 10500,
+                  "tone": "default",
+                  "pending": 4500,
+                  "note": "Pays quarterly"
+                },
+                {
+                  "label": "Small jobs",
+                  "value": 6000,
+                  "tone": "muted",
+                  "pending": null,
+                  "note": null
+                }
+              ],
+              "takeaway": "Margins are worked out on all $52,000, even though $12,500 of it hasn’t arrived."
+            }
+          },
+          {
+            "type": "text",
+            "md": "1. **Gross margin** = gross profit ÷ revenue = $36,500 ÷ $52,000 = **70.2%**. For every dollar of work, about 70 cents is left after paying for the editing and gear.\n2. **Operating margin** = operating income ÷ revenue = $16,300 ÷ $52,000 = **31.3%**. After running the studio, 31 cents per dollar remains.\n3. The gap between them (about 39 points) is overhead. That’s where August’s new hire and office show up."
+          },
+          {
+            "type": "callout",
+            "md": "Both margins count all $52,000, including the $12,500 still unpaid. A margin says nothing about cash."
+          }
+        ],
+        "follow_ups": [
+          "What margin should a studio aim for?",
+          "How would a price increase change both?"
+        ],
+        "tier": "primary"
+      },
+      {
+        "id": "attempt-mued60b81a-v6ra",
+        "type": "attempt",
+        "minutes": 5,
+        "intent": "The learner explains their reasoning or produces a small output; guided if needed.",
+        "concept": "gross-vs-operating-margin",
+        "status": "done",
+        "generating_at": "2026-09-23T17:15:23.071Z",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "Lauren Foster runs a bakery that sells wholesale to cafés. In September she had **$62,000** in revenue, **$41,900** in direct costs (ingredients, packaging and her two bakers’ wages) and **$16,300** in running costs (rent, the delivery van and her own salary).\n\nThat gives her a gross margin of about **32%** and an operating margin of about **6%**."
+          },
+          {
+            "type": "text",
+            "md": "Lauren is deciding whether to raise her wholesale prices. In two or three sentences, which of the two margins tells her more, and why?"
+          }
+        ],
+        "question": {
+          "kind": "text",
+          "options": null,
+          "placeholder": "Two or three sentences…",
+          "long": true
+        },
+        "tier": "primary",
+        "response": {
+          "text": "Gross margin, because pricing is about whether each order covers what it costs to make. At 32% her orders are covering ingredients and bakers, so the thin 6% operating margin is more about her rent and van than her prices.",
+          "confidence": "medium",
+          "at": "2026-09-24T17:12:48.559Z"
+        },
+        "feedback": {
+          "verdict": "partial",
+          "score": 0.68,
+          "blocks": [
+            {
+              "type": "text",
+              "md": "Good instinct to start from gross margin: it shows what each order earns. But the conclusion doesn’t follow. A 6% operating margin means one bad month wipes out her profit, and **raising prices is the fastest way to fix both margins at once**, since overhead stays flat while every order earns more."
+            }
+          ]
+        }
+      },
+      {
+        "id": "recap-mued60b81b-n1cj",
+        "type": "recap",
+        "minutes": 2,
+        "intent": "Close the session.",
+        "status": "done",
+        "generating_at": "2026-09-24T17:13:02.190Z",
+        "blocks": [
+          {
+            "type": "text",
+            "md": "Read an income statement one layer at a time: **gross profit** tells you whether the work is priced well, **operating income** whether the business pays for itself. When one falls and the other doesn’t, you know where to look.\n\nNext time: the balance sheet, where the $12,500 Jake is still owed actually lives."
+          }
+        ],
+        "follow_ups": [
+          "Quiz me on margins tomorrow",
+          "How does this connect to cash?"
+        ],
+        "tier": "primary"
+      }
+    ],
+    "summary": "Nathan read Jake’s August income statement one layer at a time and correctly traced a falling operating income to new overhead. On Lauren’s bakery he picked the right margin to start from but drew the wrong conclusion about pricing; worth revisiting with the balance sheet next week.",
+    "started_at": "2026-09-23T17:04:11.206800+00:00",
+    "minutes_planned": 45,
+    "session": {
+      "id": "w01-wednesday",
+      "title": "Read a simple income statement",
+      "subject": "finance",
+      "date": "2026-09-23",
+      "objective": "Explain and apply: Read a simple income statement"
+    },
+    "break_until": null,
+    "elapsed": 41.8,
+    "adaptive": true,
+    "wrapping": false
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "terms": [
+    {
+      "key": "reflective-listening",
+      "title": "Listen for the need",
+      "track": "communication",
+      "strength": 0.3656998143392241,
+      "level": "learning",
+      "words": "So what I’m hearing is that the invoices keep coming in wrong and you’re frustrated about it.",
+      "phrases": [
+        "listen for the need"
+      ]
+    },
+    {
+      "key": "gross-vs-operating-margin",
+      "title": "Gross versus operating margin",
+      "track": "finance",
+      "strength": 0,
+      "level": "new",
+      "words": null,
+      "phrases": [
+        "gross versus operating margin",
+        "operating margin",
+        "gross"
+      ]
+    },
+    {
+      "key": "bottom-line-first",
+      "title": "State the point first",
+      "track": "communication",
+      "strength": 0.7830278086070986,
+      "level": "practiced",
+      "words": "We’ll miss Friday’s launch by two days. The vendor changed their API on Tuesday and we need until Wednesday to test the fix. If we ship Friday without testing we risk breaking checkout over the weekend.",
+      "phrases": [
+        "state the point first"
+      ]
+    },
+    {
+      "key": "strategic-pause",
+      "title": "The deliberate pause",
+      "track": "communication",
+      "strength": 0.2824735760039594,
+      "level": "learning",
+      "words": null,
+      "phrases": [
+        "the deliberate pause"
+      ]
+    },
+    {
+      "key": "profit-vs-cash",
+      "title": "Profit versus cash",
+      "track": "finance",
+      "strength": 0.7832888503684449,
+      "level": "practiced",
+      "words": "The $4,000 deposit is cash but it isn’t profit yet because Emily hasn’t done the event. Once she caters it and pays $2,500 for food, the profit is about $1,500, and until then she’s holding money she still owes in work.",
+      "phrases": [
+        "profit versus cash",
+        "profit"
+      ]
+    },
+    {
+      "key": "revenue-timing",
+      "title": "When revenue counts",
+      "track": "finance",
+      "strength": 0.3728321901153226,
+      "level": "learning",
+      "words": null,
+      "phrases": [
+        "when revenue counts"
+      ]
+    }
+  ]
+}

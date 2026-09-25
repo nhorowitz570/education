@@ -1,0 +1,414 @@
+{
+  "weeks": [
+    {
+      "id": "4e8b1f6a-9c2d-4b37-a5e0-1f3d7c9b2e86",
+      "week_start": "2026-09-17",
+      "week_end": "2026-09-23",
+      "status": "ready",
+      "seen_at": null,
+      "created_at": "2026-09-24T03:40:12.553600+00:00",
+      "headline": "Two strong sessions and a stalled third; your answers are ahead of your listening.",
+      "focus": "Name the need before you answer",
+      "grades": [
+        {
+          "key": "effort",
+          "score": 71
+        },
+        {
+          "key": "engagement",
+          "score": 74
+        },
+        {
+          "key": "consistency",
+          "score": 62
+        },
+        {
+          "key": "understanding",
+          "score": 70
+        },
+        {
+          "key": "retention",
+          "score": 40
+        },
+        {
+          "key": "transfer",
+          "score": 76
+        },
+        {
+          "key": "calibration",
+          "score": 72
+        },
+        {
+          "key": "communication",
+          "score": 63
+        }
+      ]
+    }
+  ],
+  "insight": {
+    "id": "4e8b1f6a-9c2d-4b37-a5e0-1f3d7c9b2e86",
+    "week_start": "2026-09-17",
+    "week_end": "2026-09-23",
+    "status": "ready",
+    "metrics": {
+      "week": {
+        "start": "2026-09-17",
+        "end": "2026-09-23",
+        "zone": "America/Los_Angeles"
+      },
+      "totals": {
+        "minutes": 141,
+        "days_active": 4,
+        "sessions_started": 4,
+        "sessions_finished": 3,
+        "reviews": 1,
+        "explorations": 1,
+        "rehearsals": 0,
+        "practices": 2,
+        "steps_done": 36,
+        "steps_skipped": 0,
+        "answers": 12,
+        "questions_asked": 4,
+        "words_written": 128,
+        "words_spoken": 698
+      },
+      "by_day": [
+        {
+          "date": "2026-09-17",
+          "minutes": 0,
+          "answers": 0,
+          "asks": 0
+        },
+        {
+          "date": "2026-09-18",
+          "minutes": 23,
+          "answers": 1,
+          "asks": 1
+        },
+        {
+          "date": "2026-09-19",
+          "minutes": 0,
+          "answers": 0,
+          "asks": 0
+        },
+        {
+          "date": "2026-09-20",
+          "minutes": 0,
+          "answers": 0,
+          "asks": 0
+        },
+        {
+          "date": "2026-09-21",
+          "minutes": 44,
+          "answers": 4,
+          "asks": 2
+        },
+        {
+          "date": "2026-09-22",
+          "minutes": 56,
+          "answers": 5,
+          "asks": 0
+        },
+        {
+          "date": "2026-09-23",
+          "minutes": 18,
+          "answers": 2,
+          "asks": 1
+        }
+      ],
+      "by_hour": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        19,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        3,
+        0,
+        0,
+        0
+      ],
+      "schedule": {
+        "planned": 3,
+        "completed": 2,
+        "missed": 0,
+        "skipped_by_choice": 0,
+        "reduced": 0,
+        "optional_steps_taken": 2
+      },
+      "answers": {
+        "total": 12,
+        "solid": 8,
+        "partial": 1,
+        "missed": 3,
+        "skipped": 0,
+        "avg_score": 0.68,
+        "retries": 0,
+        "retries_improved": 0,
+        "words_written": 128,
+        "avg_words": 32,
+        "by_type": {
+          "check": {
+            "n": 8,
+            "avg": 0.68375
+          },
+          "attempt": {
+            "n": 2,
+            "avg": 0.75
+          },
+          "transfer": {
+            "n": 1,
+            "avg": 0.84
+          },
+          "recall": {
+            "n": 1,
+            "avg": 0.3
+          }
+        },
+        "calibration": {
+          "low": {
+            "n": 3,
+            "right": 2
+          },
+          "medium": {
+            "n": 4,
+            "right": 3
+          },
+          "high": {
+            "n": 3,
+            "right": 3
+          }
+        }
+      },
+      "asks": {
+        "total": 4,
+        "by_intent": {
+          "why": 1,
+          "example": 1,
+          "free": 2
+        },
+        "highlighted": 2,
+        "examples": [
+          "So if Jake sends the invoice on Aug 30 but finishes the edit Sept 5, which month gets the revenue?",
+          "Where does my own salary go if I run the studio and also edit?"
+        ]
+      },
+      "practice": [
+        {
+          "mode": "debate",
+          "difficulty": "realistic",
+          "channel": "voice",
+          "minutes": 9,
+          "words_spoken": 412,
+          "score": 0.64,
+          "headline": "Strong on supply effects, but you conceded the tenant-stability point without answering it.",
+          "criteria": [
+            {
+              "name": "Reasoning and evidence",
+              "rating": "strong"
+            },
+            {
+              "name": "Engaging the other side",
+              "rating": "developing"
+            },
+            {
+              "name": "Clarity of the main point",
+              "rating": "developing"
+            }
+          ],
+          "best": "Caps help the people who already have an apartment and hurt the people still looking for one.",
+          "finished": true
+        },
+        {
+          "mode": "conversation",
+          "difficulty": "realistic",
+          "channel": "text",
+          "minutes": 11,
+          "words_spoken": 286,
+          "score": 0.71,
+          "headline": "You named the problem clearly, but let Katie steer the fix instead of agreeing on one.",
+          "criteria": [
+            {
+              "name": "Naming the problem",
+              "rating": "strong"
+            },
+            {
+              "name": "Agreeing a next step",
+              "rating": "focus"
+            },
+            {
+              "name": "Tone under pushback",
+              "rating": "developing"
+            }
+          ],
+          "best": "The draft missed the brief in two places, and I want to fix it together before Friday.",
+          "finished": true
+        }
+      ],
+      "concepts": {
+        "total": 15,
+        "touched": 7,
+        "levels": {
+          "practiced": 2,
+          "learning": 4,
+          "new": 9
+        },
+        "due": 2,
+        "new_misconceptions": [
+          "Treats reflecting as repeating the other person’s words, rather than naming what they need."
+        ]
+      },
+      "samples": [
+        {
+          "step": "attempt",
+          "text": "Because profit is just a number on the report and cash is what’s actually in the bank. Jake made money in August but he’s spent most of it, so now he’s short for payroll.",
+          "verdict": "partial",
+          "confidence": "medium",
+          "retried": false
+        },
+        {
+          "step": "transfer",
+          "text": "The $4,000 deposit is cash but it isn’t profit yet because Emily hasn’t done the event. Once she caters it and pays $2,500 for food, the profit is about $1,500, and until then she’s holding money she still owes in work.",
+          "verdict": "solid",
+          "confidence": "medium",
+          "retried": false
+        },
+        {
+          "step": "attempt",
+          "text": "We’ll miss Friday’s launch by two days. The vendor changed their API on Tuesday and we need until Wednesday to test the fix. If we ship Friday without testing we risk breaking checkout over the weekend.",
+          "verdict": "solid",
+          "confidence": "high",
+          "retried": false
+        },
+        {
+          "step": "recall",
+          "text": "So what I’m hearing is that the invoices keep coming in wrong and you’re frustrated about it.",
+          "verdict": "missed",
+          "confidence": "low",
+          "retried": false
+        }
+      ],
+      "empty": false
+    },
+    "report": {
+      "headline": "Two strong sessions and a stalled third; your answers are ahead of your listening.",
+      "summary": "You finished Monday and Tuesday in full, asked good questions, and stopped Wednesday four steps in. Your written answers are sharp; hearing what the other person needs is the skill that’s behind.",
+      "data_note": "A first read built on four active days, so treat every grade as provisional.",
+      "grades": [
+        {
+          "key": "effort",
+          "score": 71,
+          "confidence": "medium",
+          "label": "Showing up",
+          "evidence": "141 active minutes over 4 days, and both finished sessions ran their full 45 minutes."
+        },
+        {
+          "key": "engagement",
+          "score": 74,
+          "confidence": "medium",
+          "label": "Curious",
+          "evidence": "Four questions to the tutor, two about a passage you highlighted, plus an evening side trip into buybacks."
+        },
+        {
+          "key": "consistency",
+          "score": 62,
+          "confidence": "medium",
+          "label": "Mostly there",
+          "evidence": "Two of three planned sessions finished; Wednesday’s stopped after the fourth step and is still open."
+        },
+        {
+          "key": "understanding",
+          "score": 70,
+          "confidence": "medium",
+          "label": "Solid start",
+          "evidence": "8 of 12 answers were solid (average 0.68); new ideas landed best after a worked example."
+        },
+        {
+          "key": "retention",
+          "score": 40,
+          "confidence": "low",
+          "label": "Too early",
+          "evidence": "Only one review so far, and that recall on reflective listening missed (0.30)."
+        },
+        {
+          "key": "transfer",
+          "score": 76,
+          "confidence": "medium",
+          "label": "Carries over",
+          "evidence": "Your catering-deposit answer scored 0.84: you moved Jake’s cash problem to a new business unaided."
+        },
+        {
+          "key": "calibration",
+          "score": 72,
+          "confidence": "low",
+          "label": "Honest",
+          "evidence": "Certain answers were right 3 of 3 times and guesses 2 of 3, though ten ratings is a small sample."
+        },
+        {
+          "key": "communication",
+          "score": 63,
+          "confidence": "medium",
+          "label": "Clear, not steady",
+          "evidence": "Two practices scored 0.64 and 0.71: strong openings, but you conceded points without answering them."
+        }
+      ],
+      "patterns": [
+        {
+          "kind": "strength",
+          "title": "Point first, and it sticks",
+          "body": "Your launch update led with the answer and the risk, and scored 0.88. You did it again unprompted in Tuesday’s practice."
+        },
+        {
+          "kind": "watch",
+          "title": "Listening lags speaking",
+          "body": "Reflective listening missed twice, once in the session and once in review, both times by repeating words instead of naming the need."
+        },
+        {
+          "kind": "observation",
+          "title": "Evenings are for side trips",
+          "body": "Sessions happen at 10am; the exploration, both practices and the review all happened after 6pm."
+        }
+      ],
+      "mind": [
+        {
+          "title": "You ask before you guess",
+          "body": "When a passage was unclear you highlighted it and asked, rather than pushing on to the question."
+        },
+        {
+          "title": "Sure answers are earned",
+          "body": "You only said “certain” three times and were right each time; you hedge honestly when you’re unsure."
+        }
+      ],
+      "moment": {
+        "quote": "The $4,000 deposit is cash but it isn’t profit yet because Emily hasn’t done the event.",
+        "why": "That’s Monday’s idea running in reverse, in a business you’d never seen: real transfer."
+      },
+      "focus": {
+        "title": "Name the need before you answer",
+        "why": "Your weakest skill is also the one your goals lean on most in hard conversations.",
+        "try": "In one real conversation a day, say back what the other person needs before giving your view.",
+        "adopted": null
+      },
+      "focus_check": null
+    },
+    "model": "openai/gpt-6-astra",
+    "error": null,
+    "seen_at": null,
+    "created_at": "2026-09-24T03:40:12.553600+00:00",
+    "updated_at": "2026-09-24T03:44:57.902511+00:00"
+  }
+}

@@ -16,7 +16,7 @@ struct TodayView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 22) {
+            VStack(alignment: .leading, spacing: 28) {
                 if let d = today.value {
                     header(d)
                     content(d)
@@ -56,29 +56,55 @@ struct TodayView: View {
 
     // MARK: Header
 
+    // The date and a greeting, with the streak and level to the right.
     private func header(_ d: TodayResponse) -> some View {
         let t = d.today
-        let date = Day.date(d.date).map { $0.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day()) } ?? ""
-        let week = t.week.flatMap { w in t.phase == "before-start" ? nil : " · Week \(w.index)\(w.total > 0 ? " of \(w.total)" : "")" } ?? ""
-        return HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 10) {
-                Text((date + week).uppercased()).font(.mono(11)).tracking(1).foregroundStyle(FW.Palette.text3)
+        let date = Day.date(d.date).map { $0.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()) } ?? ""
+        let week = t.week.flatMap { w in t.phase == "before-start" ? nil : " · Week \(w.index)" } ?? ""
+        return HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(date + week).font(.sans(14, .semibold)).foregroundStyle(FW.Palette.text3)
                 Text(greeting)
-                    .font(.display(40))
+                    .font(.sans(30, .bold))
                     .foregroundStyle(FW.Palette.text)
-                    .minimumScaleFactor(0.8)
+                    .minimumScaleFactor(0.75)
                     .lineLimit(2)
             }
-            Spacer()
+            Spacer(minLength: 0)
+            if let p = progress.value, store.prefs.game.streak || store.prefs.game.xp {
+                Button { progressSheet = true } label: {
+                    HStack(spacing: 8) {
+                        if store.prefs.game.streak {
+                            HStack(spacing: 4) {
+                                Image(systemName: "flame.fill")
+                                    .foregroundStyle(p.streak.todayDone ? FW.Palette.coral : FW.Palette.text4)
+                                    .symbolEffect(.bounce, value: p.streak.todayDone)
+                                Text("\(p.streak.current)").font(.rounded(16, .bold)).foregroundStyle(FW.Palette.text)
+                                    .contentTransition(.numericText())
+                            }
+                        }
+                        if store.prefs.game.xp { LevelRing(level: p.level, fraction: p.fraction, size: 34) }
+                    }
+                    .padding(.leading, store.prefs.game.streak ? 12 : 4)
+                    .padding(.trailing, 4)
+                    .frame(height: 44)
+                    .background(FW.Palette.raised, in: .capsule)
+                    .overlay(Capsule().strokeBorder(FW.Palette.line))
+                }
+                .buttonStyle(.pressable)
+                .accessibilityLabel("Level \(p.level), \(p.streak.current) \(p.streak.unit == "week" ? "week" : "day") streak")
+                .rise(1)
+            }
         }
         .padding(.top, 12)
+        .rise(0)
     }
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
         let part = hour < 5 ? "Late night" : hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening"
         let name = store.plan?["profile"]?["name"]?.string?.split(separator: " ").first.map(String.init) ?? ""
-        return name.isEmpty ? "\(part)." : "\(part), \(name)."
+        return name.isEmpty ? part : "\(part), \(name)"
     }
 
     // MARK: Content
@@ -87,109 +113,106 @@ struct TodayView: View {
     private func content(_ d: TodayResponse) -> some View {
         let t = d.today
         if t.phase == "no-plan" {
-            VStack(alignment: .leading, spacing: 14) {
-                Text(t.headline).font(.display(30, italic: true)).foregroundStyle(FW.Palette.text)
-                Text(t.why).font(.sans(16)).foregroundStyle(FW.Palette.text2)
+            VStack(alignment: .leading, spacing: 16) {
+                IconBadge(systemName: "map", color: FW.Palette.accent, size: 48)
+                Text(t.headline).font(.sans(24, .bold)).foregroundStyle(FW.Palette.text)
+                Text(t.why).font(.sans(15)).foregroundStyle(FW.Palette.text2).lineLimit(3)
                 Button { router.push(.importPlan, on: .today) } label: {
                     Label("Import a plan", systemImage: "arrow.right").labelStyle(TrailingIcon())
                 }
-                .buttonStyle(.fw(.primary))
-                .padding(.top, 6)
+                .buttonStyle(.fw(.primary, wide: true))
+                .padding(.top, 4)
             }
-            .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 24)
+            .card(FW.Radius.xl, fill: FW.Palette.raised, padding: 22)
+            .rise(1)
         } else if t.phase == "done-today", let recap = d.recap {
             RecapCard(t: t, recap: recap, xp: progress.value?.todayXp ?? 0, busy: busy) { run($0) }
+                .rise(1)
         } else {
-            BriefCard(t: t, agenda: agenda(t), brief: brief, loading: briefLoading, number: dayNumber(d.date), busy: busy, error: startError) { run($0) }
+            BriefCard(t: t, agenda: agenda(t), brief: brief, loading: briefLoading, busy: busy, error: startError) { run($0) }
+                .rise(1)
+        }
+        if let s = t.startsIn {
+            HStack(spacing: 16) {
+                Text("\(s)").font(.rounded(44, .bold)).foregroundStyle(FW.Palette.text).contentTransition(.numericText())
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(s == 1 ? "day to go" : "days to go").font(.sans(16, .semibold)).foregroundStyle(FW.Palette.text)
+                    Text("Your plan starts soon").font(.sans(13)).foregroundStyle(FW.Palette.text3)
+                }
+                Spacer()
+                IconBadge(systemName: "hourglass", color: FW.Palette.review, size: 44)
+            }
+            .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 16)
+            .rise(2)
         }
         LearnAnything(busy: busy == "explore", disabled: busy != nil) { topic in
             run(TodayAction(kind: "explore", label: "Explore", detail: ""), topic: topic)
         }
-        more(d)
-        if let p = progress.value, store.prefs.anyGame, t.phase != "before-start" || p.xp > 0 {
-            ProgressStrip(progress: p, prefs: store.prefs) { progressSheet = true }
-        }
-        if let s = t.startsIn {
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                Text("\(s)").font(.display(56)).foregroundStyle(FW.Palette.text).monospacedDigit()
-                Text(s == 1 ? "day until it starts" : "days until it starts").font(.sans(15)).foregroundStyle(FW.Palette.text2)
-            }
-        }
-        if t.week != nil { WeekStrip(t: t) }
+        .rise(2)
+        if t.week != nil { WeekStrip(t: t).rise(3) }
+        more(d).rise(4)
     }
 
-    @ViewBuilder
+    // Other ways in, as a grid: pick up where you left off, the week ahead,
+    // the weekly read, review and practice, progress and the plan.
     private func more(_ d: TodayResponse) -> some View {
         let t = d.today
         let resume = t.secondary.first { $0.kind == "resume" }
         let tiles = t.secondary.filter { ["review", "rehearsal", "practice"].contains($0.kind) }
-        if t.next != nil || d.insight != nil || resume != nil || d.exploring != nil {
-            VStack(spacing: 0) {
-                if let n = t.next {
-                    Button { router.push(.learn, on: .today) } label: {
-                        IndexRow(icon: "calendar", title: n.ready ? "Next week is ready to shape" : "Shape next week",
-                                 detail: n.ready ? (n.note ?? "\(n.sessions) sessions drafted. Change anything until Monday.") : "Drafted Sunday at noon, or now if you like.") {
-                            HStack(spacing: 10) {
-                                if n.ready { Dot(color: FW.Palette.review, lit: true) }
-                                Image(systemName: "chevron.right")
-                            }
-                        }
-                    }
-                }
-                if let i = d.insight {
-                    Button { router.push(.insights, on: .today) } label: {
-                        IndexRow(icon: "scope", title: "Your week, read honestly", detail: i.headline, tint: FW.Palette.review) {
-                            HStack(spacing: 10) { Dot(color: FW.Palette.review, lit: true); Image(systemName: "chevron.right") }
-                        }
-                    }
-                }
+        return VStack(alignment: .leading, spacing: 12) {
+            SectionHead(title: "More")
+            LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
                 if let r = resume {
-                    Button { run(r) } label: { IndexRow(icon: "play.fill", title: r.label, detail: r.detail) }
+                    Button { run(r) } label: { Tile(icon: "play.fill", title: r.label, caption: r.detail, color: FW.Palette.accent) }
                         .disabled(busy != nil)
                 }
                 if let e = d.exploring {
-                    Button { router.cover = .session(e.id) } label: { IndexRow(icon: "sparkles", title: "Pick up your exploration", detail: e.title) }
+                    Button { router.cover = .session(e.id) } label: { Tile(icon: "sparkles", title: "Your exploration", caption: e.title, color: FW.Palette.judgment) }
                 }
-            }
-            .buttonStyle(.plain)
-            .foregroundStyle(FW.Palette.text3)
-        }
-        if !tiles.isEmpty {
-            LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                if let i = d.insight {
+                    Button { router.push(.insights, on: .today) } label: {
+                        Tile(icon: "scope", title: "Your week, read honestly", caption: i.headline, color: FW.Palette.review, badge: "New")
+                    }
+                }
                 ForEach(tiles, id: \.label) { s in
                     Button { run(s) } label: {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Image(systemName: s.kind == "practice" ? "waveform" : s.kind == "review" ? "arrow.clockwise" : "target")
-                                .font(.system(size: 15))
-                                .foregroundStyle(s.kind == "review" ? FW.Palette.review : FW.Palette.text2)
-                                .frame(width: 36, height: 36)
-                                .background(FW.Palette.surface, in: .rect(cornerRadius: FW.Radius.sm))
-                            Text(s.kind == "practice" ? "Practise out loud" : s.label).font(.sans(15, .medium)).foregroundStyle(FW.Palette.text)
-                                .multilineTextAlignment(.leading)
-                            Text(s.kind == "practice" ? "Debate, pitch, hard talks" : s.kind == "review" ? "About \(Int(s.minutes ?? 5)) min" : "30-minute mock")
-                                .font(.sans(13)).foregroundStyle(FW.Palette.text3)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 14)
+                        Tile(icon: Glyph.kind(s.kind),
+                             title: s.kind == "practice" ? "Practise out loud" : s.label,
+                             caption: s.kind == "practice" ? "Debate, pitch, hard talks" : s.kind == "review" ? "About \(Int(s.minutes ?? 5)) min" : "30-minute mock",
+                             color: s.kind == "review" ? FW.Palette.review : s.kind == "practice" ? FW.Palette.communication : FW.Palette.judgment)
                     }
-                    .buttonStyle(.plain)
                     .disabled(busy != nil)
                 }
+                if let n = t.next {
+                    Button { router.push(.learn, on: .today) } label: {
+                        Tile(icon: "calendar.badge.plus", title: n.ready ? "Next week is ready" : "Shape next week",
+                             caption: n.ready ? "\(n.sessions) sessions drafted" : "Drafted Sunday at noon",
+                             color: FW.Palette.review, badge: n.ready ? "Ready" : nil)
+                    }
+                } else {
+                    Button { router.push(.learn, on: .today) } label: {
+                        Tile(icon: "calendar", title: "Your plan", caption: "This week and next", color: FW.Palette.finance)
+                    }
+                }
+                Button { router.push(.mastery, on: .today) } label: {
+                    Tile(icon: "chart.bar.fill", title: "Progress", caption: "What’s sticking", color: FW.Palette.positive)
+                }
             }
+            .buttonStyle(.pressable)
         }
     }
 
     private var skeleton: some View {
         VStack(alignment: .leading, spacing: 16) {
             Skeleton(width: 120, height: 12).padding(.top, 20)
-            Skeleton(height: 44).frame(maxWidth: 260)
+            Skeleton(height: 34).frame(maxWidth: 260)
             VStack(alignment: .leading, spacing: 16) {
-                Skeleton(width: 120, height: 12)
-                Skeleton(height: 52).frame(maxWidth: 280)
+                Skeleton(width: 44, height: 44, radius: 14)
+                Skeleton(height: 28).frame(maxWidth: 260)
                 Skeleton(height: 14).frame(maxWidth: 200)
-                Skeleton(width: 160, height: 54, radius: 16).padding(.top, 10)
+                Skeleton(height: 52, radius: 26).padding(.top, 10)
             }
-            .card(FW.Radius.lg, fill: FW.Palette.raised, padding: 24)
+            .card(FW.Radius.xl, fill: FW.Palette.raised, padding: 22)
         }
     }
 
@@ -209,12 +232,6 @@ struct TodayView: View {
             if s.kind == "practice" { out.append(.init(label: "Practise it out loud", kind: "practice", minutes: nil, track: "communication", action: s)) }
         }
         return out
-    }
-
-    private func dayNumber(_ date: String) -> Int? {
-        guard let start = store.plan?["weeks"]?[0]?["start_date"]?.string, let a = Day.date(start), let b = Day.date(date) else { return nil }
-        let n = Int((b.timeIntervalSince(a) / 86400).rounded()) + 1
-        return n > 0 ? n : nil
     }
 
     // Written once a day from what the learner did; kept for the day.

@@ -1,0 +1,168 @@
+{
+  "today": {
+    "greeting": "Good morning, Nathan.",
+    "next": {
+      "start": "2026-09-28",
+      "ready": true,
+      "sessions": 5,
+      "note": "Next week connects the two main statements and trims your answers to what the listener actually needs."
+    },
+    "week": {
+      "index": 1,
+      "total": 0,
+      "days": [
+        {
+          "date": "2026-09-21",
+          "weekday": "Mon",
+          "track": "finance",
+          "title": "Profit versus cash",
+          "status": "done"
+        },
+        {
+          "date": "2026-09-22",
+          "weekday": "Tue",
+          "track": "communication",
+          "title": "Listen, pause, state the point",
+          "status": "done"
+        },
+        {
+          "date": "2026-09-23",
+          "weekday": "Wed",
+          "track": "finance",
+          "title": "Read a simple income statement",
+          "status": "open"
+        },
+        {
+          "date": "2026-09-24",
+          "weekday": "Thu",
+          "track": "judgment",
+          "title": "Federal versus state powers; claims versus evidence",
+          "status": "today"
+        },
+        {
+          "date": "2026-09-25",
+          "weekday": "Fri",
+          "track": "review",
+          "title": "Weekly review: connect cash, context and evidence",
+          "status": "planned"
+        }
+      ],
+      "done": 2,
+      "planned": 5
+    },
+    "focus": {
+      "title": "Federal versus state powers; claims versus evidence",
+      "subject": "judgment",
+      "objective": "Explain and apply: Federal versus state powers; claims versus evidence",
+      "evidence": "Explain why a profitable company could run out of cash",
+      "date": "2026-09-24",
+      "minutes": 45
+    },
+    "due": {
+      "count": 2,
+      "minutes": 6
+    },
+    "milestone": {
+      "title": "Cash briefing and delegation",
+      "date": "2026-12-17",
+      "days": 84
+    },
+    "startsIn": null,
+    "phase": "learning-day",
+    "headline": "Federal versus state powers; claims versus evidence",
+    "why": "Judgment · 45 min · starts with 2 quick recalls",
+    "primary": {
+      "kind": "session",
+      "label": "Begin",
+      "detail": "Federal versus state powers; claims versus evidence",
+      "sessionId": "w01-thursday",
+      "minutes": 45,
+      "track": "judgment"
+    },
+    "secondary": [
+      {
+        "kind": "session",
+        "label": "Only 20 minutes",
+        "detail": "Keep the objective, trim the rest.",
+        "sessionId": "w01-thursday",
+        "minutes": 20,
+        "track": "judgment"
+      },
+      {
+        "kind": "practice",
+        "label": "Practise out loud",
+        "detail": "A debate, a hard conversation or a pitch, by voice."
+      },
+      {
+        "kind": "explore",
+        "label": "Explore something",
+        "detail": "Ask about anything you’re curious about. It still counts."
+      }
+    ]
+  },
+  "date": "2026-09-24",
+  "mapped": true,
+  "preview": [
+    {
+      "type": "recall",
+      "minutes": 2.0454545454545454
+    },
+    {
+      "type": "situation",
+      "minutes": 2.0454545454545454
+    },
+    {
+      "type": "orient",
+      "minutes": 4.090909090909091
+    },
+    {
+      "type": "worked",
+      "minutes": 5.113636363636363
+    },
+    {
+      "type": "check",
+      "minutes": 2.0454545454545454
+    },
+    {
+      "type": "attempt",
+      "minutes": 5.113636363636363
+    },
+    {
+      "type": "transfer",
+      "minutes": 4.090909090909091
+    },
+    {
+      "type": "situation",
+      "minutes": 2.0454545454545454
+    },
+    {
+      "type": "orient",
+      "minutes": 4.090909090909091
+    },
+    {
+      "type": "worked",
+      "minutes": 5.113636363636363
+    },
+    {
+      "type": "check",
+      "minutes": 2.0454545454545454
+    },
+    {
+      "type": "attempt",
+      "minutes": 5.113636363636363
+    },
+    {
+      "type": "recap",
+      "minutes": 2.0454545454545454
+    }
+  ],
+  "insight": {
+    "id": "4e8b1f6a-9c2d-4b37-a5e0-1f3d7c9b2e86",
+    "headline": "Two strong sessions and a stalled third; your answers are ahead of your listening."
+  },
+  "exploring": null,
+  "recap": null,
+  "memories": {
+    "fresh": 2
+  }
+}

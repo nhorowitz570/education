@@ -14,7 +14,11 @@ enum Demo {
         let action = body.flatMap { try? JSONDecoder().decode(JSON.self, from: $0) }?["action"]?.string
         let name: String
         switch (method, route) {
-        case ("GET", "/api/state"), ("POST", "/api/actions"): name = "state"
+        case ("GET", "/api/state"), ("POST", "/api/actions"):
+            // The fixture's workspace, handed to whoever the demo signed in as.
+            guard let data = load("state"), case .object(var json)? = try? JSONDecoder().decode(JSON.self, from: data) else { return nil }
+            json["ownerId"] = .string("demo")
+            return try? JSONEncoder().encode(JSON.object(json))
         case ("GET", "/api/today"): name = "today"
         case ("POST", "/api/today/brief"): name = "today_brief"
         case ("GET", "/api/progress"): name = "progress"

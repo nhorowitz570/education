@@ -1,0 +1,491 @@
+{
+  "concepts": [
+    {
+      "key": "profit-vs-cash",
+      "title": "Profit versus cash",
+      "track": "finance",
+      "summary": "Profit is earned over a period; cash is what’s in the account now. They drift apart whenever money arrives or leaves at a different time from when work is counted.",
+      "prerequisites": [],
+      "sessions": [
+        "w01-monday"
+      ],
+      "position": 0,
+      "strength": 0.7832888503684449,
+      "recall": 0.90188183580649,
+      "level": "practiced",
+      "due_at": "2026-09-24T18:13:04.157Z",
+      "last_seen_at": "2026-09-21T17:28:30.941Z",
+      "successes": 3,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": {
+        "p_known": 0.8366475601069847,
+        "stability": 3.0309399999999997,
+        "exposures": 4,
+        "last_seen_at": "2026-09-21T17:28:30.941Z"
+      }
+    },
+    {
+      "key": "revenue-timing",
+      "title": "When revenue counts",
+      "track": "finance",
+      "summary": "Revenue belongs to the period the work is delivered, not when it is invoiced or paid. Invoices create receivables; payments turn them into cash.",
+      "prerequisites": [
+        "profit-vs-cash"
+      ],
+      "sessions": [
+        "w01-monday",
+        "w03-wednesday"
+      ],
+      "position": 1,
+      "strength": 0.3728321901153226,
+      "recall": 0.8720900322969772,
+      "level": "learning",
+      "due_at": "2026-09-22T17:44:05.630Z",
+      "last_seen_at": "2026-09-21T17:44:05.630Z",
+      "successes": 1,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": {
+        "p_known": 0.40664091741385994,
+        "stability": 2.24,
+        "exposures": 2,
+        "last_seen_at": "2026-09-21T17:44:05.630Z"
+      }
+    },
+    {
+      "key": "bottom-line-first",
+      "title": "State the point first",
+      "track": "communication",
+      "summary": "Lead with the answer, then the reason, then what you need, so a busy listener gets the part they asked for in the first sentence.",
+      "prerequisites": [],
+      "sessions": [
+        "w01-tuesday"
+      ],
+      "position": 2,
+      "strength": 0.7830278086070986,
+      "recall": 0.9290511350742401,
+      "level": "practiced",
+      "due_at": "2026-09-25T14:13:16.670Z",
+      "last_seen_at": "2026-09-22T17:23:47.390Z",
+      "successes": 2,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": {
+        "p_known": 0.8208843363412862,
+        "stability": 2.8677000000000006,
+        "exposures": 3,
+        "last_seen_at": "2026-09-22T17:23:47.390Z"
+      }
+    },
+    {
+      "key": "strategic-pause",
+      "title": "The deliberate pause",
+      "track": "communication",
+      "summary": "A short pause before answering a pointed question signals thought, not evasion, and keeps you from filling silence with background.",
+      "prerequisites": [],
+      "sessions": [
+        "w01-tuesday"
+      ],
+      "position": 3,
+      "strength": 0.2824735760039594,
+      "recall": 0.7331171492543549,
+      "level": "learning",
+      "due_at": "2026-09-23T07:55:14.208Z",
+      "last_seen_at": "2026-09-22T17:31:14.208Z",
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": {
+        "p_known": 0.34176,
+        "stability": 0.6,
+        "exposures": 2,
+        "last_seen_at": "2026-09-22T17:31:14.208Z"
+      }
+    },
+    {
+      "key": "reflective-listening",
+      "title": "Listen for the need",
+      "track": "communication",
+      "summary": "Say back what the other person needs, not just the words they used, so they can correct you before you solve the wrong problem.",
+      "prerequisites": [],
+      "sessions": [
+        "w01-tuesday",
+        "w03-tuesday"
+      ],
+      "position": 4,
+      "strength": 0.3656998143392241,
+      "recall": 0.9263287873293996,
+      "level": "learning",
+      "due_at": "2026-09-24T22:02:52.871Z",
+      "last_seen_at": "2026-09-24T03:13:55.271Z",
+      "successes": 1,
+      "lapses": 1,
+      "misconceptions": [
+        "Treats reflecting as repeating the other person’s words, rather than naming what they need."
+      ],
+      "model": {
+        "p_known": 0.38409258245177735,
+        "stability": 0.784,
+        "exposures": 4,
+        "last_seen_at": "2026-09-24T03:13:55.271Z"
+      }
+    },
+    {
+      "key": "income-statement-layers",
+      "title": "The layers of an income statement",
+      "track": "finance",
+      "summary": "How revenue becomes net income, one deduction at a time: direct costs, running costs, then interest and tax.",
+      "prerequisites": [
+        "revenue-timing"
+      ],
+      "sessions": [
+        "w01-wednesday"
+      ],
+      "position": 5,
+      "strength": 0.5125006833789166,
+      "recall": 0.956209127666958,
+      "level": "learning",
+      "due_at": "2026-09-26T02:08:09.387Z",
+      "last_seen_at": "2026-09-23T17:15:21.387Z",
+      "successes": 1,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": {
+        "p_known": 0.5275159322260586,
+        "stability": 2.37,
+        "exposures": 2,
+        "last_seen_at": "2026-09-23T17:15:21.387Z"
+      }
+    },
+    {
+      "key": "gross-vs-operating-margin",
+      "title": "Gross versus operating margin",
+      "track": "finance",
+      "summary": "Gross margin shows whether the work is priced well; operating margin shows whether the business pays for itself after overhead.",
+      "prerequisites": [
+        "income-statement-layers"
+      ],
+      "sessions": [
+        "w01-wednesday"
+      ],
+      "position": 6,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "federal-vs-state-powers",
+      "title": "Federal versus state powers",
+      "track": "judgment",
+      "summary": "Which decisions the Constitution gives to Washington, which it leaves to the states, and where the two collide.",
+      "prerequisites": [],
+      "sessions": [
+        "w01-thursday"
+      ],
+      "position": 7,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "claims-vs-evidence",
+      "title": "Claims versus evidence",
+      "track": "judgment",
+      "summary": "Separate what someone asserts from what would show it’s true, and ask what evidence would change your mind.",
+      "prerequisites": [],
+      "sessions": [
+        "w01-thursday",
+        "w03-thursday",
+        "w04-thursday"
+      ],
+      "position": 8,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "weekly-synthesis",
+      "title": "Connecting the week",
+      "track": "review",
+      "summary": "Pull separate ideas into one explanation in your own words, the habit behind every portfolio piece.",
+      "prerequisites": [],
+      "sessions": [
+        "rev-01",
+        "rev-02",
+        "rev-03"
+      ],
+      "position": 9,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "balance-sheet-equation",
+      "title": "Assets, liabilities and equity",
+      "track": "finance",
+      "summary": "What a business owns equals what it owes plus what belongs to its owners, and how that snapshot pairs with the income statement.",
+      "prerequisites": [
+        "income-statement-layers"
+      ],
+      "sessions": [
+        "w02-monday",
+        "w02-wednesday"
+      ],
+      "position": 10,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "right-amount-of-context",
+      "title": "The right amount of context",
+      "track": "communication",
+      "summary": "Give the listener only the background they need to act on your point, and hold the rest until they ask.",
+      "prerequisites": [
+        "bottom-line-first"
+      ],
+      "sessions": [
+        "w02-tuesday",
+        "w04-tuesday"
+      ],
+      "position": 11,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "facts-vs-values",
+      "title": "Facts versus values",
+      "track": "judgment",
+      "summary": "Tell apart disagreements about what is true from disagreements about what matters, and how Congress, the president and the courts divide power.",
+      "prerequisites": [
+        "claims-vs-evidence"
+      ],
+      "sessions": [
+        "w02-thursday"
+      ],
+      "position": 12,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "cash-flow-statement",
+      "title": "The three kinds of cash flow",
+      "track": "finance",
+      "summary": "Operating, investing and financing cash flows, and why a growing business can burn cash while reporting a profit.",
+      "prerequisites": [
+        "profit-vs-cash",
+        "balance-sheet-equation"
+      ],
+      "sessions": [
+        "w03-monday"
+      ],
+      "position": 13,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    },
+    {
+      "key": "fixed-vs-variable-costs",
+      "title": "Fixed and variable costs",
+      "track": "finance",
+      "summary": "Which costs move with each job and which don’t, and how that sets a break-even point.",
+      "prerequisites": [
+        "gross-vs-operating-margin"
+      ],
+      "sessions": [
+        "w04-monday",
+        "w04-wednesday"
+      ],
+      "position": 14,
+      "strength": 0,
+      "recall": 0,
+      "level": "new",
+      "due_at": null,
+      "last_seen_at": null,
+      "successes": 0,
+      "lapses": 0,
+      "misconceptions": [],
+      "model": null
+    }
+  ],
+  "mapped": true,
+  "hasPlan": true,
+  "evidence": [],
+  "practice": [
+    {
+      "id": "9b4e1c7a-2f5d-4e83-a1b6-8d0c3f7e2a59",
+      "title": "Feedback on a missed deliverable",
+      "date": "2026-09-23T02:40:15.338311+00:00",
+      "mode": "conversation",
+      "score": 0.71,
+      "headline": "You named the problem clearly, but let Katie steer the fix instead of agreeing on one."
+    },
+    {
+      "id": "6c1a9e4f-8b3d-4f27-9e5a-2d7b0c1f8e63",
+      "title": "Does rent control help renters?",
+      "date": "2026-09-19T01:52:40.271488+00:00",
+      "mode": "debate",
+      "score": 0.64,
+      "headline": "Strong on supply effects, but you conceded the tenant-stability point without answering it."
+    },
+    {
+      "id": "f2e7b0d5-3a9c-4d16-b8f4-5e1a6c9d0b72",
+      "title": "Explain the 401(k) match",
+      "date": "2026-09-17T02:31:05.772727+00:00",
+      "mode": "explain",
+      "score": 0.58,
+      "headline": "Accurate, but you started with vesting rules before saying why the match is free money."
+    }
+  ],
+  "history": [
+    {
+      "id": "1a6f3d28-7c4e-4b95-8d21-9e0b5c3a7f64",
+      "kind": "review",
+      "title": "Review",
+      "date": "2026-09-24T03:16:40.905400+00:00",
+      "summary": "A quick review of reflective listening. Nathan still restated the client’s complaint instead of naming the need behind it; worth another pass soon."
+    },
+    {
+      "id": "c41d7e06-9a2b-4f58-b3e7-6d1f0a8c2b95",
+      "kind": "session",
+      "title": "Listen, pause, state the point",
+      "date": "2026-09-22T17:52:10.227111+00:00",
+      "summary": "Nathan rewrote a delay update so the point came first and handled the check on it cleanly. He wasn’t sure when a pause helps and asked to be taught. Reflective listening tripped him up: he paraphrased words rather than naming the need, then got it right on a second try."
+    },
+    {
+      "id": "8f3c2a91-4b7e-4d2f-a6c1-2e9b5d7f0a13",
+      "kind": "session",
+      "title": "Profit versus cash",
+      "date": "2026-09-21T17:49:31.604088+00:00",
+      "summary": "Nathan separated profit from cash in Jake’s video studio, chose the right explanation for a thin bank balance, and applied it to a catering deposit. His first written explanation blamed spending rather than slow collections; the transfer answer fixed that. Revenue timing is new and still shaky."
+    },
+    {
+      "id": "2d9e6f13-5c8a-4b71-9f02-7a3e1c4b8d56",
+      "kind": "explore",
+      "title": "How do stock buybacks actually help shareholders?",
+      "date": "2026-09-19T01:46:02.733927+00:00",
+      "summary": "Nathan explored how buybacks return cash to shareholders by shrinking the share count, and why they are not automatically good: price paid matters."
+    }
+  ],
+  "weeks": [
+    {
+      "week": "2026-08-06",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-08-13",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-08-20",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-08-27",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-09-03",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-09-10",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-09-17",
+      "count": 0,
+      "solid": 0
+    },
+    {
+      "week": "2026-09-24",
+      "count": 18,
+      "solid": 7
+    }
+  ],
+  "calibration": {
+    "low": {
+      "n": 3,
+      "right": 2
+    },
+    "medium": {
+      "n": 4,
+      "right": 3
+    },
+    "high": {
+      "n": 3,
+      "right": 3
+    }
+  },
+  "milestones": [
+    {
+      "date": "2026-12-17",
+      "title": "Cash briefing and delegation"
+    },
+    {
+      "date": "2027-03-04",
+      "title": "Defend a decision"
+    },
+    {
+      "date": "2027-06-05",
+      "title": "Portfolio review"
+    }
+  ]
+}
